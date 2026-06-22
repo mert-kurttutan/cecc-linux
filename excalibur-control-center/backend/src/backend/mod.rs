@@ -34,4 +34,3 @@ pub trait Backend {
         color: RgbColor,
     ) -> Result<(), BackendError>;
 }
-

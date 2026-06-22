@@ -1,0 +1,8 @@
+[package]
+name = "excalibur-control-center-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+excalibur-control-center-backend = { path = "../backend" }

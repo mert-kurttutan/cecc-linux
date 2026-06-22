@@ -75,4 +75,3 @@ pub struct ControlCenterState {
     pub gpu_mode: Option<GpuMode>,
     pub keyboard_zones: Vec<KeyboardZone>,
 }
-

@@ -73,15 +73,18 @@ impl SysfsBackend {
             });
         }
 
-        let red = parts[0]
-            .parse::<u8>()
-            .map_err(|_| BackendError::Parse { path: "multi_intensity".into(), value: value.trim().into() })?;
-        let green = parts[1]
-            .parse::<u8>()
-            .map_err(|_| BackendError::Parse { path: "multi_intensity".into(), value: value.trim().into() })?;
-        let blue = parts[2]
-            .parse::<u8>()
-            .map_err(|_| BackendError::Parse { path: "multi_intensity".into(), value: value.trim().into() })?;
+        let red = parts[0].parse::<u8>().map_err(|_| BackendError::Parse {
+            path: "multi_intensity".into(),
+            value: value.trim().into(),
+        })?;
+        let green = parts[1].parse::<u8>().map_err(|_| BackendError::Parse {
+            path: "multi_intensity".into(),
+            value: value.trim().into(),
+        })?;
+        let blue = parts[2].parse::<u8>().map_err(|_| BackendError::Parse {
+            path: "multi_intensity".into(),
+            value: value.trim().into(),
+        })?;
 
         Ok(RgbColor { red, green, blue })
     }
@@ -97,6 +100,10 @@ impl SysfsBackend {
                 value: other.to_string(),
             }),
         }
+    }
+
+    fn zone_rel(zone: KeyboardZoneName, file: &str) -> String {
+        [LED_ROOT, Self::zone_sysfs_name(zone), file].join("/")
     }
 }
 
@@ -145,9 +152,9 @@ impl Backend for SysfsBackend {
             return Err(BackendError::UnknownZone(sysfs_name));
         }
 
-        let brightness = Self::parse_u32(&brightness_path, &self.read_string(self.zone_rel(zone, "brightness"))?)?;
-        let max_brightness = Self::parse_u32(&max_brightness_path, &self.read_string(self.zone_rel(zone, "max_brightness"))?)?;
-        let color = Self::parse_rgb(&self.read_string(self.zone_rel(zone, "multi_intensity"))?)?;
+        let brightness = Self::parse_u32(&brightness_path, &self.read_string(Self::zone_rel(zone, "brightness"))?)?;
+        let max_brightness = Self::parse_u32(&max_brightness_path, &self.read_string(Self::zone_rel(zone, "max_brightness"))?)?;
+        let color = Self::parse_rgb(&self.read_string(Self::zone_rel(zone, "multi_intensity"))?)?;
 
         Ok(KeyboardZone {
             name: zone,
@@ -165,7 +172,7 @@ impl Backend for SysfsBackend {
     ) -> Result<(), BackendError> {
         let max_brightness = Self::parse_u32(
             &self.zone_max_brightness_path(zone),
-            &self.read_string(self.zone_rel(zone, "max_brightness"))?,
+            &self.read_string(Self::zone_rel(zone, "max_brightness"))?,
         )?;
 
         if brightness > max_brightness {
@@ -175,7 +182,7 @@ impl Backend for SysfsBackend {
             )));
         }
 
-        self.write_string(self.zone_rel(zone, "brightness"), &brightness.to_string())
+        self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
     }
 
     fn write_keyboard_color(
@@ -184,14 +191,8 @@ impl Backend for SysfsBackend {
         color: RgbColor,
     ) -> Result<(), BackendError> {
         self.write_string(
-            self.zone_rel(zone, "multi_intensity"),
+            Self::zone_rel(zone, "multi_intensity"),
             &format!("{} {} {}", color.red, color.green, color.blue),
         )
-    }
-}
-
-impl SysfsBackend {
-    fn zone_rel(&self, zone: KeyboardZoneName, file: &str) -> String {
-        [LED_ROOT, Self::zone_sysfs_name(zone), file].join("/")
     }
 }
