@@ -1,0 +1,78 @@
+use std::fmt;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GpuMode {
+    Hybrid,
+    Discrete,
+    Uma,
+}
+
+impl GpuMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Hybrid => "hybrid",
+            Self::Discrete => "discrete",
+            Self::Uma => "uma",
+        }
+    }
+}
+
+impl fmt::Display for GpuMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum KeyboardZoneName {
+    Left,
+    Middle,
+    Right,
+    Bias,
+}
+
+impl KeyboardZoneName {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Left => "left",
+            Self::Middle => "middle",
+            Self::Right => "right",
+            Self::Bias => "bias",
+        }
+    }
+}
+
+impl fmt::Display for KeyboardZoneName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RgbColor {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
+impl RgbColor {
+    pub const fn new(red: u8, green: u8, blue: u8) -> Self {
+        Self { red, green, blue }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyboardZone {
+    pub name: KeyboardZoneName,
+    pub sysfs_name: String,
+    pub brightness: u32,
+    pub max_brightness: u32,
+    pub color: RgbColor,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ControlCenterState {
+    pub gpu_mode: Option<GpuMode>,
+    pub keyboard_zones: Vec<KeyboardZone>,
+}
+
