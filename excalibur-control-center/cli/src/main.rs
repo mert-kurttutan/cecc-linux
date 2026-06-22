@@ -51,16 +51,16 @@ struct KeyboardCommand {
 enum KeyboardSubcommand {
     /// List all keyboard lighting zones.
     List,
-    /// Read one keyboard lighting zone.
+    /// Read one keyboard lighting zone, or all zones if omitted.
     Get {
         #[arg(value_enum)]
-        zone: ZoneArg,
+        zone: Option<ZoneArg>,
     },
     /// Set brightness for one zone or all zones.
     Set {
         #[arg(value_enum)]
         zone: ZoneArg,
-        brightness: u32,
+        level: u32,
     },
     /// Set RGB color for one zone or all zones.
     SetColor {
@@ -134,7 +134,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             KeyboardSubcommand::Get { zone } => {
-                if let Some(zone) = zone.to_option() {
+                if let Some(zone) = zone.and_then(ZoneArg::to_option) {
                     print_zone(&backend.read_keyboard_zone(zone)?);
                 } else {
                     for zone in backend.list_keyboard_zones()? {
@@ -142,9 +142,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
-            KeyboardSubcommand::Set { zone, brightness } => {
+            KeyboardSubcommand::Set { zone, level } => {
                 if let Some(zone) = zone.to_option() {
-                    backend.write_keyboard_brightness(zone, brightness)?;
+                    backend.write_keyboard_brightness(zone, level)?;
                     print_zone(&backend.read_keyboard_zone(zone)?);
                 } else {
                     for zone in [
@@ -153,7 +153,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         KeyboardZoneName::Right,
                         KeyboardZoneName::Bias,
                     ] {
-                        backend.write_keyboard_brightness(zone, brightness)?;
+                        backend.write_keyboard_brightness(zone, level)?;
                     }
                     for zone in backend.list_keyboard_zones()? {
                         print_zone(&zone);
