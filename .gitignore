@@ -1,1 +1,13 @@
 out/
+*.o
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+*.o.cmd
+*.ko.cmd
+*.mod.cmd
+*.mod.o.cmd
+*.cmd
+Module.symvers
+modules.order
