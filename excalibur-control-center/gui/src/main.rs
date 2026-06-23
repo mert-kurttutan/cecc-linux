@@ -17,16 +17,24 @@ export component MainWindow inherits Window {
     in-out property <int> red: 255;
     in-out property <int> green: 255;
     in-out property <int> blue: 255;
+    in-out property <float> color_hue: 0;
+    in-out property <float> color_saturation: 1;
+    in-out property <float> color_value: 1;
+    in-out property <color> picker_base_color: #ff0000;
+    in-out property <color> selected_color: #ff0000;
 
     callback refresh();
     callback select_zone(int);
     callback brightness_edited(int);
     callback brightness_slider_changed(float);
     callback apply_brightness();
+    callback color_hue_changed(float);
+    callback color_sv_changed(float, float);
     callback apply_color();
 
     width: 980px;
     height: 640px;
+    default-font-size: 18px;
     title: "Excalibur Control Center";
 
     VerticalBox {
@@ -65,15 +73,91 @@ export component MainWindow inherits Window {
             Button { text: "Apply brightness"; clicked => { root.apply_brightness(); } }
         }
 
-        HorizontalBox {
+        VerticalBox {
             spacing: 8px;
-            Text { text: "R"; }
-            SpinBox { minimum: 0; maximum: 255; value <=> root.red; }
-            Text { text: "G"; }
-            SpinBox { minimum: 0; maximum: 255; value <=> root.green; }
-            Text { text: "B"; }
-            SpinBox { minimum: 0; maximum: 255; value <=> root.blue; }
-            Button { text: "Apply color"; clicked => { root.apply_color(); } }
+            Text { text: "Color"; }
+
+            hue_bar := Rectangle {
+                height: 18px;
+                border-radius: 9px;
+                border-width: 1px;
+                border-color: #2f3a46;
+                background: @linear-gradient(90deg, #ff0000 0%, #ffff00 16.6%, #00ff00 33.3%, #00ffff 50%, #0000ff 66.6%, #ff00ff 83.3%, #ff0000 100%);
+
+                hue_bar_touch := TouchArea {
+                    clicked => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
+                    moved => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
+                }
+
+                Rectangle {
+                    x: root.color_hue / 360 * hue_bar.width - 5px;
+                    y: 0px;
+                    width: 10px;
+                    height: parent.height;
+                    border-width: 2px;
+                    border-color: white;
+                    background: transparent;
+                }
+            }
+
+            picker_square := Rectangle {
+                height: 220px;
+                border-radius: 12px;
+                border-width: 1px;
+                border-color: #2f3a46;
+                background: root.picker_base_color;
+
+                Rectangle {
+                    background: @linear-gradient(90deg, white, transparent);
+                    border-radius: 12px;
+                }
+                Rectangle {
+                    background: @linear-gradient(0deg, black, transparent);
+                    border-radius: 12px;
+                }
+
+                picker_square_touch := TouchArea {
+                    clicked => {
+                        root.color_sv_changed(
+                            picker_square_touch.mouse_x / picker_square.width,
+                            picker_square_touch.mouse_y / picker_square.height
+                        );
+                    }
+                    moved => {
+                        root.color_sv_changed(
+                            picker_square_touch.mouse_x / picker_square.width,
+                            picker_square_touch.mouse_y / picker_square.height
+                        );
+                    }
+                }
+
+                Rectangle {
+                    x: root.color_saturation * picker_square.width - 6px;
+                    y: (1 - root.color_value) * picker_square.height - 6px;
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 6px;
+                    border-width: 2px;
+                    border-color: white;
+                    background: transparent;
+                }
+            }
+
+            HorizontalBox {
+                spacing: 12px;
+                Rectangle {
+                    width: 64px;
+                    height: 36px;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: #2f3a46;
+                    background: root.selected_color;
+                }
+                Text {
+                    text: "RGB: " + root.red + ", " + root.green + ", " + root.blue;
+                }
+                Button { text: "Apply color"; clicked => { root.apply_color(); } }
+            }
         }
 
         Text { text: "Zones"; }
@@ -197,11 +281,69 @@ fn sync_window(window: &MainWindow, state: &AppState) {
         window.set_red(zone.color.red as i32);
         window.set_green(zone.color.green as i32);
         window.set_blue(zone.color.blue as i32);
+        let (h, s, v) = rgb_to_hsv(zone.color);
+        window.set_color_hue(h);
+        window.set_color_saturation(s);
+        window.set_color_value(v);
+        let base = hsv_to_rgb(h, 1.0, 1.0);
+        window.set_picker_base_color(slint::Color::from_rgb_u8(base.red, base.green, base.blue));
+        window.set_selected_color(slint::Color::from_rgb_u8(
+            zone.color.red,
+            zone.color.green,
+            zone.color.blue,
+        ));
     }
 }
 
 fn zone_for_index(index: i32) -> ZoneSelection {
     ZoneSelection::from_index(index)
+}
+
+fn clamp01(value: f32) -> f32 {
+    value.clamp(0.0, 1.0)
+}
+
+fn hsv_to_rgb(h: f32, s: f32, v: f32) -> RgbColor {
+    let h = h.rem_euclid(360.0);
+    let c = v * s;
+    let x = c * (1.0 - (((h / 60.0) % 2.0) - 1.0).abs());
+    let m = v - c;
+    let (r1, g1, b1) = match h as i32 {
+        0..=59 => (c, x, 0.0),
+        60..=119 => (x, c, 0.0),
+        120..=179 => (0.0, c, x),
+        180..=239 => (0.0, x, c),
+        240..=299 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+
+    RgbColor::new(
+        ((r1 + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+        ((g1 + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+        ((b1 + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+    )
+}
+
+fn rgb_to_hsv(color: RgbColor) -> (f32, f32, f32) {
+    let r = color.red as f32 / 255.0;
+    let g = color.green as f32 / 255.0;
+    let b = color.blue as f32 / 255.0;
+    let max = r.max(g.max(b));
+    let min = r.min(g.min(b));
+    let delta = max - min;
+
+    let hue = if delta == 0.0 {
+        0.0
+    } else if max == r {
+        60.0 * ((g - b) / delta).rem_euclid(6.0)
+    } else if max == g {
+        60.0 * (((b - r) / delta) + 2.0)
+    } else {
+        60.0 * (((r - g) / delta) + 4.0)
+    };
+
+    let saturation = if max == 0.0 { 0.0 } else { delta / max };
+    (hue, saturation, max)
 }
 
 fn main() -> Result<(), slint::PlatformError> {
@@ -325,6 +467,63 @@ fn main() -> Result<(), slint::PlatformError> {
             }
 
             sync_window(&window, &state);
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_color_hue_changed(move |norm| {
+            let mut state = state.borrow_mut();
+            let hue = clamp01(norm) * 360.0;
+            let sat = state
+                .selected_zone_state()
+                .map(|zone| rgb_to_hsv(zone.color).1)
+                .unwrap_or(1.0);
+            let val = state
+                .selected_zone_state()
+                .map(|zone| rgb_to_hsv(zone.color).2)
+                .unwrap_or(1.0);
+            let rgb = hsv_to_rgb(hue, sat, val);
+            if let Some(window) = window_weak.upgrade() {
+                window.set_color_hue(hue);
+                window.set_color_saturation(sat);
+                window.set_color_value(val);
+                window.set_red(rgb.red as i32);
+                window.set_green(rgb.green as i32);
+                window.set_blue(rgb.blue as i32);
+                window.set_picker_base_color(slint::Color::from_rgb_u8(
+                    hsv_to_rgb(hue, 1.0, 1.0).red,
+                    hsv_to_rgb(hue, 1.0, 1.0).green,
+                    hsv_to_rgb(hue, 1.0, 1.0).blue,
+                ));
+                window.set_selected_color(slint::Color::from_rgb_u8(rgb.red, rgb.green, rgb.blue));
+            }
+            state.status = format!("color hue set to {:.0}°", hue);
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_color_sv_changed(move |sat_norm, val_norm| {
+            let mut state = state.borrow_mut();
+            let hue = window_weak
+                .upgrade()
+                .map(|window| window.get_color_hue())
+                .unwrap_or(0.0);
+            let sat = clamp01(sat_norm);
+            let val = 1.0 - clamp01(val_norm);
+            let rgb = hsv_to_rgb(hue, sat, val);
+            if let Some(window) = window_weak.upgrade() {
+                window.set_color_saturation(sat);
+                window.set_color_value(val);
+                window.set_red(rgb.red as i32);
+                window.set_green(rgb.green as i32);
+                window.set_blue(rgb.blue as i32);
+                window.set_selected_color(slint::Color::from_rgb_u8(rgb.red, rgb.green, rgb.blue));
+            }
+            state.status = format!("color updated to {},{},{}", rgb.red, rgb.green, rgb.blue);
         });
     }
 
