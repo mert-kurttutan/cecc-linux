@@ -33,4 +33,53 @@ pub trait Backend {
         zone: KeyboardZoneName,
         color: RgbColor,
     ) -> Result<(), BackendError>;
+
+    fn keyboard_zones_for_target(
+        &self,
+        zone: Option<KeyboardZoneName>,
+    ) -> Result<Vec<KeyboardZoneName>, BackendError> {
+        match zone {
+            Some(zone) => Ok(vec![zone]),
+            None => Ok(vec![
+                KeyboardZoneName::Left,
+                KeyboardZoneName::Middle,
+                KeyboardZoneName::Right,
+                KeyboardZoneName::Bias,
+            ]),
+        }
+    }
+
+    fn read_keyboard_zones(
+        &self,
+        zone: Option<KeyboardZoneName>,
+    ) -> Result<Vec<KeyboardZone>, BackendError> {
+        match zone {
+            Some(zone) => Ok(vec![self.read_keyboard_zone(zone)?]),
+            None => self.list_keyboard_zones(),
+        }
+    }
+
+    fn set_keyboard_brightness(
+        &self,
+        zone: Option<KeyboardZoneName>,
+        brightness: u32,
+    ) -> Result<Vec<KeyboardZone>, BackendError> {
+        for target in self.keyboard_zones_for_target(zone)? {
+            self.write_keyboard_brightness(target, brightness)?;
+        }
+
+        self.read_keyboard_zones(zone)
+    }
+
+    fn set_keyboard_color(
+        &self,
+        zone: Option<KeyboardZoneName>,
+        color: RgbColor,
+    ) -> Result<Vec<KeyboardZone>, BackendError> {
+        for target in self.keyboard_zones_for_target(zone)? {
+            self.write_keyboard_color(target, color)?;
+        }
+
+        self.read_keyboard_zones(zone)
+    }
 }
