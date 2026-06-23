@@ -70,6 +70,31 @@ enum KeyboardSubcommand {
         green: u8,
         blue: u8,
     },
+    /// Color commands.
+    Color(ColorCommand),
+}
+
+#[derive(Debug, Args)]
+struct ColorCommand {
+    #[command(subcommand)]
+    command: ColorSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum ColorSubcommand {
+    /// Read RGB color for one zone or all zones.
+    Get {
+        #[arg(value_enum)]
+        zone: Option<ZoneArg>,
+    },
+    /// Set RGB color for one zone or all zones.
+    Set {
+        #[arg(value_enum)]
+        zone: ZoneArg,
+        red: u8,
+        green: u8,
+        blue: u8,
+    },
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -134,30 +159,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             KeyboardSubcommand::Get { zone } => {
-                if let Some(zone) = zone.and_then(ZoneArg::to_option) {
-                    print_zone(&backend.read_keyboard_zone(zone)?);
-                } else {
-                    for zone in backend.list_keyboard_zones()? {
-                        print_zone(&zone);
-                    }
+                for zone in backend.read_keyboard_zones(zone.and_then(ZoneArg::to_option))? {
+                    print_zone(&zone);
                 }
             }
             KeyboardSubcommand::Set { zone, level } => {
-                if let Some(zone) = zone.to_option() {
-                    backend.write_keyboard_brightness(zone, level)?;
-                    print_zone(&backend.read_keyboard_zone(zone)?);
-                } else {
-                    for zone in [
-                        KeyboardZoneName::Left,
-                        KeyboardZoneName::Middle,
-                        KeyboardZoneName::Right,
-                        KeyboardZoneName::Bias,
-                    ] {
-                        backend.write_keyboard_brightness(zone, level)?;
-                    }
-                    for zone in backend.list_keyboard_zones()? {
-                        print_zone(&zone);
-                    }
+                for zone in backend.set_keyboard_brightness(zone.to_option(), level)? {
+                    print_zone(&zone);
                 }
             }
             KeyboardSubcommand::SetColor {
@@ -166,23 +174,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 green,
                 blue,
             } => {
-                if let Some(zone) = zone.to_option() {
-                    backend.write_keyboard_color(zone, RgbColor::new(red, green, blue))?;
-                    print_zone(&backend.read_keyboard_zone(zone)?);
-                } else {
-                    for zone in [
-                        KeyboardZoneName::Left,
-                        KeyboardZoneName::Middle,
-                        KeyboardZoneName::Right,
-                        KeyboardZoneName::Bias,
-                    ] {
-                        backend.write_keyboard_color(zone, RgbColor::new(red, green, blue))?;
+                for zone in backend.set_keyboard_color(zone.to_option(), RgbColor::new(red, green, blue))? {
+                    print_zone(&zone);
+                }
+            }
+            KeyboardSubcommand::Color(command) => match command.command {
+                ColorSubcommand::Get { zone } => {
+                    for zone in backend.read_keyboard_zones(zone.and_then(ZoneArg::to_option))? {
+                        println!(
+                            "zone={} color={},{},{} device={}",
+                            zone.name,
+                            zone.color.red,
+                            zone.color.green,
+                            zone.color.blue,
+                            zone.sysfs_name
+                        );
                     }
-                    for zone in backend.list_keyboard_zones()? {
+                }
+                ColorSubcommand::Set {
+                    zone,
+                    red,
+                    green,
+                    blue,
+                } => {
+                    for zone in backend.set_keyboard_color(zone.to_option(), RgbColor::new(red, green, blue))? {
                         print_zone(&zone);
                     }
                 }
-            }
+            },
         },
     }
 
