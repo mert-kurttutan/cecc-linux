@@ -1,7 +1,86 @@
-use eframe::egui;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use excalibur_control_center_backend::{
     Backend, KeyboardZone, KeyboardZoneName, RgbColor, SysfsBackend,
 };
+
+slint::slint! {
+import { Button, HorizontalBox, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
+
+export component MainWindow inherits Window {
+    in property <string> status: "";
+    in property <string> active_zone: "all";
+    in property <string> zones_summary: "";
+    in-out property <int> brightness: 0;
+    in-out property <float> brightness_slider: 0;
+    in-out property <int> red: 255;
+    in-out property <int> green: 255;
+    in-out property <int> blue: 255;
+
+    callback refresh();
+    callback select_zone(int);
+    callback brightness_edited(int);
+    callback brightness_slider_changed(float);
+    callback apply_brightness();
+    callback apply_color();
+
+    width: 980px;
+    height: 640px;
+    title: "Excalibur Control Center";
+
+    VerticalBox {
+        spacing: 12px;
+
+        Text { text: "Excalibur Control Center"; }
+        Text { text: root.status; }
+
+        HorizontalBox {
+            spacing: 8px;
+            Button { text: "All"; clicked => { root.select_zone(0); } }
+            Button { text: "Left"; clicked => { root.select_zone(1); } }
+            Button { text: "Middle"; clicked => { root.select_zone(2); } }
+            Button { text: "Right"; clicked => { root.select_zone(3); } }
+            Button { text: "Bias"; clicked => { root.select_zone(4); } }
+            Button { text: "Refresh"; clicked => { root.refresh(); } }
+        }
+
+        Text { text: "Selected: " + root.active_zone; }
+
+        HorizontalBox {
+            spacing: 8px;
+            Text { text: "Brightness"; }
+            Slider {
+                minimum: 0;
+                maximum: 2;
+                value <=> root.brightness_slider;
+                changed(value) => { root.brightness_slider_changed(value); }
+            }
+            SpinBox {
+                minimum: 0;
+                maximum: 2;
+                value <=> root.brightness;
+                edited(value) => { root.brightness_edited(value); }
+            }
+            Button { text: "Apply brightness"; clicked => { root.apply_brightness(); } }
+        }
+
+        HorizontalBox {
+            spacing: 8px;
+            Text { text: "R"; }
+            SpinBox { minimum: 0; maximum: 255; value <=> root.red; }
+            Text { text: "G"; }
+            SpinBox { minimum: 0; maximum: 255; value <=> root.green; }
+            Text { text: "B"; }
+            SpinBox { minimum: 0; maximum: 255; value <=> root.blue; }
+            Button { text: "Apply color"; clicked => { root.apply_color(); } }
+        }
+
+        Text { text: "Zones"; }
+        Text { text: root.zones_summary; }
+    }
+}
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ZoneSelection {
@@ -13,6 +92,16 @@ enum ZoneSelection {
 }
 
 impl ZoneSelection {
+    fn from_index(index: i32) -> Self {
+        match index {
+            1 => Self::Left,
+            2 => Self::Middle,
+            3 => Self::Right,
+            4 => Self::Bias,
+            _ => Self::All,
+        }
+    }
+
     fn as_label(self) -> &'static str {
         match self {
             Self::All => "all",
@@ -35,42 +124,30 @@ impl ZoneSelection {
 }
 
 #[derive(Debug)]
-struct KeyboardApp {
+struct AppState {
     backend: SysfsBackend,
     zones: Vec<KeyboardZone>,
     selected_zone: ZoneSelection,
-    loaded_zone: Option<ZoneSelection>,
-    brightness: u32,
-    red: u8,
-    green: u8,
-    blue: u8,
     status: String,
 }
 
-impl KeyboardApp {
+impl AppState {
     fn new() -> Self {
-        let backend = SysfsBackend::default();
-        let mut app = Self {
-            backend,
+        let mut state = Self {
+            backend: SysfsBackend::default(),
             zones: Vec::new(),
             selected_zone: ZoneSelection::All,
-            loaded_zone: None,
-            brightness: 0,
-            red: 255,
-            green: 255,
-            blue: 255,
             status: String::new(),
         };
-        app.refresh();
-        app
+        state.refresh();
+        state
     }
 
     fn refresh(&mut self) {
         match self.backend.read_keyboard_zones(None) {
             Ok(zones) => {
                 self.zones = zones;
-                self.sync_editor_from_selection();
-                self.status = "refreshed keyboard state".to_string();
+                self.status = "refreshed keyboard state".into();
             }
             Err(err) => {
                 self.status = format!("refresh failed: {err}");
@@ -78,182 +155,183 @@ impl KeyboardApp {
         }
     }
 
-    fn sync_editor_from_selection(&mut self) {
-        if self.loaded_zone == Some(self.selected_zone) {
-            return;
-        }
-
-        if let Some(zone_name) = self.selected_zone.to_option() {
-            if let Some(zone) = self
-                .zones
-                .iter()
-                .find(|entry| entry.name == zone_name)
-                .cloned()
-            {
-                self.brightness = zone.brightness;
-                self.red = zone.color.red;
-                self.green = zone.color.green;
-                self.blue = zone.color.blue;
-            } else if let Ok(zone) = self.backend.read_keyboard_zone(zone_name) {
-                self.brightness = zone.brightness;
-                self.red = zone.color.red;
-                self.green = zone.color.green;
-                self.blue = zone.color.blue;
-            }
-        }
-
-        self.loaded_zone = Some(self.selected_zone);
+    fn set_selected_zone(&mut self, zone: ZoneSelection) {
+        self.selected_zone = zone;
+        self.status = format!("selected {}", zone.as_label());
     }
 
-    fn apply_brightness(&mut self) {
-        match self
-            .backend
-            .set_keyboard_brightness(self.selected_zone.to_option(), self.brightness)
-        {
-            Ok(zones) => {
-                self.zones = zones;
-                self.status = format!(
-                    "brightness set to {} for {}",
-                    self.brightness,
-                    self.selected_zone.as_label()
-                );
-                self.refresh();
-            }
-            Err(err) => self.status = format!("brightness write failed: {err}"),
-        }
+    fn selected_zone_state(&self) -> Option<KeyboardZone> {
+        self.selected_zone
+            .to_option()
+            .and_then(|zone| self.zones.iter().find(|entry| entry.name == zone))
+            .cloned()
     }
 
-    fn apply_color(&mut self) {
-        let color = RgbColor::new(self.red, self.green, self.blue);
-        match self
-            .backend
-            .set_keyboard_color(self.selected_zone.to_option(), color)
-        {
-            Ok(zones) => {
-                self.zones = zones;
-                self.status = format!(
-                    "color set to {},{},{} for {}",
-                    self.red,
-                    self.green,
-                    self.blue,
-                    self.selected_zone.as_label()
-                );
-                self.refresh();
-            }
-            Err(err) => self.status = format!("color write failed: {err}"),
-        }
+    fn zone_summary(&self) -> String {
+        self.zones
+            .iter()
+            .map(|zone| {
+                format!(
+                    "{}: brightness={} max={} color={},{},{}",
+                    zone.name,
+                    zone.brightness,
+                    zone.max_brightness,
+                    zone.color.red,
+                    zone.color.green,
+                    zone.color.blue
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
-impl eframe::App for KeyboardApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading("Excalibur Control Center");
-                if ui.button("Refresh").clicked() {
-                    self.refresh();
-                }
-                ui.label(&self.status);
-            });
+fn sync_window(window: &MainWindow, state: &AppState) {
+    window.set_status(state.status.clone().into());
+    window.set_active_zone(state.selected_zone.as_label().into());
+    window.set_zones_summary(state.zone_summary().into());
+
+    if let Some(zone) = state.selected_zone_state() {
+        window.set_brightness(zone.brightness as i32);
+        window.set_brightness_slider(zone.brightness as f32);
+        window.set_red(zone.color.red as i32);
+        window.set_green(zone.color.green as i32);
+        window.set_blue(zone.color.blue as i32);
+    }
+}
+
+fn zone_for_index(index: i32) -> ZoneSelection {
+    ZoneSelection::from_index(index)
+}
+
+fn main() -> Result<(), slint::PlatformError> {
+    let window = MainWindow::new()?;
+    let state = Rc::new(RefCell::new(AppState::new()));
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_refresh(move || {
+            let mut state = state.borrow_mut();
+            state.refresh();
+            if let Some(window) = window_weak.upgrade() {
+                sync_window(&window, &state);
+            }
         });
+    }
 
-        egui::SidePanel::left("controls").resizable(false).show(ctx, |ui| {
-            ui.heading("Keyboard");
-            ui.separator();
-
-            egui::ComboBox::from_label("Zone")
-                .selected_text(self.selected_zone.as_label())
-                .show_ui(ui, |ui| {
-                    for zone in [
-                        ZoneSelection::All,
-                        ZoneSelection::Left,
-                        ZoneSelection::Middle,
-                        ZoneSelection::Right,
-                        ZoneSelection::Bias,
-                    ] {
-                        ui.selectable_value(&mut self.selected_zone, zone, zone.as_label());
-                    }
-                });
-
-            if self.loaded_zone != Some(self.selected_zone) {
-                self.sync_editor_from_selection();
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_select_zone(move |index| {
+            let mut state = state.borrow_mut();
+            state.set_selected_zone(zone_for_index(index));
+            if let Some(window) = window_weak.upgrade() {
+                sync_window(&window, &state);
             }
+        });
+    }
 
-            if let Some(zone_name) = self.selected_zone.to_option() {
-                if let Some(zone) = self.zones.iter().find(|entry| entry.name == zone_name) {
-                    ui.label(format!("Current: {}", zone.sysfs_name));
-                } else {
-                    ui.label("Current: unknown");
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_brightness_edited(move |value| {
+            let mut state = state.borrow_mut();
+            if let Some(window) = window_weak.upgrade() {
+                window.set_brightness(value);
+                window.set_brightness_slider(value as f32);
+            }
+            state.status = format!("brightness adjusted to {}", value);
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_brightness_slider_changed(move |value| {
+            let mut state = state.borrow_mut();
+            let brightness = value.round() as i32;
+            if let Some(window) = window_weak.upgrade() {
+                window.set_brightness(brightness);
+                window.set_brightness_slider(value);
+            }
+            state.status = format!("brightness adjusted to {}", brightness);
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_apply_brightness(move || {
+            let mut state = state.borrow_mut();
+            let brightness = window_weak
+                .upgrade()
+                .map(|window| window.get_brightness_slider().round() as u32)
+                .unwrap_or(0);
+
+            let result = state
+                .backend
+                .set_keyboard_brightness(state.selected_zone.to_option(), brightness);
+
+            match result {
+                Ok(zones) => {
+                    state.zones = zones;
+                    state.status = format!(
+                        "brightness set to {} for {}",
+                        brightness,
+                        state.selected_zone.as_label()
+                    );
                 }
-            } else {
-                ui.label("Current: all zones");
+                Err(err) => state.status = format!("brightness write failed: {err}"),
             }
 
-            ui.separator();
-            ui.label("Brightness");
-            ui.add(
-                egui::Slider::new(&mut self.brightness, 0..=2)
-                    .clamping(egui::SliderClamping::Always)
-                    .show_value(true),
+            if let Some(window) = window_weak.upgrade() {
+                sync_window(&window, &state);
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_apply_color(move || {
+            let mut state = state.borrow_mut();
+            let Some(window) = window_weak.upgrade() else {
+                return;
+            };
+
+            let color = RgbColor::new(
+                window.get_red() as u8,
+                window.get_green() as u8,
+                window.get_blue() as u8,
             );
-            if ui.button("Apply brightness").clicked() {
-                self.apply_brightness();
+
+            let result = state
+                .backend
+                .set_keyboard_color(state.selected_zone.to_option(), color);
+
+            match result {
+                Ok(zones) => {
+                    state.zones = zones;
+                    state.status = format!(
+                        "color set to {},{},{} for {}",
+                        color.red,
+                        color.green,
+                        color.blue,
+                        state.selected_zone.as_label()
+                    );
+                }
+                Err(err) => state.status = format!("color write failed: {err}"),
             }
 
-            ui.separator();
-            ui.label("Color");
-            ui.horizontal(|ui| {
-                ui.add(egui::DragValue::new(&mut self.red).range(0..=255).prefix("R "));
-                ui.add(egui::DragValue::new(&mut self.green).range(0..=255).prefix("G "));
-                ui.add(egui::DragValue::new(&mut self.blue).range(0..=255).prefix("B "));
-            });
-            let mut color = egui::Color32::from_rgb(self.red, self.green, self.blue);
-            if ui.color_edit_button_srgba(&mut color).changed() {
-                self.red = color.r();
-                self.green = color.g();
-                self.blue = color.b();
-            }
-            if ui.button("Apply color").clicked() {
-                self.apply_color();
-            }
-        });
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Zones");
-            ui.separator();
-
-            egui::Grid::new("zones_grid")
-                .striped(true)
-                .spacing([12.0, 8.0])
-                .show(ui, |ui| {
-                    ui.label("Zone");
-                    ui.label("Brightness");
-                    ui.label("Max");
-                    ui.label("Color");
-                    ui.label("Device");
-                    ui.end_row();
-
-                    for zone in &self.zones {
-                        ui.label(zone.name.to_string());
-                        ui.label(zone.brightness.to_string());
-                        ui.label(zone.max_brightness.to_string());
-                        ui.label(format!(
-                            "{},{},{}",
-                            zone.color.red, zone.color.green, zone.color.blue
-                        ));
-                        ui.label(&zone.sysfs_name);
-                        ui.end_row();
-                    }
-                });
+            sync_window(&window, &state);
         });
     }
-}
 
-fn main() -> Result<(), eframe::Error> {
-    let options = eframe::NativeOptions::default();
-    eframe::run_native(
-        "Excalibur Control Center",
-        options,
-        Box::new(|_cc| Ok(Box::new(KeyboardApp::new()))),
-    )
+    {
+        let state = state.borrow();
+        sync_window(&window, &state);
+    }
+
+    window.run()
 }
