@@ -20,6 +20,13 @@
           kernelPackages = pkgs.linuxPackages;
           kernel = kernelPackages.kernel;
           kdir = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build";
+          guiLibs = with pkgs; [
+            wayland
+            wayland-protocols
+            libxkbcommon
+            vulkan-loader
+            mesa
+          ];
         in
         {
           default = pkgs.mkShell {
@@ -31,9 +38,12 @@
               elfutils
               kmod
               pkg-config
-            ] ++ kernel.moduleBuildDependencies ++ [
-              kernel.dev
-            ];
+            ] ++ guiLibs
+              ++ kernel.moduleBuildDependencies ++ [
+                kernel.dev
+              ];
+
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath guiLibs;
 
             shellHook = ''
               export DRIVER_DIR="$PWD/casper-wmi"
