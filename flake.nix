@@ -21,6 +21,7 @@
           kernel = kernelPackages.kernel;
           kdir = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build";
           guiLibs = with pkgs; [
+            fontconfig
             wayland
             wayland-protocols
             libxkbcommon
