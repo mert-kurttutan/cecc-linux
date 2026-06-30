@@ -40,7 +40,8 @@ def main [
 ] {
   let driver_dir = ($driver_dir | path expand)
   let kdir = (resolve-kdir $kernel_dir)
-  let module_path = ($driver_dir | path join $module_file)
+  let output_dir = ($driver_dir | path join "out")
+  let module_path = ($output_dir | path join $module_file)
 
   if not ($driver_dir | path exists) {
     error make {

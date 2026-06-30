@@ -1,12 +1,16 @@
 obj-m += casper-wmi.o
 
 KDIR ?= /lib/modules/$(shell uname -r)/build
+OUT_DIR ?= $(PWD)/out
 
 all:
-	make -C $(KDIR) M=$(PWD) modules
+	mkdir -p $(OUT_DIR)
+	make -C $(KDIR) M=$(PWD) MO=$(OUT_DIR) modules
 
 clean:
-	make -C $(KDIR) M=$(PWD) clean
+	make -C $(KDIR) M=$(PWD) MO=$(OUT_DIR) clean
+	rm -rf $(OUT_DIR)
 
 install:
-	make -C $(KDIR) M=$(PWD) modules_install
+	mkdir -p $(OUT_DIR)
+	make -C $(KDIR) M=$(PWD) MO=$(OUT_DIR) modules_install
