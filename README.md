@@ -8,3 +8,45 @@ Scope:
 
 Casper WMI driver work is based on and credits:
 - <https://github.com/Mustafa-eksi/casper-wmi>
+
+## Development
+
+Rust workspace commands are run from `excalibur-control-center/`:
+
+```sh
+cd excalibur-control-center
+```
+
+Install development dependencies on Ubuntu:
+
+```sh
+sudo apt update
+sudo apt install build-essential pkg-config libfontconfig1-dev
+```
+
+Run the CLI:
+
+```sh
+cargo run -p excalibur-control-center-cli
+```
+
+Run common CLI commands:
+
+```sh
+cargo run -p excalibur-control-center-cli -- status
+cargo run -p excalibur-control-center-cli -- gpu get
+cargo run -p excalibur-control-center-cli -- keyboard list
+cargo run -p excalibur-control-center-cli -- keyboard get all
+```
+
+Run the GUI:
+
+```sh
+cargo run -p excalibur-control-center-gui
+```
+
+Build everything:
+
+```sh
+cargo build
+```

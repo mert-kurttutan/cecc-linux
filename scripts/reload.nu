@@ -1,46 +1,46 @@
 #!/usr/bin/env nu
 
-def resolve-kdir [kernel_dir: string] {
+def is-nixos [] {
+  ("/etc/NIXOS" | path exists) or ("/run/current-system/sw/bin/nixos-version" | path exists)
+}
+
+def kernel-build-dir [] {
   let kernel_version = (^uname -r | str trim)
-  let direct_candidates = [
-    $kernel_dir
-    ($env.KDIR? | default "")
-    $"/lib/modules/($kernel_version)/build"
-    $"/run/current-system/kernel-modules/lib/modules/($kernel_version)/build"
-  ]
 
-  let direct_hit = (
-    $direct_candidates
-    | where {|candidate| ($candidate != "") and (($candidate | path expand) | path exists) }
-    | each {|candidate| $candidate | path expand }
-    | get 0?
-  )
+  if (is-nixos) {
+    let kdir = ($env.KDIR? | default "")
 
-  if $direct_hit != null {
-    return $direct_hit
+    if ($kdir != "") and (($kdir | path expand) | path exists) {
+      return ($kdir | path expand)
+    }
+
+    error make {
+      msg: "Could not locate the NixOS kernel build tree"
+      help: "Enter the project dev shell with `nix develop`; flake.nix exports KDIR from kernel.dev."
+    }
   }
 
-  let store_hits = (glob $"/nix/store/*-linux-($kernel_version)-dev/lib/modules/($kernel_version)/build")
-  if ($store_hits | length) > 0 {
-    return ($store_hits | get 0)
+  let kdir = $"/lib/modules/($kernel_version)/build"
+
+  if ($kdir | path exists) {
+    return $kdir
   }
 
   error make {
     msg: $"Could not locate the kernel build tree for ($kernel_version)"
-    help: "Pass --kernel-dir /path/to/build or export KDIR before running reload.nu"
+    help: $"Expected ($kdir). Install the matching kernel headers for this kernel."
   }
 }
 
 def main [
-  --kernel-dir (-k): string = ""
   --driver-dir (-d): string = "./casper-wmi"
   --module-file (-f): string = "casper-wmi.ko"
   --module-name (-m): string = "casper_wmi"
-  --log-lines (-n): int = 60
 ] {
+  let repo_dir = (pwd)
   let driver_dir = ($driver_dir | path expand)
-  let kdir = (resolve-kdir $kernel_dir)
-  let output_dir = ($driver_dir | path join "out")
+  let kdir = (kernel-build-dir)
+  let output_dir = ($repo_dir | path join ".reload" "casper-wmi")
   let module_path = ($output_dir | path join $module_file)
 
   if not ($driver_dir | path exists) {
@@ -51,10 +51,13 @@ def main [
 
   print $"Building module in ($driver_dir)"
   print $"Using kernel build dir: ($kdir)"
+  print $"Using local output dir: ($output_dir)"
+
+  mkdir $output_dir
 
   cd $driver_dir
-  ^make clean $"KDIR=($kdir)"
-  ^make $"KDIR=($kdir)"
+  ^make clean $"KDIR=($kdir)" $"OUT_DIR=($output_dir)"
+  ^make $"KDIR=($kdir)" $"OUT_DIR=($output_dir)"
 
   if not ($module_path | path exists) {
     error make {
@@ -79,5 +82,5 @@ def main [
 
   print "Recent dmesg"
   let dmesg_output = (^sudo dmesg --color=never --ctime)
-  $dmesg_output | lines | last $log_lines | str join (char nl) | print
+  $dmesg_output | lines | last 60 | str join (char nl) | print
 }

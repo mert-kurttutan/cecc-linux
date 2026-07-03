@@ -54,7 +54,6 @@
               echo "driver dir: $DRIVER_DIR"
               echo "kernel build dir: $KDIR"
               echo "reload loop: nu ./scripts/reload.nu"
-              echo "override kernel dir if needed: KDIR=/path/to/build nu ./scripts/reload.nu"
             '';
           };
         });
