@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub enum GpuMode {
     Hybrid,
     Discrete,
@@ -23,7 +23,7 @@ impl fmt::Display for GpuMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KeyboardZoneName {
     Left,
     Middle,
@@ -48,7 +48,7 @@ impl fmt::Display for KeyboardZoneName {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub struct RgbColor {
     pub red: u8,
     pub green: u8,
@@ -61,7 +61,7 @@ impl RgbColor {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct KeyboardZone {
     pub name: KeyboardZoneName,
     pub sysfs_name: String,
@@ -70,7 +70,7 @@ pub struct KeyboardZone {
     pub color: RgbColor,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct ControlCenterState {
     pub gpu_mode: Option<GpuMode>,
     pub keyboard_zones: Vec<KeyboardZone>,

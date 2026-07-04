@@ -1,12 +1,23 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::backend::{Backend, BackendError};
 use crate::model::{ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneName, RgbColor};
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
 const GPU_MODE_PATH: &str = "module/casper_wmi/parameters/gpu_mode";
 const LED_ROOT: &str = "class/leds";
+
+#[derive(Debug, thiserror::Error)]
+pub enum BackendError {
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
+    #[error("invalid data in {path}: {value}")]
+    Parse { path: String, value: String },
+    #[error("unknown keyboard zone: {0}")]
+    UnknownZone(String),
+    #[error("value out of range: {0}")]
+    OutOfRange(String),
+}
 
 #[derive(Debug, Clone)]
 pub struct SysfsBackend {
@@ -105,17 +116,14 @@ impl SysfsBackend {
     fn zone_rel(zone: KeyboardZoneName, file: &str) -> String {
         [LED_ROOT, Self::zone_sysfs_name(zone), file].join("/")
     }
-}
-
-impl Backend for SysfsBackend {
-    fn read_state(&self) -> Result<ControlCenterState, BackendError> {
+    pub fn read_state(&self) -> Result<ControlCenterState, BackendError> {
         Ok(ControlCenterState {
             gpu_mode: self.read_gpu_mode()?,
             keyboard_zones: self.list_keyboard_zones()?,
         })
     }
 
-    fn read_gpu_mode(&self) -> Result<Option<GpuMode>, BackendError> {
+    pub fn read_gpu_mode(&self) -> Result<Option<GpuMode>, BackendError> {
         let path = self.path(GPU_MODE_PATH);
         let value = self.read_string(GPU_MODE_PATH)?;
         Self::parse_gpu_mode(&value).map_err(|err| match err {
@@ -127,11 +135,11 @@ impl Backend for SysfsBackend {
         })
     }
 
-    fn write_gpu_mode(&self, mode: GpuMode) -> Result<(), BackendError> {
+    pub fn write_gpu_mode(&self, mode: GpuMode) -> Result<(), BackendError> {
         self.write_string(GPU_MODE_PATH, &format!("{mode}"))
     }
 
-    fn list_keyboard_zones(&self) -> Result<Vec<KeyboardZone>, BackendError> {
+    pub fn list_keyboard_zones(&self) -> Result<Vec<KeyboardZone>, BackendError> {
         [
             KeyboardZoneName::Left,
             KeyboardZoneName::Middle,
@@ -143,7 +151,7 @@ impl Backend for SysfsBackend {
         .collect()
     }
 
-    fn read_keyboard_zone(&self, zone: KeyboardZoneName) -> Result<KeyboardZone, BackendError> {
+    pub fn read_keyboard_zone(&self, zone: KeyboardZoneName) -> Result<KeyboardZone, BackendError> {
         let sysfs_name = Self::zone_sysfs_name(zone).to_string();
         let brightness_path = self.zone_brightness_path(zone);
         let max_brightness_path = self.zone_max_brightness_path(zone);
@@ -152,8 +160,14 @@ impl Backend for SysfsBackend {
             return Err(BackendError::UnknownZone(sysfs_name));
         }
 
-        let brightness = Self::parse_u32(&brightness_path, &self.read_string(Self::zone_rel(zone, "brightness"))?)?;
-        let max_brightness = Self::parse_u32(&max_brightness_path, &self.read_string(Self::zone_rel(zone, "max_brightness"))?)?;
+        let brightness = Self::parse_u32(
+            &brightness_path,
+            &self.read_string(Self::zone_rel(zone, "brightness"))?,
+        )?;
+        let max_brightness = Self::parse_u32(
+            &max_brightness_path,
+            &self.read_string(Self::zone_rel(zone, "max_brightness"))?,
+        )?;
         let color = Self::parse_rgb(&self.read_string(Self::zone_rel(zone, "multi_intensity"))?)?;
 
         Ok(KeyboardZone {
@@ -165,7 +179,7 @@ impl Backend for SysfsBackend {
         })
     }
 
-    fn write_keyboard_brightness(
+    pub fn write_keyboard_brightness(
         &self,
         zone: KeyboardZoneName,
         brightness: u32,
@@ -185,14 +199,70 @@ impl Backend for SysfsBackend {
         self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
     }
 
-    fn write_keyboard_color(
+    pub fn write_keyboard_color(
         &self,
         zone: KeyboardZoneName,
         color: RgbColor,
     ) -> Result<(), BackendError> {
+        let brightness = Self::parse_u32(
+            &self.zone_brightness_path(zone),
+            &self.read_string(Self::zone_rel(zone, "brightness"))?,
+        )?;
+
         self.write_string(
             Self::zone_rel(zone, "multi_intensity"),
             &format!("{} {} {}", color.red, color.green, color.blue),
-        )
+        )?;
+
+        self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
+    }
+
+    pub fn keyboard_zones_for_target(
+        &self,
+        zone: Option<KeyboardZoneName>,
+    ) -> Vec<KeyboardZoneName> {
+        match zone {
+            Some(zone) => vec![zone],
+            None => vec![
+                KeyboardZoneName::Left,
+                KeyboardZoneName::Middle,
+                KeyboardZoneName::Right,
+                KeyboardZoneName::Bias,
+            ],
+        }
+    }
+
+    pub fn read_keyboard_zones(
+        &self,
+        zone: Option<KeyboardZoneName>,
+    ) -> Result<Vec<KeyboardZone>, BackendError> {
+        match zone {
+            Some(zone) => Ok(vec![self.read_keyboard_zone(zone)?]),
+            None => self.list_keyboard_zones(),
+        }
+    }
+
+    pub fn set_keyboard_brightness(
+        &self,
+        zone: Option<KeyboardZoneName>,
+        brightness: u32,
+    ) -> Result<Vec<KeyboardZone>, BackendError> {
+        for target in self.keyboard_zones_for_target(zone) {
+            self.write_keyboard_brightness(target, brightness)?;
+        }
+
+        self.read_keyboard_zones(zone)
+    }
+
+    pub fn set_keyboard_color(
+        &self,
+        zone: Option<KeyboardZoneName>,
+        color: RgbColor,
+    ) -> Result<Vec<KeyboardZone>, BackendError> {
+        for target in self.keyboard_zones_for_target(zone) {
+            self.write_keyboard_color(target, color)?;
+        }
+
+        self.read_keyboard_zones(zone)
     }
 }
