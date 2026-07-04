@@ -4,20 +4,24 @@ def is-nixos [] {
   ("/etc/NIXOS" | path exists) or ("/run/current-system/sw/bin/nixos-version" | path exists)
 }
 
+def nixos-kernel-build-dir [kernel_version: string] {
+  let kdir = ($env.KDIR? | default "")
+
+  if ($kdir != "") and (($kdir | path expand) | path exists) {
+    return ($kdir | path expand)
+  }
+
+  error make {
+    msg: $"Could not locate the NixOS kernel build tree for ($kernel_version)"
+    help: "Enter the project dev shell with `nix develop`; flake.nix exports KDIR from the host NixOS kernel."
+  }
+}
+
 def kernel-build-dir [] {
   let kernel_version = (^uname -r | str trim)
 
   if (is-nixos) {
-    let kdir = ($env.KDIR? | default "")
-
-    if ($kdir != "") and (($kdir | path expand) | path exists) {
-      return ($kdir | path expand)
-    }
-
-    error make {
-      msg: "Could not locate the NixOS kernel build tree"
-      help: "Enter the project dev shell with `nix develop`; flake.nix exports KDIR from kernel.dev."
-    }
+    return (nixos-kernel-build-dir $kernel_version)
   }
 
   let kdir = $"/lib/modules/($kernel_version)/build"
@@ -79,6 +83,12 @@ def main [
 
   print $"Loading ($module_path)"
   ^sudo insmod $module_path
+
+  print "Applying temporary dev permissions"
+  do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:kbd_zoned_backlight-*/brightness }
+  do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:kbd_zoned_backlight-*/multi_intensity }
+  do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:biaslight/brightness }
+  do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:biaslight/multi_intensity }
 
   print "Recent dmesg"
   let dmesg_output = (^sudo dmesg --color=never --ctime)
