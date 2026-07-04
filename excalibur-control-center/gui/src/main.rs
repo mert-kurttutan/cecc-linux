@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use excalibur_control_center_backend::{
-    Backend, KeyboardZone, KeyboardZoneName, RgbColor, SysfsBackend,
+    GpuMode, KeyboardZone, KeyboardZoneName, RgbColor, SysfsBackend,
 };
 use excalibur_control_center_gui::ui::MainWindow;
 use slint::ComponentHandle;
@@ -52,6 +52,8 @@ impl ZoneSelection {
 struct AppState {
     backend: SysfsBackend,
     zones: Vec<KeyboardZone>,
+    gpu_mode: Option<GpuMode>,
+    active_tab: i32,
     selected_zone: ZoneSelection,
     status: String,
 }
@@ -61,6 +63,8 @@ impl AppState {
         let mut state = Self {
             backend: SysfsBackend::default(),
             zones: Vec::new(),
+            gpu_mode: None,
+            active_tab: 0,
             selected_zone: ZoneSelection::All,
             status: String::new(),
         };
@@ -69,10 +73,11 @@ impl AppState {
     }
 
     fn refresh(&mut self) {
-        match self.backend.read_keyboard_zones(None) {
-            Ok(zones) => {
-                self.zones = zones;
-                self.status = "refreshed keyboard state".into();
+        match self.backend.read_state() {
+            Ok(state) => {
+                self.zones = state.keyboard_zones;
+                self.gpu_mode = state.gpu_mode;
+                self.status = "refreshed hardware state".into();
             }
             Err(err) => {
                 self.status = format!("refresh failed: {err}");
@@ -80,9 +85,25 @@ impl AppState {
         }
     }
 
+    fn set_active_tab(&mut self, tab: i32) {
+        self.active_tab = tab.clamp(0, 2);
+    }
+
     fn set_selected_zone(&mut self, zone: ZoneSelection) {
         self.selected_zone = zone;
         self.status = format!("selected {}", zone.as_label());
+    }
+
+    fn set_gpu_mode(&mut self, mode: GpuMode) {
+        match self.backend.write_gpu_mode(mode) {
+            Ok(()) => {
+                self.gpu_mode = Some(mode);
+                self.status = format!("gpu mode set to {mode}");
+            }
+            Err(err) => {
+                self.status = format!("gpu mode write failed: {err}");
+            }
+        }
     }
 
     fn selected_zone_state(&self) -> Option<KeyboardZone> {
@@ -115,6 +136,14 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_status(state.status.clone().into());
     window.set_active_zone(state.selected_zone.as_label().into());
     window.set_zones_summary(state.zone_summary().into());
+    window.set_active_tab(state.active_tab);
+    window.set_gpu_mode(
+        state
+            .gpu_mode
+            .map(|mode| mode.as_str())
+            .unwrap_or("unknown")
+            .into(),
+    );
 
     if let Some(zone) = state.selected_zone_state() {
         window.set_brightness(zone.brightness as i32);
@@ -138,6 +167,14 @@ fn sync_window(window: &MainWindow, state: &AppState) {
 
 fn zone_for_index(index: i32) -> ZoneSelection {
     ZoneSelection::from_index(index)
+}
+
+fn gpu_mode_for_index(index: i32) -> GpuMode {
+    match index {
+        1 => GpuMode::Discrete,
+        2 => GpuMode::Uma,
+        _ => GpuMode::Hybrid,
+    }
 }
 
 fn clamp01(value: f32) -> f32 {
@@ -206,9 +243,33 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         let state = state.clone();
         let window_weak = window.as_weak();
+        window.on_select_tab(move |index| {
+            let mut state = state.borrow_mut();
+            state.set_active_tab(index);
+            if let Some(window) = window_weak.upgrade() {
+                sync_window(&window, &state);
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
         window.on_select_zone(move |index| {
             let mut state = state.borrow_mut();
             state.set_selected_zone(zone_for_index(index));
+            if let Some(window) = window_weak.upgrade() {
+                sync_window(&window, &state);
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_set_gpu_mode(move |index| {
+            let mut state = state.borrow_mut();
+            state.set_gpu_mode(gpu_mode_for_index(index));
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
             }

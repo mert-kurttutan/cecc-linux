@@ -4,6 +4,8 @@ export component MainWindow inherits Window {
     in property <string> status: "";
     in property <string> active_zone: "all";
     in property <string> zones_summary: "";
+    in property <string> gpu_mode: "unknown";
+    in-out property <int> active_tab: 0;
     in-out property <int> brightness: 0;
     in-out property <float> brightness_slider: 0;
     in-out property <int> red: 255;
@@ -16,7 +18,9 @@ export component MainWindow inherits Window {
     in-out property <color> selected_color: #ff0000;
 
     callback refresh();
+    callback select_tab(int);
     callback select_zone(int);
+    callback set_gpu_mode(int);
     callback brightness_edited(int);
     callback brightness_slider_changed(float);
     callback apply_brightness();
@@ -29,130 +33,178 @@ export component MainWindow inherits Window {
     default-font-size: 18px;
     title: "Excalibur Control Center";
 
-    VerticalBox {
-        spacing: 12px;
+    HorizontalBox {
+        spacing: 16px;
 
-        Text { text: "Excalibur Control Center"; }
-        Text { text: root.status; }
+        Rectangle {
+            width: 180px;
+            background: #111820;
 
-        HorizontalBox {
-            spacing: 8px;
-            Button { text: "All"; clicked => { root.select_zone(0); } }
-            Button { text: "Left"; clicked => { root.select_zone(1); } }
-            Button { text: "Middle"; clicked => { root.select_zone(2); } }
-            Button { text: "Right"; clicked => { root.select_zone(3); } }
-            Button { text: "Bias"; clicked => { root.select_zone(4); } }
-            Button { text: "Refresh"; clicked => { root.refresh(); } }
-        }
+            VerticalBox {
+                spacing: 10px;
+                padding: 12px;
 
-        Text { text: "Selected: " + root.active_zone; }
-
-        HorizontalBox {
-            spacing: 8px;
-            Text { text: "Brightness"; }
-            Slider {
-                minimum: 0;
-                maximum: 2;
-                value <=> root.brightness_slider;
-                changed(value) => { root.brightness_slider_changed(value); }
+                Text { text: "Excalibur"; }
+                Button { text: "Main"; clicked => { root.select_tab(0); } }
+                Button { text: "Keyboard"; clicked => { root.select_tab(1); } }
+                Button { text: "GPU"; clicked => { root.select_tab(2); } }
+                Rectangle { vertical-stretch: 1; }
+                Button { text: "Refresh"; clicked => { root.refresh(); } }
             }
-            SpinBox {
-                minimum: 0;
-                maximum: 2;
-                value <=> root.brightness;
-                edited(value) => { root.brightness_edited(value); }
-            }
-            Button { text: "Apply brightness"; clicked => { root.apply_brightness(); } }
         }
 
         VerticalBox {
-            spacing: 8px;
-            Text { text: "Color"; }
+            horizontal-stretch: 1;
+            spacing: 12px;
 
-            hue_bar := Rectangle {
-                height: 18px;
-                border-radius: 9px;
-                border-width: 1px;
-                border-color: #2f3a46;
-                background: @linear-gradient(90deg, #ff0000 0%, #ffff00 16.6%, #00ff00 33.3%, #00ffff 50%, #0000ff 66.6%, #ff00ff 83.3%, #ff0000 100%);
+            Text { text: "Excalibur Control Center"; }
+            Text { text: root.status; }
 
-                hue_bar_touch := TouchArea {
-                    clicked => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
-                    moved => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
-                }
+            if root.active_tab == 0 : VerticalBox {
+                spacing: 10px;
 
-                Rectangle {
-                    x: root.color_hue / 360 * hue_bar.width - 5px;
-                    y: 0px;
-                    width: 10px;
-                    height: parent.height;
-                    border-width: 2px;
-                    border-color: white;
-                    background: transparent;
-                }
+                Text { text: "Linux control center for Casper Excalibur laptops."; }
+                Text { text: "Origin: Linux port of Casper Excalibur Control Center behavior."; }
+                Text { text: "Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state."; }
+                Text { text: "Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work."; }
+                Text { text: "Current GPU mode: " + root.gpu_mode; }
             }
 
-            picker_square := Rectangle {
-                height: 220px;
-                border-radius: 12px;
-                border-width: 1px;
-                border-color: #2f3a46;
-                background: root.picker_base_color;
-
-                Rectangle {
-                    background: @linear-gradient(90deg, white, transparent);
-                    border-radius: 12px;
-                }
-                Rectangle {
-                    background: @linear-gradient(0deg, black, transparent);
-                    border-radius: 12px;
-                }
-
-                picker_square_touch := TouchArea {
-                    clicked => {
-                        root.color_sv_changed(
-                            picker_square_touch.mouse_x / picker_square.width,
-                            picker_square_touch.mouse_y / picker_square.height
-                        );
-                    }
-                    moved => {
-                        root.color_sv_changed(
-                            picker_square_touch.mouse_x / picker_square.width,
-                            picker_square_touch.mouse_y / picker_square.height
-                        );
-                    }
-                }
-
-                Rectangle {
-                    x: root.color_saturation * picker_square.width - 6px;
-                    y: (1 - root.color_value) * picker_square.height - 6px;
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 6px;
-                    border-width: 2px;
-                    border-color: white;
-                    background: transparent;
-                }
-            }
-
-            HorizontalBox {
+            if root.active_tab == 1 : VerticalBox {
                 spacing: 12px;
-                Rectangle {
-                    width: 64px;
-                    height: 36px;
-                    border-radius: 8px;
-                    border-width: 1px;
-                    border-color: #2f3a46;
-                    background: root.selected_color;
+
+                HorizontalBox {
+                    spacing: 8px;
+                    Button { text: "All"; clicked => { root.select_zone(0); } }
+                    Button { text: "Left"; clicked => { root.select_zone(1); } }
+                    Button { text: "Middle"; clicked => { root.select_zone(2); } }
+                    Button { text: "Right"; clicked => { root.select_zone(3); } }
+                    Button { text: "Bias"; clicked => { root.select_zone(4); } }
                 }
-                Text {
-                    text: "RGB: " + root.red + ", " + root.green + ", " + root.blue;
+
+                Text { text: "Selected: " + root.active_zone; }
+
+                HorizontalBox {
+                    spacing: 8px;
+                    Text { text: "Brightness"; }
+                    Slider {
+                        minimum: 0;
+                        maximum: 2;
+                        value <=> root.brightness_slider;
+                        changed(value) => { root.brightness_slider_changed(value); }
+                    }
+                    SpinBox {
+                        minimum: 0;
+                        maximum: 2;
+                        value <=> root.brightness;
+                        edited(value) => { root.brightness_edited(value); }
+                    }
+                    Button { text: "Apply brightness"; clicked => { root.apply_brightness(); } }
                 }
-                Button { text: "Apply color"; clicked => { root.apply_color(); } }
+
+                VerticalBox {
+                    spacing: 8px;
+                    Text { text: "Color"; }
+
+                    hue_bar := Rectangle {
+                        height: 18px;
+                        border-radius: 9px;
+                        border-width: 1px;
+                        border-color: #2f3a46;
+                        background: @linear-gradient(90deg, #ff0000 0%, #ffff00 16.6%, #00ff00 33.3%, #00ffff 50%, #0000ff 66.6%, #ff00ff 83.3%, #ff0000 100%);
+
+                        hue_bar_touch := TouchArea {
+                            clicked => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
+                            moved => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
+                        }
+
+                        Rectangle {
+                            x: root.color_hue / 360 * hue_bar.width - 5px;
+                            y: 0px;
+                            width: 10px;
+                            height: parent.height;
+                            border-width: 2px;
+                            border-color: white;
+                            background: transparent;
+                        }
+                    }
+
+                    picker_square := Rectangle {
+                        height: 220px;
+                        border-radius: 12px;
+                        border-width: 1px;
+                        border-color: #2f3a46;
+                        background: root.picker_base_color;
+
+                        Rectangle {
+                            background: @linear-gradient(90deg, white, transparent);
+                            border-radius: 12px;
+                        }
+                        Rectangle {
+                            background: @linear-gradient(0deg, black, transparent);
+                            border-radius: 12px;
+                        }
+
+                        picker_square_touch := TouchArea {
+                            clicked => {
+                                root.color_sv_changed(
+                                    picker_square_touch.mouse_x / picker_square.width,
+                                    picker_square_touch.mouse_y / picker_square.height
+                                );
+                            }
+                            moved => {
+                                root.color_sv_changed(
+                                    picker_square_touch.mouse_x / picker_square.width,
+                                    picker_square_touch.mouse_y / picker_square.height
+                                );
+                            }
+                        }
+
+                        Rectangle {
+                            x: root.color_saturation * picker_square.width - 6px;
+                            y: (1 - root.color_value) * picker_square.height - 6px;
+                            width: 12px;
+                            height: 12px;
+                            border-radius: 6px;
+                            border-width: 2px;
+                            border-color: white;
+                            background: transparent;
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 12px;
+                        Rectangle {
+                            width: 64px;
+                            height: 36px;
+                            border-radius: 8px;
+                            border-width: 1px;
+                            border-color: #2f3a46;
+                            background: root.selected_color;
+                        }
+                        Text {
+                            text: "RGB: " + root.red + ", " + root.green + ", " + root.blue;
+                        }
+                        Button { text: "Apply color"; clicked => { root.apply_color(); } }
+                    }
+                }
+
+                Text { text: "Zones"; }
+                Text { text: root.zones_summary; }
+            }
+
+            if root.active_tab == 2 : VerticalBox {
+                spacing: 10px;
+
+                Text { text: "Current GPU mode: " + root.gpu_mode; }
+                HorizontalBox {
+                    spacing: 8px;
+                    Button { text: "Hybrid"; clicked => { root.set_gpu_mode(0); } }
+                    Button { text: "Discrete"; clicked => { root.set_gpu_mode(1); } }
+                    Button { text: "UMA"; clicked => { root.set_gpu_mode(2); } }
+                }
+                Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
             }
         }
-
-        Text { text: "Zones"; }
-        Text { text: root.zones_summary; }
     }
 }

@@ -1,6 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use excalibur_control_center_backend::{
-    Backend, ControlCenterState, GpuMode, KeyboardZoneName, RgbColor, SysfsBackend,
+    ControlCenterState, GpuMode, KeyboardZoneName, RgbColor, SysfsBackend,
 };
 
 #[derive(Debug, Parser)]
@@ -144,7 +144,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Command::Gpu(command) => match command.command {
             GpuSubcommand::Get => {
                 let mode = backend.read_gpu_mode()?;
-                println!("{}", mode.map(|m| m.to_string()).unwrap_or_else(|| "unknown".to_string()));
+                println!(
+                    "{}",
+                    mode.map(|m| m.to_string())
+                        .unwrap_or_else(|| "unknown".to_string())
+                );
             }
             GpuSubcommand::Set { mode } => {
                 let mode: GpuMode = mode.into();
@@ -174,7 +178,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 green,
                 blue,
             } => {
-                for zone in backend.set_keyboard_color(zone.to_option(), RgbColor::new(red, green, blue))? {
+                for zone in
+                    backend.set_keyboard_color(zone.to_option(), RgbColor::new(red, green, blue))?
+                {
                     print_zone(&zone);
                 }
             }
@@ -197,7 +203,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     green,
                     blue,
                 } => {
-                    for zone in backend.set_keyboard_color(zone.to_option(), RgbColor::new(red, green, blue))? {
+                    for zone in backend
+                        .set_keyboard_color(zone.to_option(), RgbColor::new(red, green, blue))?
+                    {
                         print_zone(&zone);
                     }
                 }
