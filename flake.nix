@@ -3,9 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    host-nixos.url = "path:/etc/nixos";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, host-nixos }:
     let
       systems = [
         "x86_64-linux"
@@ -17,8 +18,8 @@
       devShells = forAllSystems (system:
         let
           pkgs = import nixpkgs { inherit system; };
-          kernelPackages = pkgs.linuxPackages;
-          kernel = kernelPackages.kernel;
+          hostConfig = host-nixos.nixosConfigurations.nixos.config;
+          kernel = hostConfig.boot.kernelPackages.kernel;
           kdir = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build";
           guiLibs = with pkgs; [
             fontconfig
