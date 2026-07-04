@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::model::{ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneName, RgbColor};
+use crate::model::{
+    ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneName, KeyboardZoneSelection, RgbColor,
+};
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
 const GPU_MODE_PATH: &str = "module/casper_wmi/parameters/gpu_mode";
@@ -217,13 +219,13 @@ impl SysfsBackend {
         self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
     }
 
-    pub fn keyboard_zones_for_target(
+    fn keyboard_zones_for_target(
         &self,
-        zone: Option<KeyboardZoneName>,
+        selection: KeyboardZoneSelection,
     ) -> Vec<KeyboardZoneName> {
-        match zone {
-            Some(zone) => vec![zone],
-            None => vec![
+        match selection {
+            KeyboardZoneSelection::One(zone) => vec![zone],
+            KeyboardZoneSelection::All => vec![
                 KeyboardZoneName::Left,
                 KeyboardZoneName::Middle,
                 KeyboardZoneName::Right,
@@ -234,35 +236,35 @@ impl SysfsBackend {
 
     pub fn read_keyboard_zones(
         &self,
-        zone: Option<KeyboardZoneName>,
+        selection: KeyboardZoneSelection,
     ) -> Result<Vec<KeyboardZone>, BackendError> {
-        match zone {
-            Some(zone) => Ok(vec![self.read_keyboard_zone(zone)?]),
-            None => self.list_keyboard_zones(),
+        match selection {
+            KeyboardZoneSelection::One(zone) => Ok(vec![self.read_keyboard_zone(zone)?]),
+            KeyboardZoneSelection::All => self.list_keyboard_zones(),
         }
     }
 
     pub fn set_keyboard_brightness(
         &self,
-        zone: Option<KeyboardZoneName>,
+        selection: KeyboardZoneSelection,
         brightness: u32,
     ) -> Result<Vec<KeyboardZone>, BackendError> {
-        for target in self.keyboard_zones_for_target(zone) {
+        for target in self.keyboard_zones_for_target(selection) {
             self.write_keyboard_brightness(target, brightness)?;
         }
 
-        self.read_keyboard_zones(zone)
+        self.read_keyboard_zones(selection)
     }
 
     pub fn set_keyboard_color(
         &self,
-        zone: Option<KeyboardZoneName>,
+        selection: KeyboardZoneSelection,
         color: RgbColor,
     ) -> Result<Vec<KeyboardZone>, BackendError> {
-        for target in self.keyboard_zones_for_target(zone) {
+        for target in self.keyboard_zones_for_target(selection) {
             self.write_keyboard_color(target, color)?;
         }
 
-        self.read_keyboard_zones(zone)
+        self.read_keyboard_zones(selection)
     }
 }

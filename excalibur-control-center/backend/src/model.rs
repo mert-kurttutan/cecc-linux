@@ -48,6 +48,28 @@ impl fmt::Display for KeyboardZoneName {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum KeyboardZoneSelection {
+    All,
+    One(KeyboardZoneName),
+}
+
+impl KeyboardZoneSelection {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::One(zone) => zone.as_str(),
+        }
+    }
+
+    pub fn zone_name(self) -> Option<KeyboardZoneName> {
+        match self {
+            Self::All => None,
+            Self::One(zone) => Some(zone),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct RgbColor {
     pub red: u8,
