@@ -1,6 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use excalibur_control_center_backend::{
-    ControlCenterState, GpuMode, KeyboardZoneName, KeyboardZoneSelection, RgbColor, SysfsBackend,
+    ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneState, KeyboardZoneSelection, RgbColor, SysfsBackend,
 };
 
 #[derive(Debug, Parser)]
@@ -126,10 +126,10 @@ enum ZoneArg {
 impl ZoneArg {
     fn to_selection(self) -> KeyboardZoneSelection {
         match self {
-            Self::Left => KeyboardZoneSelection::One(KeyboardZoneName::Left),
-            Self::Middle => KeyboardZoneSelection::One(KeyboardZoneName::Middle),
-            Self::Right => KeyboardZoneSelection::One(KeyboardZoneName::Right),
-            Self::Bias => KeyboardZoneSelection::One(KeyboardZoneName::Bias),
+            Self::Left => KeyboardZoneSelection::One(KeyboardZone::Left),
+            Self::Middle => KeyboardZoneSelection::One(KeyboardZone::Middle),
+            Self::Right => KeyboardZoneSelection::One(KeyboardZone::Right),
+            Self::Bias => KeyboardZoneSelection::One(KeyboardZone::Bias),
             Self::All => KeyboardZoneSelection::All,
         }
     }
@@ -231,7 +231,7 @@ fn print_state(state: ControlCenterState) {
     }
 }
 
-fn print_zone(zone: &excalibur_control_center_backend::KeyboardZone) {
+fn print_zone(zone: &KeyboardZoneState) {
     println!(
         "zone={} brightness={} max_brightness={} color={},{},{} device={}",
         zone.name,
