@@ -1,6 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use excalibur_control_center_backend::{
-    ControlCenterState, GpuMode, KeyboardZoneName, RgbColor, SysfsBackend,
+    ControlCenterState, GpuMode, KeyboardZoneName, KeyboardZoneSelection, RgbColor, SysfsBackend,
 };
 
 #[derive(Debug, Parser)]
@@ -124,13 +124,13 @@ enum ZoneArg {
 }
 
 impl ZoneArg {
-    fn to_option(self) -> Option<KeyboardZoneName> {
+    fn to_selection(self) -> KeyboardZoneSelection {
         match self {
-            Self::Left => Some(KeyboardZoneName::Left),
-            Self::Middle => Some(KeyboardZoneName::Middle),
-            Self::Right => Some(KeyboardZoneName::Right),
-            Self::Bias => Some(KeyboardZoneName::Bias),
-            Self::All => None,
+            Self::Left => KeyboardZoneSelection::One(KeyboardZoneName::Left),
+            Self::Middle => KeyboardZoneSelection::One(KeyboardZoneName::Middle),
+            Self::Right => KeyboardZoneSelection::One(KeyboardZoneName::Right),
+            Self::Bias => KeyboardZoneSelection::One(KeyboardZoneName::Bias),
+            Self::All => KeyboardZoneSelection::All,
         }
     }
 }
@@ -163,12 +163,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             KeyboardSubcommand::Get { zone } => {
-                for zone in backend.read_keyboard_zones(zone.and_then(ZoneArg::to_option))? {
+                let selection = zone.map_or(KeyboardZoneSelection::All, ZoneArg::to_selection);
+                for zone in backend.read_keyboard_zones(selection)? {
                     print_zone(&zone);
                 }
             }
             KeyboardSubcommand::Set { zone, level } => {
-                for zone in backend.set_keyboard_brightness(zone.to_option(), level)? {
+                for zone in backend.set_keyboard_brightness(zone.to_selection(), level)? {
                     print_zone(&zone);
                 }
             }
@@ -178,15 +179,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 green,
                 blue,
             } => {
-                for zone in
-                    backend.set_keyboard_color(zone.to_option(), RgbColor::new(red, green, blue))?
+                for zone in backend
+                    .set_keyboard_color(zone.to_selection(), RgbColor::new(red, green, blue))?
                 {
                     print_zone(&zone);
                 }
             }
             KeyboardSubcommand::Color(command) => match command.command {
                 ColorSubcommand::Get { zone } => {
-                    for zone in backend.read_keyboard_zones(zone.and_then(ZoneArg::to_option))? {
+                    let selection = zone.map_or(KeyboardZoneSelection::All, ZoneArg::to_selection);
+                    for zone in backend.read_keyboard_zones(selection)? {
                         println!(
                             "zone={} color={},{},{} device={}",
                             zone.name,
@@ -204,7 +206,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     blue,
                 } => {
                     for zone in backend
-                        .set_keyboard_color(zone.to_option(), RgbColor::new(red, green, blue))?
+                        .set_keyboard_color(zone.to_selection(), RgbColor::new(red, green, blue))?
                     {
                         print_zone(&zone);
                     }

@@ -2,59 +2,28 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use excalibur_control_center_backend::{
-    GpuMode, KeyboardZone, KeyboardZoneName, RgbColor, SysfsBackend,
+    GpuMode, KeyboardZone, KeyboardZoneState, KeyboardZoneSelection, RgbColor, SysfsBackend,
 };
 use excalibur_control_center_gui::ui::MainWindow;
 use slint::ComponentHandle;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ZoneSelection {
-    All,
-    Left,
-    Middle,
-    Right,
-    Bias,
-}
-
-impl ZoneSelection {
-    fn from_index(index: i32) -> Self {
-        match index {
-            1 => Self::Left,
-            2 => Self::Middle,
-            3 => Self::Right,
-            4 => Self::Bias,
-            _ => Self::All,
-        }
-    }
-
-    fn as_label(self) -> &'static str {
-        match self {
-            Self::All => "all",
-            Self::Left => "left",
-            Self::Middle => "middle",
-            Self::Right => "right",
-            Self::Bias => "bias",
-        }
-    }
-
-    fn to_option(self) -> Option<KeyboardZoneName> {
-        match self {
-            Self::All => None,
-            Self::Left => Some(KeyboardZoneName::Left),
-            Self::Middle => Some(KeyboardZoneName::Middle),
-            Self::Right => Some(KeyboardZoneName::Right),
-            Self::Bias => Some(KeyboardZoneName::Bias),
-        }
+fn zone_selection_for_index(index: i32) -> KeyboardZoneSelection {
+    match index {
+        1 => KeyboardZoneSelection::One(KeyboardZone::Left),
+        2 => KeyboardZoneSelection::One(KeyboardZone::Middle),
+        3 => KeyboardZoneSelection::One(KeyboardZone::Right),
+        4 => KeyboardZoneSelection::One(KeyboardZone::Bias),
+        _ => KeyboardZoneSelection::All,
     }
 }
 
 #[derive(Debug)]
 struct AppState {
     backend: SysfsBackend,
-    zones: Vec<KeyboardZone>,
+    zones: Vec<KeyboardZoneState>,
     gpu_mode: Option<GpuMode>,
     active_tab: i32,
-    selected_zone: ZoneSelection,
+    selected_zone: KeyboardZoneSelection,
     status: String,
 }
 
@@ -65,7 +34,7 @@ impl AppState {
             zones: Vec::new(),
             gpu_mode: None,
             active_tab: 0,
-            selected_zone: ZoneSelection::All,
+            selected_zone: KeyboardZoneSelection::All,
             status: String::new(),
         };
         state.refresh();
@@ -89,9 +58,9 @@ impl AppState {
         self.active_tab = tab.clamp(0, 2);
     }
 
-    fn set_selected_zone(&mut self, zone: ZoneSelection) {
+    fn set_selected_zone(&mut self, zone: KeyboardZoneSelection) {
         self.selected_zone = zone;
-        self.status = format!("selected {}", zone.as_label());
+        self.status = format!("selected {}", zone.as_str());
     }
 
     fn set_gpu_mode(&mut self, mode: GpuMode) {
@@ -106,9 +75,9 @@ impl AppState {
         }
     }
 
-    fn selected_zone_state(&self) -> Option<KeyboardZone> {
+    fn selected_zone_state(&self) -> Option<KeyboardZoneState> {
         self.selected_zone
-            .to_option()
+            .zone_name()
             .and_then(|zone| self.zones.iter().find(|entry| entry.name == zone))
             .cloned()
     }
@@ -134,7 +103,7 @@ impl AppState {
 
 fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_status(state.status.clone().into());
-    window.set_active_zone(state.selected_zone.as_label().into());
+    window.set_active_zone(state.selected_zone.as_str().into());
     window.set_zones_summary(state.zone_summary().into());
     window.set_active_tab(state.active_tab);
     window.set_gpu_mode(
@@ -163,10 +132,6 @@ fn sync_window(window: &MainWindow, state: &AppState) {
             zone.color.blue,
         ));
     }
-}
-
-fn zone_for_index(index: i32) -> ZoneSelection {
-    ZoneSelection::from_index(index)
 }
 
 fn gpu_mode_for_index(index: i32) -> GpuMode {
@@ -257,7 +222,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let window_weak = window.as_weak();
         window.on_select_zone(move |index| {
             let mut state = state.borrow_mut();
-            state.set_selected_zone(zone_for_index(index));
+            state.set_selected_zone(zone_selection_for_index(index));
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
             }
@@ -315,7 +280,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             let result = state
                 .backend
-                .set_keyboard_brightness(state.selected_zone.to_option(), brightness);
+                .set_keyboard_brightness(state.selected_zone, brightness);
 
             match result {
                 Ok(zones) => {
@@ -323,7 +288,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     state.status = format!(
                         "brightness set to {} for {}",
                         brightness,
-                        state.selected_zone.as_label()
+                        state.selected_zone.as_str()
                     );
                 }
                 Err(err) => state.status = format!("brightness write failed: {err}"),
@@ -350,9 +315,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 window.get_blue() as u8,
             );
 
-            let result = state
-                .backend
-                .set_keyboard_color(state.selected_zone.to_option(), color);
+            let result = state.backend.set_keyboard_color(state.selected_zone, color);
 
             match result {
                 Ok(zones) => {
@@ -362,7 +325,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         color.red,
                         color.green,
                         color.blue,
-                        state.selected_zone.as_label()
+                        state.selected_zone.as_str()
                     );
                 }
                 Err(err) => state.status = format!("color write failed: {err}"),

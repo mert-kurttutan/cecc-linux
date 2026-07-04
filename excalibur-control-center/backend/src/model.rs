@@ -24,14 +24,14 @@ impl fmt::Display for GpuMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum KeyboardZoneName {
+pub enum KeyboardZone {
     Left,
     Middle,
     Right,
     Bias,
 }
 
-impl KeyboardZoneName {
+impl KeyboardZone {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Left => "left",
@@ -42,7 +42,7 @@ impl KeyboardZoneName {
     }
 }
 
-impl fmt::Display for KeyboardZoneName {
+impl fmt::Display for KeyboardZone {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
@@ -51,7 +51,7 @@ impl fmt::Display for KeyboardZoneName {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KeyboardZoneSelection {
     All,
-    One(KeyboardZoneName),
+    One(KeyboardZone),
 }
 
 impl KeyboardZoneSelection {
@@ -62,7 +62,7 @@ impl KeyboardZoneSelection {
         }
     }
 
-    pub fn zone_name(self) -> Option<KeyboardZoneName> {
+    pub fn zone_name(self) -> Option<KeyboardZone> {
         match self {
             Self::All => None,
             Self::One(zone) => Some(zone),
@@ -84,8 +84,8 @@ impl RgbColor {
 }
 
 #[derive(Debug, Clone)]
-pub struct KeyboardZone {
-    pub name: KeyboardZoneName,
+pub struct KeyboardZoneState {
+    pub name: KeyboardZone,
     pub sysfs_name: String,
     pub brightness: u32,
     pub max_brightness: u32,
@@ -95,5 +95,5 @@ pub struct KeyboardZone {
 #[derive(Debug, Clone)]
 pub struct ControlCenterState {
     pub gpu_mode: Option<GpuMode>,
-    pub keyboard_zones: Vec<KeyboardZone>,
+    pub keyboard_zones: Vec<KeyboardZoneState>,
 }
