@@ -76,10 +76,10 @@ impl AppState {
     }
 
     fn selected_zone_state(&self) -> Option<KeyboardZoneState> {
-        self.selected_zone
-            .zone_name()
-            .and_then(|zone| self.zones.iter().find(|entry| entry.name == zone))
-            .cloned()
+        match self.selected_zone {
+            KeyboardZoneSelection::One(zone) => self.zones.iter().find(|entry| entry.name == zone).cloned(),
+            KeyboardZoneSelection::All => None,
+        }
     }
 
     fn zone_summary(&self) -> String {

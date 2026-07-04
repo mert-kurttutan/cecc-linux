@@ -61,13 +61,6 @@ impl KeyboardZoneSelection {
             Self::One(zone) => zone.as_str(),
         }
     }
-
-    pub fn zone_name(self) -> Option<KeyboardZone> {
-        match self {
-            Self::All => None,
-            Self::One(zone) => Some(zone),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
