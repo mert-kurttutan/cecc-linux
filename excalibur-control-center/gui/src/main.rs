@@ -275,7 +275,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let mut state = state.borrow_mut();
             let brightness = window_weak
                 .upgrade()
-                .map(|window| window.get_brightness_slider().round() as u32)
+                .map(|window| window.get_brightness_slider().round() as u8)
                 .unwrap_or(0);
 
             let result = state

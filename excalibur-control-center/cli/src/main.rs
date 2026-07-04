@@ -60,7 +60,7 @@ enum KeyboardSubcommand {
     Set {
         #[arg(value_enum)]
         zone: ZoneArg,
-        level: u32,
+        level: u8,
     },
     /// Set RGB color for one zone or all zones.
     SetColor {

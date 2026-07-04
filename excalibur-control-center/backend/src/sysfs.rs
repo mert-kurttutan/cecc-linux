@@ -67,10 +67,10 @@ impl SysfsBackend {
         self.path([LED_ROOT, Self::zone_sysfs_name(zone), "max_brightness"].join("/"))
     }
 
-    fn parse_u32(path: &Path, value: &str) -> Result<u32, BackendError> {
+    fn parse_u8(path: &Path, value: &str) -> Result<u8, BackendError> {
         value
             .trim()
-            .parse::<u32>()
+            .parse::<u8>()
             .map_err(|_| BackendError::Parse {
                 path: path.display().to_string(),
                 value: value.trim().to_string(),
@@ -162,11 +162,11 @@ impl SysfsBackend {
             return Err(BackendError::UnknownZone(sysfs_name));
         }
 
-        let brightness = Self::parse_u32(
+        let brightness = Self::parse_u8(
             &brightness_path,
             &self.read_string(Self::zone_rel(zone, "brightness"))?,
         )?;
-        let max_brightness = Self::parse_u32(
+        let max_brightness = Self::parse_u8(
             &max_brightness_path,
             &self.read_string(Self::zone_rel(zone, "max_brightness"))?,
         )?;
@@ -184,9 +184,9 @@ impl SysfsBackend {
     pub fn write_keyboard_brightness(
         &self,
         zone: KeyboardZone,
-        brightness: u32,
+        brightness: u8,
     ) -> Result<(), BackendError> {
-        let max_brightness = Self::parse_u32(
+        let max_brightness = Self::parse_u8(
             &self.zone_max_brightness_path(zone),
             &self.read_string(Self::zone_rel(zone, "max_brightness"))?,
         )?;
@@ -206,7 +206,7 @@ impl SysfsBackend {
         zone: KeyboardZone,
         color: RgbColor,
     ) -> Result<(), BackendError> {
-        let brightness = Self::parse_u32(
+        let brightness = Self::parse_u8(
             &self.zone_brightness_path(zone),
             &self.read_string(Self::zone_rel(zone, "brightness"))?,
         )?;
@@ -247,7 +247,7 @@ impl SysfsBackend {
     pub fn set_keyboard_brightness(
         &self,
         selection: KeyboardZoneSelection,
-        brightness: u32,
+        brightness: u8,
     ) -> Result<Vec<KeyboardZoneState>, BackendError> {
         for target in self.keyboard_zones_for_target(selection) {
             self.write_keyboard_brightness(target, brightness)?;

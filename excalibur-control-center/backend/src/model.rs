@@ -80,8 +80,8 @@ impl RgbColor {
 pub struct KeyboardZoneState {
     pub name: KeyboardZone,
     pub sysfs_name: String,
-    pub brightness: u32,
-    pub max_brightness: u32,
+    pub brightness: u8,
+    pub max_brightness: u8,
     pub color: RgbColor,
 }
 
