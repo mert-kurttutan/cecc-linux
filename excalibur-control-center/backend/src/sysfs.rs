@@ -157,10 +157,6 @@ impl SysfsBackend {
         let brightness_path = self.zone_brightness_path(zone);
         let max_brightness_path = self.zone_max_brightness_path(zone);
 
-        if !brightness_path.exists() {
-            return Err(BackendError::UnknownZone(sysfs_name));
-        }
-
         let brightness = Self::parse_u8(
             &brightness_path,
             &self.read_string(Self::zone_rel(zone, "brightness"))?,
