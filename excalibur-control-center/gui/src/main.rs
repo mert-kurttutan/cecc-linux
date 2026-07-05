@@ -4,16 +4,18 @@ use std::rc::Rc;
 use excalibur_control_center_backend::{
     GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor, SysfsBackend,
 };
-use excalibur_control_center_gui::ui::{AppTab, MainWindow};
+use excalibur_control_center_gui::ui::{
+    AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection, MainWindow,
+};
 use slint::ComponentHandle;
 
-fn zone_selection_for_index(index: i32) -> KeyboardZoneSelection {
-    match index {
-        1 => KeyboardZoneSelection::One(KeyboardZone::Left),
-        2 => KeyboardZoneSelection::One(KeyboardZone::Middle),
-        3 => KeyboardZoneSelection::One(KeyboardZone::Right),
-        4 => KeyboardZoneSelection::One(KeyboardZone::Bias),
-        _ => KeyboardZoneSelection::All,
+fn zone_selection_from_ui(zone: UiKeyboardZoneSelection) -> KeyboardZoneSelection {
+    match zone {
+        UiKeyboardZoneSelection::All => KeyboardZoneSelection::All,
+        UiKeyboardZoneSelection::Left => KeyboardZoneSelection::One(KeyboardZone::Left),
+        UiKeyboardZoneSelection::Middle => KeyboardZoneSelection::One(KeyboardZone::Middle),
+        UiKeyboardZoneSelection::Right => KeyboardZoneSelection::One(KeyboardZone::Right),
+        UiKeyboardZoneSelection::Bias => KeyboardZoneSelection::One(KeyboardZone::Bias),
     }
 }
 
@@ -130,11 +132,11 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     }
 }
 
-fn gpu_mode_for_index(index: i32) -> GpuMode {
-    match index {
-        1 => GpuMode::Discrete,
-        2 => GpuMode::Uma,
-        _ => GpuMode::Hybrid,
+fn gpu_mode_from_ui(mode: UiGpuMode) -> GpuMode {
+    match mode {
+        UiGpuMode::Hybrid => GpuMode::Hybrid,
+        UiGpuMode::Discrete => GpuMode::Discrete,
+        UiGpuMode::Uma => GpuMode::Uma,
     }
 }
 
@@ -216,9 +218,9 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         let state = state.clone();
         let window_weak = window.as_weak();
-        window.on_select_zone(move |index| {
+        window.on_select_zone(move |zone| {
             let mut state = state.borrow_mut();
-            state.set_selected_zone(zone_selection_for_index(index));
+            state.set_selected_zone(zone_selection_from_ui(zone));
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
             }
@@ -228,9 +230,9 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         let state = state.clone();
         let window_weak = window.as_weak();
-        window.on_set_gpu_mode(move |index| {
+        window.on_set_gpu_mode(move |mode| {
             let mut state = state.borrow_mut();
-            state.set_gpu_mode(gpu_mode_for_index(index));
+            state.set_gpu_mode(gpu_mode_from_ui(mode));
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
             }
