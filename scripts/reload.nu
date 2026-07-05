@@ -85,6 +85,7 @@ def main [
   ^sudo insmod $module_path
 
   print "Applying temporary dev permissions"
+  do -i { ^sudo chmod a+rw /sys/module/casper_wmi/parameters/gpu_mode }
   do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:kbd_zoned_backlight-*/brightness }
   do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:kbd_zoned_backlight-*/multi_intensity }
   do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:biaslight/brightness }
