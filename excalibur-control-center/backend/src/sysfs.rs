@@ -102,12 +102,11 @@ impl SysfsBackend {
         Ok(RgbColor { red, green, blue })
     }
 
-    fn parse_gpu_mode(value: &str) -> Result<Option<GpuMode>, BackendError> {
+    fn parse_gpu_mode(value: &str) -> Result<GpuMode, BackendError> {
         match value.trim() {
-            "hybrid" => Ok(Some(GpuMode::Hybrid)),
-            "discrete" => Ok(Some(GpuMode::Discrete)),
-            "uma" => Ok(Some(GpuMode::Uma)),
-            "" => Ok(None),
+            "hybrid" => Ok(GpuMode::Hybrid),
+            "discrete" => Ok(GpuMode::Discrete),
+            "uma" => Ok(GpuMode::Uma),
             other => Err(BackendError::Parse {
                 path: GPU_MODE_PATH.to_string(),
                 value: other.to_string(),
@@ -125,7 +124,7 @@ impl SysfsBackend {
         })
     }
 
-    pub fn read_gpu_mode(&self) -> Result<Option<GpuMode>, BackendError> {
+    pub fn read_gpu_mode(&self) -> Result<GpuMode, BackendError> {
         let path = self.path(GPU_MODE_PATH);
         let value = self.read_string(GPU_MODE_PATH)?;
         Self::parse_gpu_mode(&value).map_err(|err| match err {

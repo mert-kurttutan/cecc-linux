@@ -146,8 +146,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mode = backend.read_gpu_mode()?;
                 println!(
                     "{}",
-                    mode.map(|m| m.to_string())
-                        .unwrap_or_else(|| "unknown".to_string())
+                    mode.to_string()
                 );
             }
             GpuSubcommand::Set { mode } => {
@@ -223,8 +222,7 @@ fn print_state(state: ControlCenterState) {
         "gpu_mode={}",
         state
             .gpu_mode
-            .map(|m| m.to_string())
-            .unwrap_or_else(|| "unknown".to_string())
+            .to_string()
     );
     for zone in state.keyboard_zones {
         print_zone(&zone);

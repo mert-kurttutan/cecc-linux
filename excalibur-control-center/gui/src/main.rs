@@ -21,7 +21,7 @@ fn zone_selection_for_index(index: i32) -> KeyboardZoneSelection {
 struct AppState {
     backend: SysfsBackend,
     zones: Vec<KeyboardZoneState>,
-    gpu_mode: Option<GpuMode>,
+    gpu_mode: GpuMode,
     active_tab: i32,
     selected_zone: KeyboardZoneSelection,
     status: String,
@@ -32,7 +32,7 @@ impl AppState {
         let mut state = Self {
             backend: SysfsBackend::default(),
             zones: Vec::new(),
-            gpu_mode: None,
+            gpu_mode: GpuMode::Hybrid,
             active_tab: 0,
             selected_zone: KeyboardZoneSelection::All,
             status: String::new(),
@@ -66,7 +66,7 @@ impl AppState {
     fn set_gpu_mode(&mut self, mode: GpuMode) {
         match self.backend.write_gpu_mode(mode) {
             Ok(()) => {
-                self.gpu_mode = Some(mode);
+                self.gpu_mode = mode;
                 self.status = format!("gpu mode set to {mode}");
             }
             Err(err) => {
@@ -109,8 +109,7 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_gpu_mode(
         state
             .gpu_mode
-            .map(|mode| mode.as_str())
-            .unwrap_or("unknown")
+            .as_str()
             .into(),
     );
 

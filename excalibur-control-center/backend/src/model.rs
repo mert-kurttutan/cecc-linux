@@ -87,6 +87,6 @@ pub struct KeyboardZoneState {
 
 #[derive(Debug, Clone)]
 pub struct ControlCenterState {
-    pub gpu_mode: Option<GpuMode>,
+    pub gpu_mode: GpuMode,
     pub keyboard_zones: Vec<KeyboardZoneState>,
 }
