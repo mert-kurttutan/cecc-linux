@@ -48,7 +48,10 @@ export component MainWindow inherits Window {
                 spacing: 10px;
                 padding: 12px;
 
-                Text { text: "Excalibur"; }
+                Text {
+                    horizontal-alignment: center;
+                    text: "Excalibur";
+                }
                 Button { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
                 Button { text: "Keyboard"; clicked => { root.select_tab(AppTab.keyboard); } }
                 Button { text: "GPU"; clicked => { root.select_tab(AppTab.gpu); } }
@@ -61,17 +64,55 @@ export component MainWindow inherits Window {
             horizontal-stretch: 1;
             spacing: 12px;
 
-            Text { text: "Excalibur Control Center"; }
-            Text { text: root.status; }
+            Rectangle {
+                height: 48px;
+                horizontal-stretch: 1;
+                Rectangle {
+                    width: 360px;
+                    height: 48px;
+                    x: (parent.width - self.width) / 2;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: #2f3a46;
+                    background: #f2f5f7;
+
+                    Text {
+                        width: parent.width;
+                        height: parent.height;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                        text: "Excalibur Control Center";
+                        color: #2f3a46;
+                    }
+                }
+            }
+            // Text { text: root.status; }
 
             if root.active_tab == AppTab.main : VerticalBox {
                 spacing: 10px;
+                preferred-width: 680px;
+                horizontal-stretch: 1;
 
-                Text { text: "Linux control center for Casper Excalibur laptops."; }
-                Text { text: "Origin: Linux port of Casper Excalibur Control Center behavior."; }
-                Text { text: "Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state."; }
-                Text { text: "Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work."; }
-                Text { text: "Current GPU mode: " + root.gpu_mode; }
+                Text {
+                    wrap: word-wrap;
+                    text: "Linux control center for Casper Excalibur laptops.";
+                }
+                Text {
+                    wrap: word-wrap;
+                    text: "Origin: Linux port of Casper Excalibur Control Center behavior.";
+                }
+                Text {
+                    wrap: word-wrap;
+                    text: "Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state.";
+                }
+                Text {
+                    wrap: word-wrap;
+                    text: "Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work.";
+                }
+                Text {
+                    wrap: word-wrap;
+                    text: "Current GPU mode: " + root.gpu_mode;
+                }
             }
 
             if root.active_tab == AppTab.keyboard : VerticalBox {
