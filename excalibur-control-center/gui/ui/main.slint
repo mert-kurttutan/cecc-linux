@@ -1,11 +1,13 @@
 import { Button, HorizontalBox, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
 
+export enum AppTab { main, keyboard, gpu }
+
 export component MainWindow inherits Window {
     in property <string> status: "";
     in property <string> active_zone: "all";
     in property <string> zones_summary: "";
     in property <string> gpu_mode: "unknown";
-    in-out property <int> active_tab: 0;
+    in-out property <AppTab> active_tab: AppTab.main;
     in-out property <int> brightness: 0;
     in-out property <float> brightness_slider: 0;
     in-out property <int> red: 255;
@@ -18,7 +20,7 @@ export component MainWindow inherits Window {
     in-out property <color> selected_color: #ff0000;
 
     callback refresh();
-    callback select_tab(int);
+    callback select_tab(AppTab);
     callback select_zone(int);
     callback set_gpu_mode(int);
     callback brightness_edited(int);
@@ -45,9 +47,9 @@ export component MainWindow inherits Window {
                 padding: 12px;
 
                 Text { text: "Excalibur"; }
-                Button { text: "Main"; clicked => { root.select_tab(0); } }
-                Button { text: "Keyboard"; clicked => { root.select_tab(1); } }
-                Button { text: "GPU"; clicked => { root.select_tab(2); } }
+                Button { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
+                Button { text: "Keyboard"; clicked => { root.select_tab(AppTab.keyboard); } }
+                Button { text: "GPU"; clicked => { root.select_tab(AppTab.gpu); } }
                 Rectangle { vertical-stretch: 1; }
                 Button { text: "Refresh"; clicked => { root.refresh(); } }
             }
@@ -60,7 +62,7 @@ export component MainWindow inherits Window {
             Text { text: "Excalibur Control Center"; }
             Text { text: root.status; }
 
-            if root.active_tab == 0 : VerticalBox {
+            if root.active_tab == AppTab.main : VerticalBox {
                 spacing: 10px;
 
                 Text { text: "Linux control center for Casper Excalibur laptops."; }
@@ -70,7 +72,7 @@ export component MainWindow inherits Window {
                 Text { text: "Current GPU mode: " + root.gpu_mode; }
             }
 
-            if root.active_tab == 1 : VerticalBox {
+            if root.active_tab == AppTab.keyboard : VerticalBox {
                 spacing: 12px;
 
                 HorizontalBox {
@@ -193,7 +195,7 @@ export component MainWindow inherits Window {
                 Text { text: root.zones_summary; }
             }
 
-            if root.active_tab == 2 : VerticalBox {
+            if root.active_tab == AppTab.gpu : VerticalBox {
                 spacing: 10px;
 
                 Text { text: "Current GPU mode: " + root.gpu_mode; }

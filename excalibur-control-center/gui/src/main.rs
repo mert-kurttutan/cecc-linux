@@ -2,9 +2,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use excalibur_control_center_backend::{
-    GpuMode, KeyboardZone, KeyboardZoneState, KeyboardZoneSelection, RgbColor, SysfsBackend,
+    GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor, SysfsBackend,
 };
-use excalibur_control_center_gui::ui::MainWindow;
+use excalibur_control_center_gui::ui::{AppTab, MainWindow};
 use slint::ComponentHandle;
 
 fn zone_selection_for_index(index: i32) -> KeyboardZoneSelection {
@@ -22,7 +22,7 @@ struct AppState {
     backend: SysfsBackend,
     zones: Vec<KeyboardZoneState>,
     gpu_mode: GpuMode,
-    active_tab: i32,
+    active_tab: AppTab,
     selected_zone: KeyboardZoneSelection,
     status: String,
 }
@@ -33,7 +33,7 @@ impl AppState {
             backend: SysfsBackend::default(),
             zones: Vec::new(),
             gpu_mode: GpuMode::Hybrid,
-            active_tab: 0,
+            active_tab: AppTab::Main,
             selected_zone: KeyboardZoneSelection::All,
             status: String::new(),
         };
@@ -54,8 +54,8 @@ impl AppState {
         }
     }
 
-    fn set_active_tab(&mut self, tab: i32) {
-        self.active_tab = tab.clamp(0, 2);
+    fn set_active_tab(&mut self, tab: AppTab) {
+        self.active_tab = tab;
     }
 
     fn set_selected_zone(&mut self, zone: KeyboardZoneSelection) {
@@ -77,7 +77,9 @@ impl AppState {
 
     fn selected_zone_state(&self) -> Option<KeyboardZoneState> {
         match self.selected_zone {
-            KeyboardZoneSelection::One(zone) => self.zones.iter().find(|entry| entry.name == zone).cloned(),
+            KeyboardZoneSelection::One(zone) => {
+                self.zones.iter().find(|entry| entry.name == zone).cloned()
+            }
             KeyboardZoneSelection::All => None,
         }
     }
@@ -106,12 +108,7 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_active_zone(state.selected_zone.as_str().into());
     window.set_zones_summary(state.zone_summary().into());
     window.set_active_tab(state.active_tab);
-    window.set_gpu_mode(
-        state
-            .gpu_mode
-            .as_str()
-            .into(),
-    );
+    window.set_gpu_mode(state.gpu_mode.as_str().into());
 
     if let Some(zone) = state.selected_zone_state() {
         window.set_brightness(zone.brightness as i32);

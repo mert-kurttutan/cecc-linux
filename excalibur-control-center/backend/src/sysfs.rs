@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::model::{
-    ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneState, KeyboardZoneSelection, RgbColor,
+    ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
@@ -68,13 +68,10 @@ impl SysfsBackend {
     }
 
     fn parse_u8(path: &Path, value: &str) -> Result<u8, BackendError> {
-        value
-            .trim()
-            .parse::<u8>()
-            .map_err(|_| BackendError::Parse {
-                path: path.display().to_string(),
-                value: value.trim().to_string(),
-            })
+        value.trim().parse::<u8>().map_err(|_| BackendError::Parse {
+            path: path.display().to_string(),
+            value: value.trim().to_string(),
+        })
     }
 
     fn parse_rgb(value: &str) -> Result<RgbColor, BackendError> {
@@ -152,7 +149,10 @@ impl SysfsBackend {
         .collect()
     }
 
-    pub fn read_keyboard_zone(&self, zone: KeyboardZone) -> Result<KeyboardZoneState, BackendError> {
+    pub fn read_keyboard_zone(
+        &self,
+        zone: KeyboardZone,
+    ) -> Result<KeyboardZoneState, BackendError> {
         let sysfs_name = Self::zone_sysfs_name(zone).to_string();
         let brightness_path = self.zone_brightness_path(zone);
         let max_brightness_path = self.zone_max_brightness_path(zone);
@@ -214,10 +214,7 @@ impl SysfsBackend {
         self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
     }
 
-    fn keyboard_zones_for_target(
-        &self,
-        selection: KeyboardZoneSelection,
-    ) -> Vec<KeyboardZone> {
+    fn keyboard_zones_for_target(&self, selection: KeyboardZoneSelection) -> Vec<KeyboardZone> {
         match selection {
             KeyboardZoneSelection::One(zone) => vec![zone],
             KeyboardZoneSelection::All => vec![

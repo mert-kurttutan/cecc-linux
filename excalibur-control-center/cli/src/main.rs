@@ -1,6 +1,7 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use excalibur_control_center_backend::{
-    ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneState, KeyboardZoneSelection, RgbColor, SysfsBackend,
+    ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor,
+    SysfsBackend,
 };
 
 #[derive(Debug, Parser)]
@@ -144,10 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Command::Gpu(command) => match command.command {
             GpuSubcommand::Get => {
                 let mode = backend.read_gpu_mode()?;
-                println!(
-                    "{}",
-                    mode.to_string()
-                );
+                println!("{}", mode.to_string());
             }
             GpuSubcommand::Set { mode } => {
                 let mode: GpuMode = mode.into();
@@ -218,12 +216,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn print_state(state: ControlCenterState) {
-    println!(
-        "gpu_mode={}",
-        state
-            .gpu_mode
-            .to_string()
-    );
+    println!("gpu_mode={}", state.gpu_mode.to_string());
     for zone in state.keyboard_zones {
         print_zone(&zone);
     }
