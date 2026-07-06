@@ -1,4 +1,4 @@
-import { Button, HorizontalBox, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
+import { Button, HorizontalBox, ListView, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
 
 export enum AppTab { main, keyboard, gpu }
 export enum GpuMode { hybrid, discrete, uma }
@@ -9,6 +9,13 @@ export component MainWindow inherits Window {
     in property <string> active_zone: "all";
     in property <string> zones_summary: "";
     in property <string> gpu_mode: "unknown";
+    out property <[string]> main_items: [
+        "Linux control center for Casper Excalibur laptops.",
+        "Origin: Linux port of Casper Excalibur Control Center behavior.",
+        "Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state.",
+        "Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work.",
+        "Current GPU mode: " + root.gpu_mode,
+    ];
     in-out property <AppTab> active_tab: AppTab.main;
     in-out property <int> brightness: 0;
     in-out property <float> brightness_slider: 0;
@@ -32,6 +39,8 @@ export component MainWindow inherits Window {
     callback color_sv_changed(float, float);
     callback apply_color();
 
+    preferred-width: 980px;
+    preferred-height: 640px;
     default-font-size: 18px;
     title: "Excalibur Control Center";
 
@@ -63,23 +72,28 @@ export component MainWindow inherits Window {
             horizontal-stretch: 1;
             spacing: 12px;
 
-            Rectangle {
+            HorizontalBox {
                 height: 48px;
                 horizontal-stretch: 1;
+                alignment: center;
+
                 Rectangle {
-                    width: 360px;
+                    preferred-width: 360px;
+                    max-width: 360px;
                     height: 48px;
-                    x: (parent.width - self.width) / 2;
+                    horizontal-stretch: 1;
                     border-radius: 8px;
                     border-width: 1px;
                     border-color: #2f3a46;
                     background: #f2f5f7;
 
                     Text {
-                        width: parent.width;
+                        x: 12px;
+                        width: max(parent.width - 24px, 0px);
                         height: parent.height;
                         horizontal-alignment: center;
                         vertical-alignment: center;
+                        overflow: elide;
                         text: "Excalibur Control Center";
                         color: #2f3a46;
                     }
@@ -94,28 +108,16 @@ export component MainWindow inherits Window {
                 Rectangle {
                     horizontal-stretch: 1;
 
-                    VerticalBox {
-                        spacing: 1px;
+                    ListView {
+                        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+                        vertical-scrollbar-policy: ScrollBarPolicy.always-off;
 
-                        Text {
-                            wrap: word-wrap;
-                            text: "- Linux control center for Casper Excalibur laptops.";
-                        }
-                        Text {
-                            wrap: word-wrap;
-                            text: "- Origin: Linux port of Casper Excalibur Control Center behavior.";
-                        }
-                        Text {
-                            wrap: word-wrap;
-                            text: "- Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state.";
-                        }
-                        Text {
-                            wrap: word-wrap;
-                            text: "- Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work.";
-                        }
-                        Text {
-                            wrap: word-wrap;
-                            text: "- Current GPU mode: " + root.gpu_mode;
+                        for item in root.main_items: HorizontalBox {
+                            padding: 0px;
+
+                            Text {
+                                text: "- " + item;
+                            }
                         }
                     }
                 }
