@@ -89,29 +89,35 @@ export component MainWindow inherits Window {
             // Text { text: root.status; }
 
             if root.active_tab == AppTab.main : VerticalBox {
-                spacing: 10px;
-                preferred-width: 680px;
-                horizontal-stretch: 1;
+                spacing: 0px;
 
-                Text {
-                    wrap: word-wrap;
-                    text: "Linux control center for Casper Excalibur laptops.";
-                }
-                Text {
-                    wrap: word-wrap;
-                    text: "Origin: Linux port of Casper Excalibur Control Center behavior.";
-                }
-                Text {
-                    wrap: word-wrap;
-                    text: "Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state.";
-                }
-                Text {
-                    wrap: word-wrap;
-                    text: "Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work.";
-                }
-                Text {
-                    wrap: word-wrap;
-                    text: "Current GPU mode: " + root.gpu_mode;
+                Rectangle {
+                    width: 680px;
+
+                    VerticalBox {
+                        spacing: 1px;
+
+                        Text {
+                            wrap: word-wrap;
+                            text: "- Linux control center for Casper Excalibur laptops.";
+                        }
+                        Text {
+                            wrap: word-wrap;
+                            text: "- Origin: Linux port of Casper Excalibur Control Center behavior.";
+                        }
+                        Text {
+                            wrap: word-wrap;
+                            text: "- Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state.";
+                        }
+                        Text {
+                            wrap: word-wrap;
+                            text: "- Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work.";
+                        }
+                        Text {
+                            wrap: word-wrap;
+                            text: "- Current GPU mode: " + root.gpu_mode;
+                        }
+                    }
                 }
             }
 
