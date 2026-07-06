@@ -40,6 +40,7 @@ export component MainWindow inherits Window {
 
         Rectangle {
             width: 180px;
+            vertical-stretch: 1;
             background: #111820;
 
             VerticalBox {
@@ -53,6 +54,7 @@ export component MainWindow inherits Window {
                 Button { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
                 Button { text: "Keyboard"; clicked => { root.select_tab(AppTab.keyboard); } }
                 Button { text: "GPU"; clicked => { root.select_tab(AppTab.gpu); } }
+                Rectangle { vertical-stretch: 1; }
                 Button { text: "Refresh"; clicked => { root.refresh(); } }
             }
         }

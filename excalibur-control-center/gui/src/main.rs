@@ -189,7 +189,9 @@ fn rgb_to_hsv(color: RgbColor) -> (f32, f32, f32) {
 
 fn main() -> Result<(), slint::PlatformError> {
     let window = MainWindow::new()?;
-    window.window().set_size(slint::LogicalSize::new(980.0, 640.0));
+    window
+        .window()
+        .set_size(slint::LogicalSize::new(980.0, 640.0));
     let state = Rc::new(RefCell::new(AppState::new()));
 
     {
