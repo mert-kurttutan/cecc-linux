@@ -32,8 +32,6 @@ export component MainWindow inherits Window {
     callback color_sv_changed(float, float);
     callback apply_color();
 
-    width: 980px;
-    height: 640px;
     default-font-size: 18px;
     title: "Excalibur Control Center";
 
@@ -55,7 +53,6 @@ export component MainWindow inherits Window {
                 Button { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
                 Button { text: "Keyboard"; clicked => { root.select_tab(AppTab.keyboard); } }
                 Button { text: "GPU"; clicked => { root.select_tab(AppTab.gpu); } }
-                Rectangle { vertical-stretch: 1; }
                 Button { text: "Refresh"; clicked => { root.refresh(); } }
             }
         }
@@ -89,10 +86,11 @@ export component MainWindow inherits Window {
             // Text { text: root.status; }
 
             if root.active_tab == AppTab.main : VerticalBox {
+                horizontal-stretch: 1;
                 spacing: 0px;
 
                 Rectangle {
-                    width: 680px;
+                    horizontal-stretch: 1;
 
                     VerticalBox {
                         spacing: 1px;
