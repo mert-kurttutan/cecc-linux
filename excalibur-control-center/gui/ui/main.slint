@@ -9,6 +9,56 @@ export struct CreditItem {
     url: string,
 }
 
+component HoverButton inherits Rectangle {
+    in property <string> text: "";
+    callback clicked <=> touch.clicked;
+
+    height: 40px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: touch.has-hover ? #4b6987 : #2f3a46;
+    background: touch.has-hover ? #37516c : #2f3a46;
+    animate background { duration: 120ms; }
+    animate border-color { duration: 120ms; }
+
+    Text {
+        x: 10px;
+        width: max(parent.width - 20px, 0px);
+        height: parent.height;
+        vertical-alignment: center;
+        overflow: elide;
+        text: root.text;
+        color: white;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+    }
+}
+
+component Hyperlink inherits Rectangle {
+    in property <string> text: "";
+    in property <string> url: "";
+
+    height: 24px;
+    min-width: link_text.min-width;
+    preferred-width: link_text.preferred-width;
+    horizontal-stretch: 0;
+
+    link_text := Text {
+        height: parent.height;
+        vertical-alignment: center;
+        color: touch.has-hover ? #1d4ed8 : #2563eb;
+        font-weight: touch.has-hover ? 700 : 400;
+        text: root.text;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { Platform.open-url(root.url); }
+    }
+}
+
 export component MainWindow inherits Window {
     in property <string> status: "";
     in property <string> active_zone: "all";
@@ -71,12 +121,12 @@ export component MainWindow inherits Window {
                     horizontal-alignment: center;
                     text: "Excalibur";
                 }
-                Button { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
-                Button { text: "Keyboard"; clicked => { root.select_tab(AppTab.keyboard); } }
-                Button { text: "GPU"; clicked => { root.select_tab(AppTab.gpu); } }
-                Button { text: "About"; clicked => { root.select_tab(AppTab.about); } }
+                HoverButton { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
+                HoverButton { text: "Keyboard"; clicked => { root.select_tab(AppTab.keyboard); } }
+                HoverButton { text: "GPU"; clicked => { root.select_tab(AppTab.gpu); } }
+                HoverButton { text: "About"; clicked => { root.select_tab(AppTab.about); } }
                 Rectangle { vertical-stretch: 1; }
-                Button { text: "Refresh"; clicked => { root.refresh(); } }
+                HoverButton { text: "Refresh"; clicked => { root.refresh(); } }
             }
         }
 
@@ -289,25 +339,22 @@ export component MainWindow inherits Window {
 
                     for credit in root.credit_items: HorizontalBox {
                         padding: 0px;
-                        spacing: 8px;
-
-                        Text { text: "- " + credit.label + ":"; }
+                        spacing: 4px;
+                        alignment: start;
 
                         Text {
-                            color: #2563eb;
-                            text: credit.name;
+                            horizontal-stretch: 0;
+                            text: "- " + credit.label + ":";
                         }
 
-                        TouchArea {
-                            clicked => { Platform.open-url(credit.url); }
-                        }
+                        Hyperlink { text: credit.name; url: credit.url; }
                     }
                 }
 
                 Rectangle { vertical-stretch: 1; }
 
                 AboutSlint {
-                    height: 92px;
+                    height: 128px;
                 }
             }
 
