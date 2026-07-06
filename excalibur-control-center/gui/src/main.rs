@@ -189,6 +189,7 @@ fn rgb_to_hsv(color: RgbColor) -> (f32, f32, f32) {
 
 fn main() -> Result<(), slint::PlatformError> {
     let window = MainWindow::new()?;
+    window.set_app_version(env!("CARGO_PKG_VERSION").into());
     let state = Rc::new(RefCell::new(AppState::new()));
 
     {

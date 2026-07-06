@@ -1,20 +1,31 @@
-import { Button, HorizontalBox, ListView, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
+import { AboutSlint, Button, HorizontalBox, ListView, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
 
-export enum AppTab { main, keyboard, gpu }
+export enum AppTab { main, keyboard, gpu, about }
 export enum GpuMode { hybrid, discrete, uma }
 export enum KeyboardZoneSelection { all, left, middle, right, bias }
+export struct CreditItem {
+    label: string,
+    name: string,
+    url: string,
+}
 
 export component MainWindow inherits Window {
     in property <string> status: "";
     in property <string> active_zone: "all";
     in property <string> zones_summary: "";
     in property <string> gpu_mode: "unknown";
+    in property <string> app_version: "";
     out property <[string]> main_items: [
         "Linux control center for Casper Excalibur laptops.",
         "Origin: Linux port of Casper Excalibur Control Center behavior.",
         "Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state.",
         "Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work.",
         "Current GPU mode: " + root.gpu_mode,
+    ];
+    out property <[CreditItem]> credit_items: [
+        { label: "App author", name: "Mert Kurttutan", url: "https://github.com/mert-kurttutan" },
+        { label: "Driver author", name: "Mustafa Eksi", url: "https://github.com/Mustafa-eksi" },
+        { label: "Source code", name: "cecc-linux", url: "https://github.com/mert-kurttutan/cecc-linux" },
     ];
     in-out property <AppTab> active_tab: AppTab.main;
     in-out property <int> brightness: 0;
@@ -63,6 +74,7 @@ export component MainWindow inherits Window {
                 Button { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
                 Button { text: "Keyboard"; clicked => { root.select_tab(AppTab.keyboard); } }
                 Button { text: "GPU"; clicked => { root.select_tab(AppTab.gpu); } }
+                Button { text: "About"; clicked => { root.select_tab(AppTab.about); } }
                 Rectangle { vertical-stretch: 1; }
                 Button { text: "Refresh"; clicked => { root.refresh(); } }
             }
@@ -257,6 +269,56 @@ export component MainWindow inherits Window {
                     Button { text: "UMA"; clicked => { root.set_gpu_mode(GpuMode.uma); } }
                 }
                 Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
+            }
+
+            if root.active_tab == AppTab.about : VerticalBox {
+                spacing: 12px;
+
+                Text {
+                    text: "Credits";
+                }
+
+                ListView {
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+
+                    for credit in root.credit_items: HorizontalBox {
+                        padding: 0px;
+                        spacing: 8px;
+
+                        Text { text: "- " + credit.label + ":"; }
+
+                        Text {
+                            color: #2563eb;
+                            text: credit.name;
+                        }
+
+                        TouchArea {
+                            clicked => { Platform.open-url(credit.url); }
+                        }
+                    }
+                }
+
+                Rectangle { vertical-stretch: 1; }
+
+                AboutSlint {
+                    height: 92px;
+                }
+            }
+
+            HorizontalBox {
+                padding: 0px;
+                alignment: space-between;
+
+                Text {
+                    color: #6b7280;
+                    text: "Made by Mert Kurttutan";
+                }
+
+                Text {
+                    color: #6b7280;
+                    text: "v" + root.app_version;
+                }
             }
         }
     }
