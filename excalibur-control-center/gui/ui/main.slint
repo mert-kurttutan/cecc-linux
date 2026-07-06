@@ -115,10 +115,12 @@ export component MainWindow inherits Window {
 
             if root.active_tab == AppTab.main : VerticalBox {
                 horizontal-stretch: 1;
+                vertical-stretch: 1;
                 spacing: 0px;
 
                 Rectangle {
                     horizontal-stretch: 1;
+                    vertical-stretch: 1;
 
                     ListView {
                         horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
@@ -136,6 +138,7 @@ export component MainWindow inherits Window {
             }
 
             if root.active_tab == AppTab.keyboard : VerticalBox {
+                vertical-stretch: 1;
                 spacing: 12px;
 
                 HorizontalBox {
@@ -259,6 +262,7 @@ export component MainWindow inherits Window {
             }
 
             if root.active_tab == AppTab.gpu : VerticalBox {
+                vertical-stretch: 1;
                 spacing: 10px;
 
                 Text { text: "Current GPU mode: " + root.gpu_mode; }
@@ -272,6 +276,7 @@ export component MainWindow inherits Window {
             }
 
             if root.active_tab == AppTab.about : VerticalBox {
+                vertical-stretch: 1;
                 spacing: 12px;
 
                 Text {
@@ -305,8 +310,6 @@ export component MainWindow inherits Window {
                     height: 92px;
                 }
             }
-
-            Rectangle { vertical-stretch: 1; }
 
             HorizontalBox {
                 padding: 0px;
