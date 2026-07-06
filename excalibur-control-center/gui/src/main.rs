@@ -261,7 +261,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let brightness = value.round() as i32;
             if let Some(window) = window_weak.upgrade() {
                 window.set_brightness(brightness);
-                window.set_brightness_slider(value);
+                window.set_brightness_slider(brightness as f32);
             }
             state.status = format!("brightness adjusted to {}", brightness);
         });

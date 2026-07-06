@@ -208,6 +208,7 @@ export component MainWindow inherits Window {
                     Slider {
                         minimum: 0;
                         maximum: 2;
+                        step: 1;
                         value <=> root.brightness_slider;
                         changed(value) => { root.brightness_slider_changed(value); }
                     }
