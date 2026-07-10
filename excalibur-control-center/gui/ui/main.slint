@@ -137,6 +137,11 @@ component FanSpeedCard inherits Rectangle {
     }
 }
 
+component SystemModeDistributionGraph inherits Image {
+    source: @image-url("assets/system-mode-pentagon.svg");
+    image-fit: contain;
+}
+
 component MainTab inherits VerticalBox {
     in property <[string]> items: [];
 
@@ -191,7 +196,31 @@ component SystemModeTab inherits VerticalBox {
         }
     }
 
-    Rectangle { vertical-stretch: 1; }
+    Rectangle {
+        vertical-stretch: 1;
+        clip: true;
+
+        if root.selected_mode == SystemMode.office : SystemModeDistributionGraph {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: min(parent.width, 520px);
+            height: min(parent.height, 430px);
+        }
+
+        if root.selected_mode == SystemMode.gaming : SystemModeDistributionGraph {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: min(parent.width, 520px);
+            height: min(parent.height, 430px);
+        }
+
+        if root.selected_mode == SystemMode.high_performance : SystemModeDistributionGraph {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: min(parent.width, 520px);
+            height: min(parent.height, 430px);
+        }
+    }
 
     Rectangle {
         height: 200px;
