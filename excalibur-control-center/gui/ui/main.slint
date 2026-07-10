@@ -1,8 +1,9 @@
 import { AboutSlint, Button, HorizontalBox, ListView, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
 
-export enum AppTab { main, keyboard, gpu, about }
+export enum AppTab { system_mode, display_mode, led_control, main, about }
 export enum GpuMode { hybrid, discrete, uma }
 export enum KeyboardZoneSelection { all, left, middle, right, bias }
+enum SystemMode { office, gaming, high_performance }
 export struct CreditItem {
     label: string,
     name: string,
@@ -23,7 +24,6 @@ component HoverButton inherits Rectangle {
 
     Text {
         x: 10px;
-        width: max(parent.width - 20px, 0px);
         height: parent.height;
         vertical-alignment: center;
         overflow: elide;
@@ -59,6 +59,393 @@ component Hyperlink inherits Rectangle {
     }
 }
 
+component SystemModeButton inherits Rectangle {
+    in property <string> text: "";
+    in property <bool> selected: false;
+    callback clicked <=> touch.clicked;
+
+    height: 56px;
+    horizontal-stretch: 1;
+    border-width: root.selected ? 1px : 0px;
+    border-color: #4b6987;
+    background: touch.has-hover ? #273545 : (root.selected ? #2f3a46 : #151b22);
+    animate background { duration: 120ms; }
+
+    Text {
+        width: parent.width;
+        height: parent.height;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+        text: root.text;
+        color: root.selected ? white : #a3aab3;
+    }
+
+    Rectangle {
+        visible: root.selected;
+        x: 0px;
+        y: parent.height - 2px;
+        height: 2px;
+        background: #f97316;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+    }
+}
+
+component FanSpeedCard inherits Rectangle {
+    in property <string> label: "";
+    in property <string> speed: "";
+
+    // height: 124px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    VerticalBox {
+        padding: 6px;
+        spacing: 4px;
+
+        Rectangle {
+            height: 100px;
+
+            Image {
+                x: (parent.width - self.width) / 2;
+                width: 100px;
+                height: 100px;
+                source: @image-url("assets/fan-circle.svg");
+                image-fit: contain;
+            }
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+                text: root.speed;
+                color: white;
+                font-size: 12px;
+            }
+        }
+
+        Text {
+            horizontal-alignment: center;
+            overflow: elide;
+            text: root.label;
+        }
+    }
+}
+
+component MainTab inherits VerticalBox {
+    in property <[string]> items: [];
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    spacing: 0px;
+
+    Rectangle {
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+
+        ListView {
+            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+
+            for item in root.items: HorizontalBox {
+                padding: 0px;
+
+                Text {
+                    text: "- " + item;
+                }
+            }
+        }
+    }
+}
+
+component SystemModeTab inherits VerticalBox {
+    in-out property <SystemMode> selected_mode: SystemMode.gaming;
+
+    vertical-stretch: 1;
+    spacing: 12px;
+
+    HorizontalBox {
+        spacing: 0px;
+
+        SystemModeButton {
+            text: "Office Mode";
+            selected: root.selected_mode == SystemMode.office;
+            clicked => { root.selected_mode = SystemMode.office; }
+        }
+
+        SystemModeButton {
+            text: "Gaming";
+            selected: root.selected_mode == SystemMode.gaming;
+            clicked => { root.selected_mode = SystemMode.gaming; }
+        }
+
+        SystemModeButton {
+            text: "High Performance";
+            selected: root.selected_mode == SystemMode.high_performance;
+            clicked => { root.selected_mode = SystemMode.high_performance; }
+        }
+    }
+
+    Rectangle { vertical-stretch: 1; }
+
+    Rectangle {
+        height: 200px;
+        border-width: 1px;
+        border-color: #2f3a46;
+        background: #151b22;
+        clip: true;
+
+        VerticalBox {
+            spacing: 8px;
+            padding: 8px;
+            alignment: start;
+
+            HorizontalBox {
+                height: 32px;
+                padding: 0px;
+                alignment: start;
+
+                Rectangle {
+                    width: fan_speed_title.preferred-width + 20px;
+                    height: 32px;
+                    background: #2f3a46;
+
+                    fan_speed_title := Text {
+                        x: 10px;
+                        height: parent.height;
+                        vertical-alignment: center;
+                        text: "Fan Speed";
+                        color: white;
+                    }
+                }
+            }
+
+            HorizontalBox {
+                spacing: 8px;
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                FanSpeedCard {
+                    horizontal-stretch: 4;
+                    label: "CPU FAN";
+                    speed: "3600 RPM";
+                }
+
+                FanSpeedCard {
+                    horizontal-stretch: 4;
+                    label: "GPU FAN";
+                    speed: "3600 RPM";
+                }
+            }
+        }
+    }
+}
+
+component KeyboardTab inherits VerticalBox {
+    in property <string> active_zone: "";
+    in property <string> zones_summary: "";
+    in-out property <int> brightness: 0;
+    in-out property <float> brightness_slider: 0;
+    in-out property <int> red: 255;
+    in-out property <int> green: 255;
+    in-out property <int> blue: 255;
+    in-out property <float> color_hue: 0;
+    in-out property <float> color_saturation: 1;
+    in-out property <float> color_value: 1;
+    in-out property <color> picker_base_color: #ff0000;
+    in-out property <color> selected_color: #ff0000;
+
+    callback select_zone(KeyboardZoneSelection);
+    callback brightness_edited(int);
+    callback brightness_slider_changed(float);
+    callback apply_brightness();
+    callback color_hue_changed(float);
+    callback color_sv_changed(float, float);
+    callback apply_color();
+
+    vertical-stretch: 1;
+    spacing: 12px;
+
+    HorizontalBox {
+        spacing: 8px;
+        Button { text: "All"; clicked => { root.select_zone(KeyboardZoneSelection.all); } }
+        Button { text: "Left"; clicked => { root.select_zone(KeyboardZoneSelection.left); } }
+        Button { text: "Middle"; clicked => { root.select_zone(KeyboardZoneSelection.middle); } }
+        Button { text: "Right"; clicked => { root.select_zone(KeyboardZoneSelection.right); } }
+        Button { text: "Bias"; clicked => { root.select_zone(KeyboardZoneSelection.bias); } }
+    }
+
+    Text { text: "Selected: " + root.active_zone; }
+
+    HorizontalBox {
+        spacing: 8px;
+        Text { text: "Brightness"; }
+        Slider {
+            minimum: 0;
+            maximum: 2;
+            step: 1;
+            value <=> root.brightness_slider;
+            changed(value) => { root.brightness_slider_changed(value); }
+        }
+        SpinBox {
+            minimum: 0;
+            maximum: 2;
+            value <=> root.brightness;
+            edited(value) => { root.brightness_edited(value); }
+        }
+        Button { text: "Apply brightness"; clicked => { root.apply_brightness(); } }
+    }
+
+    VerticalBox {
+        spacing: 8px;
+        Text { text: "Color"; }
+
+        hue_bar := Rectangle {
+            height: 18px;
+            border-radius: 9px;
+            border-width: 1px;
+            border-color: #2f3a46;
+            background: @linear-gradient(90deg, #ff0000 0%, #ffff00 16.6%, #00ff00 33.3%, #00ffff 50%, #0000ff 66.6%, #ff00ff 83.3%, #ff0000 100%);
+
+            hue_bar_touch := TouchArea {
+                clicked => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
+                moved => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
+            }
+
+            Rectangle {
+                x: root.color_hue / 360 * hue_bar.width - 5px;
+                y: 0px;
+                width: 10px;
+                height: parent.height;
+                border-width: 2px;
+                border-color: white;
+                background: transparent;
+            }
+        }
+
+        picker_square := Rectangle {
+            height: 220px;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #2f3a46;
+            background: root.picker_base_color;
+
+            Rectangle {
+                background: @linear-gradient(90deg, white, transparent);
+                border-radius: 12px;
+            }
+            Rectangle {
+                background: @linear-gradient(0deg, black, transparent);
+                border-radius: 12px;
+            }
+
+            picker_square_touch := TouchArea {
+                clicked => {
+                    root.color_sv_changed(
+                        picker_square_touch.mouse_x / picker_square.width,
+                        picker_square_touch.mouse_y / picker_square.height
+                    );
+                }
+                moved => {
+                    root.color_sv_changed(
+                        picker_square_touch.mouse_x / picker_square.width,
+                        picker_square_touch.mouse_y / picker_square.height
+                    );
+                }
+            }
+
+            Rectangle {
+                x: root.color_saturation * picker_square.width - 6px;
+                y: (1 - root.color_value) * picker_square.height - 6px;
+                width: 12px;
+                height: 12px;
+                border-radius: 6px;
+                border-width: 2px;
+                border-color: white;
+                background: transparent;
+            }
+        }
+
+        HorizontalBox {
+            spacing: 12px;
+            Rectangle {
+                width: 64px;
+                height: 36px;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: #2f3a46;
+                background: root.selected_color;
+            }
+            Text {
+                text: "RGB: " + root.red + ", " + root.green + ", " + root.blue;
+            }
+            Button { text: "Apply color"; clicked => { root.apply_color(); } }
+        }
+    }
+
+    Text { text: "Zones"; }
+    Text { text: root.zones_summary; }
+}
+
+component GpuTab inherits VerticalBox {
+    in property <string> gpu_mode: "unknown";
+    callback set_gpu_mode(GpuMode);
+
+    vertical-stretch: 1;
+    spacing: 10px;
+
+    Text { text: "Current GPU mode: " + root.gpu_mode; }
+    HorizontalBox {
+        spacing: 8px;
+        Button { text: "Hybrid"; clicked => { root.set_gpu_mode(GpuMode.hybrid); } }
+        Button { text: "Discrete"; clicked => { root.set_gpu_mode(GpuMode.discrete); } }
+        Button { text: "UMA"; clicked => { root.set_gpu_mode(GpuMode.uma); } }
+    }
+    Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
+}
+
+component AboutTab inherits VerticalBox {
+    in property <[CreditItem]> credit_items: [];
+
+    vertical-stretch: 1;
+    spacing: 12px;
+
+    Text {
+        text: "Credits";
+    }
+
+    ListView {
+        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+        vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+
+        for credit in root.credit_items: HorizontalBox {
+            padding: 0px;
+            spacing: 4px;
+            alignment: start;
+
+            Text {
+                horizontal-stretch: 0;
+                text: "- " + credit.label + ":";
+            }
+
+            Hyperlink { text: credit.name; url: credit.url; }
+        }
+    }
+
+    Rectangle { vertical-stretch: 1; }
+
+    AboutSlint {
+        height: 128px;
+    }
+}
+
 export component MainWindow inherits Window {
     in property <string> status: "";
     in property <string> active_zone: "all";
@@ -77,7 +464,7 @@ export component MainWindow inherits Window {
         { label: "Driver author", name: "Mustafa Eksi", url: "https://github.com/Mustafa-eksi" },
         { label: "Source code", name: "cecc-linux", url: "https://github.com/mert-kurttutan/cecc-linux" },
     ];
-    in-out property <AppTab> active_tab: AppTab.main;
+    in-out property <AppTab> active_tab: AppTab.system_mode;
     in-out property <int> brightness: 0;
     in-out property <float> brightness_slider: 0;
     in-out property <int> red: 255;
@@ -121,9 +508,10 @@ export component MainWindow inherits Window {
                     horizontal-alignment: center;
                     text: "Excalibur";
                 }
+                HoverButton { text: "System Mode"; clicked => { root.select_tab(AppTab.system_mode); } }
+                HoverButton { text: "Display Mode"; clicked => { root.select_tab(AppTab.display_mode); } }
+                HoverButton { text: "LED Control"; clicked => { root.select_tab(AppTab.led_control); } }
                 HoverButton { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
-                HoverButton { text: "Keyboard"; clicked => { root.select_tab(AppTab.keyboard); } }
-                HoverButton { text: "GPU"; clicked => { root.select_tab(AppTab.gpu); } }
                 HoverButton { text: "About"; clicked => { root.select_tab(AppTab.about); } }
                 Rectangle { vertical-stretch: 1; }
                 HoverButton { text: "Refresh"; clicked => { root.refresh(); } }
@@ -161,202 +549,44 @@ export component MainWindow inherits Window {
                     }
                 }
             }
-            // Text { text: root.status; }
 
-            if root.active_tab == AppTab.main : VerticalBox {
-                horizontal-stretch: 1;
-                vertical-stretch: 1;
-                spacing: 0px;
-
-                Rectangle {
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-
-                    ListView {
-                        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-                        vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-
-                        for item in root.main_items: HorizontalBox {
-                            padding: 0px;
-
-                            Text {
-                                text: "- " + item;
-                            }
-                        }
-                    }
-                }
+            if root.active_tab == AppTab.system_mode : SystemModeTab {
             }
 
-            if root.active_tab == AppTab.keyboard : VerticalBox {
-                vertical-stretch: 1;
-                spacing: 12px;
-
-                HorizontalBox {
-                    spacing: 8px;
-                    Button { text: "All"; clicked => { root.select_zone(KeyboardZoneSelection.all); } }
-                    Button { text: "Left"; clicked => { root.select_zone(KeyboardZoneSelection.left); } }
-                    Button { text: "Middle"; clicked => { root.select_zone(KeyboardZoneSelection.middle); } }
-                    Button { text: "Right"; clicked => { root.select_zone(KeyboardZoneSelection.right); } }
-                    Button { text: "Bias"; clicked => { root.select_zone(KeyboardZoneSelection.bias); } }
-                }
-
-                Text { text: "Selected: " + root.active_zone; }
-
-                HorizontalBox {
-                    spacing: 8px;
-                    Text { text: "Brightness"; }
-                    Slider {
-                        minimum: 0;
-                        maximum: 2;
-                        step: 1;
-                        value <=> root.brightness_slider;
-                        changed(value) => { root.brightness_slider_changed(value); }
-                    }
-                    SpinBox {
-                        minimum: 0;
-                        maximum: 2;
-                        value <=> root.brightness;
-                        edited(value) => { root.brightness_edited(value); }
-                    }
-                    Button { text: "Apply brightness"; clicked => { root.apply_brightness(); } }
-                }
-
-                VerticalBox {
-                    spacing: 8px;
-                    Text { text: "Color"; }
-
-                    hue_bar := Rectangle {
-                        height: 18px;
-                        border-radius: 9px;
-                        border-width: 1px;
-                        border-color: #2f3a46;
-                        background: @linear-gradient(90deg, #ff0000 0%, #ffff00 16.6%, #00ff00 33.3%, #00ffff 50%, #0000ff 66.6%, #ff00ff 83.3%, #ff0000 100%);
-
-                        hue_bar_touch := TouchArea {
-                            clicked => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
-                            moved => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
-                        }
-
-                        Rectangle {
-                            x: root.color_hue / 360 * hue_bar.width - 5px;
-                            y: 0px;
-                            width: 10px;
-                            height: parent.height;
-                            border-width: 2px;
-                            border-color: white;
-                            background: transparent;
-                        }
-                    }
-
-                    picker_square := Rectangle {
-                        height: 220px;
-                        border-radius: 12px;
-                        border-width: 1px;
-                        border-color: #2f3a46;
-                        background: root.picker_base_color;
-
-                        Rectangle {
-                            background: @linear-gradient(90deg, white, transparent);
-                            border-radius: 12px;
-                        }
-                        Rectangle {
-                            background: @linear-gradient(0deg, black, transparent);
-                            border-radius: 12px;
-                        }
-
-                        picker_square_touch := TouchArea {
-                            clicked => {
-                                root.color_sv_changed(
-                                    picker_square_touch.mouse_x / picker_square.width,
-                                    picker_square_touch.mouse_y / picker_square.height
-                                );
-                            }
-                            moved => {
-                                root.color_sv_changed(
-                                    picker_square_touch.mouse_x / picker_square.width,
-                                    picker_square_touch.mouse_y / picker_square.height
-                                );
-                            }
-                        }
-
-                        Rectangle {
-                            x: root.color_saturation * picker_square.width - 6px;
-                            y: (1 - root.color_value) * picker_square.height - 6px;
-                            width: 12px;
-                            height: 12px;
-                            border-radius: 6px;
-                            border-width: 2px;
-                            border-color: white;
-                            background: transparent;
-                        }
-                    }
-
-                    HorizontalBox {
-                        spacing: 12px;
-                        Rectangle {
-                            width: 64px;
-                            height: 36px;
-                            border-radius: 8px;
-                            border-width: 1px;
-                            border-color: #2f3a46;
-                            background: root.selected_color;
-                        }
-                        Text {
-                            text: "RGB: " + root.red + ", " + root.green + ", " + root.blue;
-                        }
-                        Button { text: "Apply color"; clicked => { root.apply_color(); } }
-                    }
-                }
-
-                Text { text: "Zones"; }
-                Text { text: root.zones_summary; }
+            if root.active_tab == AppTab.main : MainTab {
+                items: root.main_items;
             }
 
-            if root.active_tab == AppTab.gpu : VerticalBox {
-                vertical-stretch: 1;
-                spacing: 10px;
+            if root.active_tab == AppTab.led_control : KeyboardTab {
+                active_zone: root.active_zone;
+                zones_summary: root.zones_summary;
+                brightness <=> root.brightness;
+                brightness_slider <=> root.brightness_slider;
+                red <=> root.red;
+                green <=> root.green;
+                blue <=> root.blue;
+                color_hue <=> root.color_hue;
+                color_saturation <=> root.color_saturation;
+                color_value <=> root.color_value;
+                picker_base_color <=> root.picker_base_color;
+                selected_color <=> root.selected_color;
 
-                Text { text: "Current GPU mode: " + root.gpu_mode; }
-                HorizontalBox {
-                    spacing: 8px;
-                    Button { text: "Hybrid"; clicked => { root.set_gpu_mode(GpuMode.hybrid); } }
-                    Button { text: "Discrete"; clicked => { root.set_gpu_mode(GpuMode.discrete); } }
-                    Button { text: "UMA"; clicked => { root.set_gpu_mode(GpuMode.uma); } }
-                }
-                Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
+                select_zone(zone) => { root.select_zone(zone); }
+                brightness_edited(value) => { root.brightness_edited(value); }
+                brightness_slider_changed(value) => { root.brightness_slider_changed(value); }
+                apply_brightness => { root.apply_brightness(); }
+                color_hue_changed(value) => { root.color_hue_changed(value); }
+                color_sv_changed(saturation, value) => { root.color_sv_changed(saturation, value); }
+                apply_color => { root.apply_color(); }
             }
 
-            if root.active_tab == AppTab.about : VerticalBox {
-                vertical-stretch: 1;
-                spacing: 12px;
+            if root.active_tab == AppTab.display_mode : GpuTab {
+                gpu_mode: root.gpu_mode;
+                set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
+            }
 
-                Text {
-                    text: "Credits";
-                }
-
-                ListView {
-                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-                    vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-
-                    for credit in root.credit_items: HorizontalBox {
-                        padding: 0px;
-                        spacing: 4px;
-                        alignment: start;
-
-                        Text {
-                            horizontal-stretch: 0;
-                            text: "- " + credit.label + ":";
-                        }
-
-                        Hyperlink { text: credit.name; url: credit.url; }
-                    }
-                }
-
-                Rectangle { vertical-stretch: 1; }
-
-                AboutSlint {
-                    height: 128px;
-                }
+            if root.active_tab == AppTab.about : AboutTab {
+                credit_items: root.credit_items;
             }
 
             HorizontalBox {

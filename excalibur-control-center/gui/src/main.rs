@@ -35,7 +35,7 @@ impl AppState {
             backend: SysfsBackend::default(),
             zones: Vec::new(),
             gpu_mode: GpuMode::Hybrid,
-            active_tab: AppTab::Main,
+            active_tab: AppTab::SystemMode,
             selected_zone: KeyboardZoneSelection::All,
             status: String::new(),
         };
