@@ -191,9 +191,17 @@ component FanSpeedSection inherits Rectangle {
     }
 }
 
-component SystemModeDistributionGraph inherits Image {
-    source: @image-url("assets/system-mode-pentagon.svg");
-    image-fit: contain;
+component SystemModeDistributionGraph inherits Rectangle {
+    clip: true;
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: self.height * 520 / 430;
+        height: min(parent.height, parent.width * 430 / 520);
+        source: @image-url("assets/system-mode-pentagon.svg");
+        image-fit: contain;
+    }
 }
 
 component DisplayModeCard inherits Rectangle {
@@ -304,29 +312,15 @@ component SystemModeTab inherits VerticalBox {
     }
 
     Rectangle {
+        min-height: 240px;
         vertical-stretch: 1;
         clip: true;
 
-        if root.selected_mode == SystemMode.office : SystemModeDistributionGraph {
-            x: (parent.width - self.width) / 2;
-            y: (parent.height - self.height) / 2;
-            width: min(parent.width, 520px);
-            height: min(parent.height, 430px);
-        }
+        if root.selected_mode == SystemMode.office : SystemModeDistributionGraph { }
 
-        if root.selected_mode == SystemMode.gaming : SystemModeDistributionGraph {
-            x: (parent.width - self.width) / 2;
-            y: (parent.height - self.height) / 2;
-            width: min(parent.width, 520px);
-            height: min(parent.height, 430px);
-        }
+        if root.selected_mode == SystemMode.gaming : SystemModeDistributionGraph { }
 
-        if root.selected_mode == SystemMode.high_performance : SystemModeDistributionGraph {
-            x: (parent.width - self.width) / 2;
-            y: (parent.height - self.height) / 2;
-            width: min(parent.width, 520px);
-            height: min(parent.height, 430px);
-        }
+        if root.selected_mode == SystemMode.high_performance : SystemModeDistributionGraph { }
     }
 
     FanSpeedSection { }
