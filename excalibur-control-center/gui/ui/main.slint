@@ -137,9 +137,116 @@ component FanSpeedCard inherits Rectangle {
     }
 }
 
+component FanSpeedSection inherits Rectangle {
+    height: 200px;
+    border-width: 1px;
+    border-color: #2f3a46;
+    background: #151b22;
+    clip: true;
+
+    VerticalBox {
+        spacing: 8px;
+        padding: 8px;
+        alignment: start;
+
+        HorizontalBox {
+            height: 32px;
+            padding: 0px;
+            alignment: start;
+
+            Rectangle {
+                width: fan_speed_title.preferred-width + 20px;
+                height: 32px;
+                background: #2f3a46;
+
+                fan_speed_title := Text {
+                    x: 10px;
+                    height: parent.height;
+                    vertical-alignment: center;
+                    text: "Fan Speed";
+                    color: white;
+                }
+            }
+        }
+
+        HorizontalBox {
+            spacing: 8px;
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            FanSpeedCard {
+                horizontal-stretch: 4;
+                label: "CPU FAN";
+                speed: "3600 RPM";
+            }
+
+            FanSpeedCard {
+                horizontal-stretch: 4;
+                label: "GPU FAN";
+                speed: "3600 RPM";
+            }
+        }
+    }
+}
+
 component SystemModeDistributionGraph inherits Image {
     source: @image-url("assets/system-mode-pentagon.svg");
     image-fit: contain;
+}
+
+component DisplayModeCard inherits Rectangle {
+    in property <image> icon;
+    in property <string> title: "";
+    in property <bool> active: false;
+    callback clicked <=> touch.clicked;
+
+    width: 180px;
+    height: 180px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: touch.has-hover ? #4b6987 : (root.active ? #f97316 : #2f3a46);
+    background: touch.has-hover ? #1f2933 : #151b22;
+    animate background { duration: 120ms; }
+    animate border-color { duration: 120ms; }
+
+    VerticalBox {
+        padding: 12px;
+        spacing: 8px;
+
+        Image {
+            height: 112px;
+            source: root.icon;
+            image-fit: contain;
+        }
+
+        HorizontalBox {
+            padding: 0px;
+            spacing: 8px;
+            alignment: center;
+
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                border-width: 1px;
+                border-color: root.active ? #f97316 : #6b7280;
+                background: root.active ? #f97316 : transparent;
+            }
+
+            Text {
+                vertical-alignment: center;
+                overflow: elide;
+                text: root.title;
+                color: root.active ? white : #cbd5e1;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+    }
 }
 
 component MainTab inherits VerticalBox {
@@ -222,59 +329,7 @@ component SystemModeTab inherits VerticalBox {
         }
     }
 
-    Rectangle {
-        height: 200px;
-        border-width: 1px;
-        border-color: #2f3a46;
-        background: #151b22;
-        clip: true;
-
-        VerticalBox {
-            spacing: 8px;
-            padding: 8px;
-            alignment: start;
-
-            HorizontalBox {
-                height: 32px;
-                padding: 0px;
-                alignment: start;
-
-                Rectangle {
-                    width: fan_speed_title.preferred-width + 20px;
-                    height: 32px;
-                    background: #2f3a46;
-
-                    fan_speed_title := Text {
-                        x: 10px;
-                        height: parent.height;
-                        vertical-alignment: center;
-                        text: "Fan Speed";
-                        color: white;
-                    }
-                }
-            }
-
-            HorizontalBox {
-                spacing: 8px;
-
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
-
-                FanSpeedCard {
-                    horizontal-stretch: 4;
-                    label: "CPU FAN";
-                    speed: "3600 RPM";
-                }
-
-                FanSpeedCard {
-                    horizontal-stretch: 4;
-                    label: "GPU FAN";
-                    speed: "3600 RPM";
-                }
-            }
-        }
-    }
+    FanSpeedSection { }
 }
 
 component KeyboardTab inherits VerticalBox {
@@ -429,15 +484,30 @@ component GpuTab inherits VerticalBox {
 
     vertical-stretch: 1;
     spacing: 10px;
-
-    Text { text: "Current GPU mode: " + root.gpu_mode; }
     HorizontalBox {
         spacing: 8px;
-        Button { text: "Hybrid"; clicked => { root.set_gpu_mode(GpuMode.hybrid); } }
-        Button { text: "Discrete"; clicked => { root.set_gpu_mode(GpuMode.discrete); } }
-        Button { text: "UMA"; clicked => { root.set_gpu_mode(GpuMode.uma); } }
+        DisplayModeCard {
+            icon: @image-url("assets/gpu-discrete-mode.svg");
+            title: "Discrete";
+            active: root.gpu_mode == "discrete";
+            clicked => { root.set_gpu_mode(GpuMode.discrete); }
+        }
+        DisplayModeCard {
+            icon: @image-url("assets/gpu-hybrid-mode.svg");
+            title: "Hybrid";
+            active: root.gpu_mode == "hybrid";
+            clicked => { root.set_gpu_mode(GpuMode.hybrid); }
+        }
+        DisplayModeCard {
+            icon: @image-url("assets/gpu-uma-mode.svg");
+            title: "UMA";
+            active: root.gpu_mode == "uma";
+            clicked => { root.set_gpu_mode(GpuMode.uma); }
+        }
     }
     Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
+
+    FanSpeedSection { }
 }
 
 component AboutTab inherits VerticalBox {

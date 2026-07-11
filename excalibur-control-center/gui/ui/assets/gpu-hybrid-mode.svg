@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <radialGradient id="hybrid-fill" cx="50%" cy="42%" r="60%">
+      <stop offset="0%" stop-color="#3b4b5f"/>
+      <stop offset="70%" stop-color="#202a35"/>
+      <stop offset="100%" stop-color="#121820"/>
+    </radialGradient>
+    <filter id="hybrid-glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="160" height="160" fill="none"/>
+  <circle cx="57" cy="80" r="42" fill="url(#hybrid-fill)" stroke="#38bdf8" stroke-width="6" filter="url(#hybrid-glow)"/>
+  <circle cx="103" cy="80" r="42" fill="url(#hybrid-fill)" stroke="#f97316" stroke-width="6" filter="url(#hybrid-glow)"/>
+  <line x1="77" y1="80" x2="83" y2="80" stroke="#e5e7eb" stroke-width="5" stroke-linecap="round"/>
+  <text x="57" y="88" text-anchor="middle" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#f8fafc">CPU</text>
+  <text x="103" y="88" text-anchor="middle" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#f8fafc">GPU</text>
+</svg>

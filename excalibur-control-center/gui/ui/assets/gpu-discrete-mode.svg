@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <radialGradient id="gpu-fill" cx="50%" cy="42%" r="58%">
+      <stop offset="0%" stop-color="#3b4b5f"/>
+      <stop offset="68%" stop-color="#202a35"/>
+      <stop offset="100%" stop-color="#121820"/>
+    </radialGradient>
+    <filter id="gpu-glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="160" height="160" fill="none"/>
+  <circle cx="80" cy="80" r="58" fill="url(#gpu-fill)" stroke="#f97316" stroke-width="7" filter="url(#gpu-glow)"/>
+  <circle cx="80" cy="80" r="43" fill="none" stroke="#4b5563" stroke-width="2" stroke-opacity="0.65"/>
+  <text x="80" y="89" text-anchor="middle" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="26" font-weight="700" fill="#f8fafc">GPU</text>
+</svg>

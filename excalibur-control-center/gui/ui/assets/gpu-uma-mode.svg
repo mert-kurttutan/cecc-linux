@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <radialGradient id="uma-fill" cx="50%" cy="42%" r="58%">
+      <stop offset="0%" stop-color="#3b4b5f"/>
+      <stop offset="68%" stop-color="#202a35"/>
+      <stop offset="100%" stop-color="#121820"/>
+    </radialGradient>
+    <filter id="uma-glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="160" height="160" fill="none"/>
+  <circle cx="80" cy="80" r="58" fill="url(#uma-fill)" stroke="#38bdf8" stroke-width="7" filter="url(#uma-glow)"/>
+  <path d="M48 106 H112 M48 116 H112 M48 126 H112" stroke="#64748b" stroke-width="5" stroke-linecap="round"/>
+  <text x="80" y="79" text-anchor="middle" font-family="Inter, DejaVu Sans, Arial, sans-serif" font-size="25" font-weight="700" fill="#f8fafc">UMA</text>
+</svg>
