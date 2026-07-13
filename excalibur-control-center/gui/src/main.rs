@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use excalibur_control_center_backend::{
     CpuFrequency, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone, KeyboardZoneSelection,
-    KeyboardZoneState, MemoryStats, RgbColor, SysfsBackend,
+    KeyboardZoneState, MemoryStats, RgbColor, StorageStats, SysfsBackend,
 };
 use excalibur_control_center_gui::ui::{
     AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection, MainWindow,
@@ -30,6 +30,7 @@ struct AppState {
     cpu_frequency: CpuFrequency,
     gpu_frequency: GpuFrequency,
     memory_stats: MemoryStats,
+    storage_stats: StorageStats,
     active_tab: AppTab,
     selected_zone: KeyboardZoneSelection,
     status: String,
@@ -45,6 +46,7 @@ impl AppState {
             cpu_frequency: CpuFrequency::default(),
             gpu_frequency: GpuFrequency::default(),
             memory_stats: MemoryStats::default(),
+            storage_stats: StorageStats::default(),
             active_tab: AppTab::SystemMode,
             selected_zone: KeyboardZoneSelection::All,
             status: String::new(),
@@ -62,6 +64,7 @@ impl AppState {
                 self.cpu_frequency = state.cpu_frequency;
                 self.gpu_frequency = state.gpu_frequency;
                 self.memory_stats = state.memory_stats;
+                self.storage_stats = state.storage_stats;
                 self.status = "refreshed hardware state".into();
             }
             Err(err) => {
@@ -132,6 +135,9 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_memory_usage(format_memory_usage(&state.memory_stats).into());
     window.set_memory_percent(format_memory_percent(state.memory_stats.used_percent).into());
     window.set_memory_fill(format_memory_fill(state.memory_stats.used_percent));
+    window.set_storage_usage(format_storage_usage(&state.storage_stats).into());
+    window.set_storage_percent(format_storage_percent(state.storage_stats.used_percent).into());
+    window.set_storage_fill(format_storage_fill(state.storage_stats.used_percent));
 
     if let Some(zone) = state.selected_zone_state() {
         window.set_brightness(zone.brightness as i32);
@@ -186,6 +192,27 @@ fn format_memory_percent(used_percent: Option<f32>) -> String {
 }
 
 fn format_memory_fill(used_percent: Option<f32>) -> f32 {
+    used_percent
+        .map(|value| (value / 100.0).clamp(0.0, 1.0))
+        .unwrap_or(0.0)
+}
+
+fn format_storage_usage(stats: &StorageStats) -> String {
+    match (stats.used_bytes, stats.total_bytes) {
+        (Some(used), Some(total)) => {
+            format!("{:.1}/{:.1} GiB", bytes_to_gib(used), bytes_to_gib(total))
+        }
+        _ => "--".to_string(),
+    }
+}
+
+fn format_storage_percent(used_percent: Option<f32>) -> String {
+    used_percent
+        .map(|value| format!("{value:.1}%"))
+        .unwrap_or_else(|| "--".to_string())
+}
+
+fn format_storage_fill(used_percent: Option<f32>) -> f32 {
     used_percent
         .map(|value| (value / 100.0).clamp(0.0, 1.0))
         .unwrap_or(0.0)

@@ -1,3 +1,4 @@
+use std::ffi::CString;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -6,7 +7,7 @@ use nvml_wrapper::enum_wrappers::device::Clock;
 
 use crate::model::{
     ControlCenterState, CpuFrequency, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone,
-    KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor,
+    KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
@@ -16,6 +17,7 @@ const HWMON_ROOT: &str = "class/hwmon";
 const CPUFREQ_POLICY_ROOT: &str = "devices/system/cpu/cpufreq";
 const PROC_CPUINFO_PATH: &str = "/proc/cpuinfo";
 const PROC_MEMINFO_PATH: &str = "/proc/meminfo";
+const ROOT_MOUNT_PATH: &str = "/";
 
 #[derive(Debug, thiserror::Error)]
 pub enum BackendError {
@@ -165,6 +167,7 @@ impl SysfsBackend {
             cpu_frequency: self.read_cpu_frequency().unwrap_or_default(),
             gpu_frequency: self.read_gpu_frequency(),
             memory_stats: self.read_memory_stats().unwrap_or_default(),
+            storage_stats: self.read_storage_stats(ROOT_MOUNT_PATH).unwrap_or_default(),
         })
     }
 
@@ -334,6 +337,39 @@ impl SysfsBackend {
         raw_kb.parse::<u64>().map_err(|_| BackendError::Parse {
             path: path.display().to_string(),
             value: value.trim().to_string(),
+        })
+    }
+
+    pub fn read_storage_stats(&self, mount_path: &str) -> Result<StorageStats, BackendError> {
+        let mount_path = CString::new(mount_path).map_err(|_| BackendError::Parse {
+            path: "mount path".to_string(),
+            value: mount_path.to_string(),
+        })?;
+        let mut stat = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+
+        // SAFETY: mount_path is a valid NUL-terminated C string and stat points to
+        // writable memory for libc to initialize.
+        let result = unsafe { libc::statvfs(mount_path.as_ptr(), stat.as_mut_ptr()) };
+        if result != 0 {
+            return Err(BackendError::Io(std::io::Error::last_os_error()));
+        }
+
+        // SAFETY: statvfs returned success, so libc initialized the struct.
+        let stat = unsafe { stat.assume_init() };
+        let block_size = stat.f_frsize;
+        let total_bytes = stat.f_blocks.saturating_mul(block_size);
+        let available_bytes = stat.f_bavail.saturating_mul(block_size);
+
+        if total_bytes == 0 {
+            return Ok(StorageStats::default());
+        }
+
+        let used_bytes = total_bytes.saturating_sub(available_bytes);
+
+        Ok(StorageStats {
+            used_bytes: Some(total_bytes.saturating_sub(available_bytes)),
+            total_bytes: Some(total_bytes),
+            used_percent: Some(used_bytes as f32 / total_bytes as f32 * 100.0),
         })
     }
 

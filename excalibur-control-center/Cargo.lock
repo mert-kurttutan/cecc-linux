@@ -1233,6 +1233,7 @@ dependencies = [
 name = "excalibur-control-center-backend"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "nvml-wrapper",
  "thiserror 2.0.18",
 ]

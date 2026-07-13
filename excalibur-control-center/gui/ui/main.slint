@@ -421,6 +421,9 @@ component HardwareStatsColumn inherits Rectangle {
     in property <string> memory-usage: "--";
     in property <string> memory-percent: "--";
     in property <float> memory-fill: 0;
+    in property <string> storage-usage: "--";
+    in property <string> storage-percent: "--";
+    in property <float> storage-fill: 0;
 
     min-width: 280px;
     preferred-width: 280px;
@@ -481,9 +484,10 @@ component HardwareStatsColumn inherits Rectangle {
 
                 ResourceStatRow {
                     label: "SSD";
-                    percent: "70.7%";
-                    detail: "667.2/943.3GB";
+                    percent: root.storage-percent;
+                    detail: root.storage-usage;
                     accent: #2563eb;
+                    fill: root.storage-fill;
                 }
             }
         }
@@ -822,6 +826,9 @@ export component MainWindow inherits Window {
     in property <string> memory_usage: "--";
     in property <string> memory_percent: "--";
     in property <float> memory_fill: 0;
+    in property <string> storage_usage: "--";
+    in property <string> storage_percent: "--";
+    in property <float> storage_fill: 0;
     out property <[string]> main_items: [
         "Linux control center for Casper Excalibur laptops.",
         "Origin: Linux port of Casper Excalibur Control Center behavior.",
@@ -1007,6 +1014,9 @@ export component MainWindow inherits Window {
                                     memory-usage: root.memory_usage;
                                     memory-percent: root.memory_percent;
                                     memory-fill: root.memory_fill;
+                                    storage-usage: root.storage_usage;
+                                    storage-percent: root.storage_percent;
+                                    storage-fill: root.storage_fill;
                                 }
                             }
 
@@ -1061,6 +1071,9 @@ export component MainWindow inherits Window {
                                     memory-usage: root.memory_usage;
                                     memory-percent: root.memory_percent;
                                     memory-fill: root.memory_fill;
+                                    storage-usage: root.storage_usage;
+                                    storage-percent: root.storage_percent;
+                                    storage-fill: root.storage_fill;
                                 }
                             }
 
