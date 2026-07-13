@@ -2,12 +2,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::model::{
-    ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor,
+    ControlCenterState, FanSpeeds, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState,
+    RgbColor,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
 const GPU_MODE_PATH: &str = "module/casper_wmi/parameters/gpu_mode";
 const LED_ROOT: &str = "class/leds";
+const HWMON_ROOT: &str = "class/hwmon";
 
 #[derive(Debug, thiserror::Error)]
 pub enum BackendError {
@@ -74,6 +76,16 @@ impl SysfsBackend {
         })
     }
 
+    fn parse_u32(path: &Path, value: &str) -> Result<u32, BackendError> {
+        value
+            .trim()
+            .parse::<u32>()
+            .map_err(|_| BackendError::Parse {
+                path: path.display().to_string(),
+                value: value.trim().to_string(),
+            })
+    }
+
     fn parse_rgb(value: &str) -> Result<RgbColor, BackendError> {
         let parts: Vec<_> = value.split_whitespace().collect();
         if parts.len() != 3 {
@@ -118,6 +130,7 @@ impl SysfsBackend {
         Ok(ControlCenterState {
             gpu_mode: self.read_gpu_mode()?,
             keyboard_zones: self.list_keyboard_zones()?,
+            fan_speeds: self.read_fan_speeds().unwrap_or_default(),
         })
     }
 
@@ -135,6 +148,67 @@ impl SysfsBackend {
 
     pub fn write_gpu_mode(&self, mode: GpuMode) -> Result<(), BackendError> {
         self.write_string(GPU_MODE_PATH, &format!("{mode}"))
+    }
+
+    pub fn read_fan_speeds(&self) -> Result<FanSpeeds, BackendError> {
+        let mut speeds = FanSpeeds::default();
+        let mut fallback_cpu = None;
+        let mut fallback_gpu = None;
+        let hwmon_root = self.path(HWMON_ROOT);
+
+        if !hwmon_root.exists() {
+            return Ok(speeds);
+        }
+
+        for entry in fs::read_dir(hwmon_root)? {
+            let hwmon_dir = entry?.path();
+            if !hwmon_dir.is_dir() {
+                continue;
+            }
+
+            let chip_name = fs::read_to_string(hwmon_dir.join("name"))
+                .unwrap_or_default()
+                .trim()
+                .to_ascii_lowercase();
+
+            for fan_entry in fs::read_dir(&hwmon_dir)? {
+                let fan_path = fan_entry?.path();
+                let Some(file_name) = fan_path.file_name().and_then(|name| name.to_str()) else {
+                    continue;
+                };
+
+                if !file_name.starts_with("fan") || !file_name.ends_with("_input") {
+                    continue;
+                }
+
+                let rpm = Self::parse_u32(&fan_path, &fs::read_to_string(&fan_path)?)?;
+                let fan_base = file_name.trim_end_matches("_input");
+                let label = fs::read_to_string(hwmon_dir.join(format!("{fan_base}_label")))
+                    .unwrap_or_default()
+                    .trim()
+                    .to_ascii_lowercase();
+                let identity = format!("{chip_name} {label}");
+
+                if identity.contains("cpu") {
+                    speeds.cpu_rpm = Some(rpm);
+                } else if identity.contains("gpu") {
+                    speeds.gpu_rpm = Some(rpm);
+                } else if fan_base == "fan1" {
+                    fallback_cpu = Some(rpm);
+                } else if fan_base == "fan2" {
+                    fallback_gpu = Some(rpm);
+                }
+            }
+        }
+
+        if speeds.cpu_rpm.is_none() {
+            speeds.cpu_rpm = fallback_cpu;
+        }
+        if speeds.gpu_rpm.is_none() {
+            speeds.gpu_rpm = fallback_gpu;
+        }
+
+        Ok(speeds)
     }
 
     pub fn list_keyboard_zones(&self) -> Result<Vec<KeyboardZoneState>, BackendError> {

@@ -2,13 +2,14 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use excalibur_control_center_backend::{
-    GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor, SysfsBackend,
+    FanSpeeds, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor,
+    SysfsBackend,
 };
 use excalibur_control_center_gui::ui::{
     AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection, MainWindow,
 };
-use slint::winit_030::WinitWindowAccessor;
 use slint::ComponentHandle;
+use slint::winit_030::WinitWindowAccessor;
 
 fn zone_selection_from_ui(zone: UiKeyboardZoneSelection) -> KeyboardZoneSelection {
     match zone {
@@ -25,6 +26,7 @@ struct AppState {
     backend: SysfsBackend,
     zones: Vec<KeyboardZoneState>,
     gpu_mode: GpuMode,
+    fan_speeds: FanSpeeds,
     active_tab: AppTab,
     selected_zone: KeyboardZoneSelection,
     status: String,
@@ -36,6 +38,7 @@ impl AppState {
             backend: SysfsBackend::default(),
             zones: Vec::new(),
             gpu_mode: GpuMode::Hybrid,
+            fan_speeds: FanSpeeds::default(),
             active_tab: AppTab::SystemMode,
             selected_zone: KeyboardZoneSelection::All,
             status: String::new(),
@@ -49,6 +52,7 @@ impl AppState {
             Ok(state) => {
                 self.zones = state.keyboard_zones;
                 self.gpu_mode = state.gpu_mode;
+                self.fan_speeds = state.fan_speeds;
                 self.status = "refreshed hardware state".into();
             }
             Err(err) => {
@@ -112,6 +116,8 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_zones_summary(state.zone_summary().into());
     window.set_active_tab(state.active_tab);
     window.set_gpu_mode(state.gpu_mode.as_str().into());
+    window.set_cpu_fan_rpm(format_fan_rpm(state.fan_speeds.cpu_rpm).into());
+    window.set_gpu_fan_rpm(format_fan_rpm(state.fan_speeds.gpu_rpm).into());
 
     if let Some(zone) = state.selected_zone_state() {
         window.set_brightness(zone.brightness as i32);
@@ -131,6 +137,11 @@ fn sync_window(window: &MainWindow, state: &AppState) {
             zone.color.blue,
         ));
     }
+}
+
+fn format_fan_rpm(rpm: Option<u32>) -> String {
+    rpm.map(|value| format!("{value} RPM"))
+        .unwrap_or_else(|| "--".to_string())
 }
 
 fn gpu_mode_from_ui(mode: UiGpuMode) -> GpuMode {

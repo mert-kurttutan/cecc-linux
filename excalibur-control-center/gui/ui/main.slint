@@ -168,6 +168,9 @@ component FanSpeedCard inherits Rectangle {
 }
 
 component FanSpeedSection inherits Rectangle {
+    in property <string> cpu-speed: "--";
+    in property <string> gpu-speed: "--";
+
     min-height: 180px;
     preferred-height: 180px;
     max-height: 180px;
@@ -203,13 +206,13 @@ component FanSpeedSection inherits Rectangle {
         FanSpeedCard {
             horizontal-stretch: 1;
             label: "CPU FAN";
-            speed: "3600 RPM";
+            speed: root.cpu-speed;
         }
 
         FanSpeedCard {
             horizontal-stretch: 1;
             label: "GPU FAN";
-            speed: "3600 RPM";
+            speed: root.gpu-speed;
         }
     }
 }
@@ -507,6 +510,8 @@ component MainTab inherits VerticalBox {
 
 component SystemModeTab inherits VerticalBox {
     in-out property <SystemMode> selected_mode: SystemMode.gaming;
+    in property <string> cpu-fan-rpm: "--";
+    in property <string> gpu-fan-rpm: "--";
 
     min-width: 460px;
     min-height: 480px;
@@ -556,7 +561,10 @@ component SystemModeTab inherits VerticalBox {
 
     if root.selected_mode == SystemMode.high_performance : SystemModeDistributionGraph { }
 
-    FanSpeedSection { }
+    FanSpeedSection {
+        cpu-speed: root.cpu-fan-rpm;
+        gpu-speed: root.gpu-fan-rpm;
+    }
 }
 
 component KeyboardTab inherits VerticalBox {
@@ -707,6 +715,8 @@ component KeyboardTab inherits VerticalBox {
 
 component GpuTab inherits VerticalBox {
     in property <string> gpu_mode: "unknown";
+    in property <string> cpu-fan-rpm: "--";
+    in property <string> gpu-fan-rpm: "--";
     callback set_gpu_mode(GpuMode);
 
     min-width: 460px;
@@ -750,7 +760,10 @@ component GpuTab inherits VerticalBox {
         }
     }
 
-    FanSpeedSection { }
+    FanSpeedSection {
+        cpu-speed: root.cpu-fan-rpm;
+        gpu-speed: root.gpu-fan-rpm;
+    }
 }
 
 component AboutTab inherits VerticalBox {
@@ -794,6 +807,8 @@ export component MainWindow inherits Window {
     in property <string> zones_summary: "";
     in property <string> gpu_mode: "unknown";
     in property <string> app_version: "";
+    in property <string> cpu_fan_rpm: "--";
+    in property <string> gpu_fan_rpm: "--";
     out property <[string]> main_items: [
         "Linux control center for Casper Excalibur laptops.",
         "Origin: Linux port of Casper Excalibur Control Center behavior.",
@@ -838,6 +853,14 @@ export component MainWindow inherits Window {
     title: "Excalibur Control Center";
     no-frame: true;
     resize-border-width: 6px;
+
+    Timer {
+        interval: 1s;
+        running: root.active_tab == AppTab.system_mode || root.active_tab == AppTab.display_mode;
+        triggered => {
+            root.refresh();
+        }
+    }
 
     VerticalBox {
         spacing: 0px;
@@ -961,6 +984,8 @@ export component MainWindow inherits Window {
                                 SystemModeTab {
                                     horizontal-stretch: 1;
                                     vertical-stretch: 1;
+                                    cpu-fan-rpm: root.cpu_fan_rpm;
+                                    gpu-fan-rpm: root.gpu_fan_rpm;
                                 }
 
                                 HardwareStatsColumn { }
@@ -1006,6 +1031,8 @@ export component MainWindow inherits Window {
                                     horizontal-stretch: 1;
                                     vertical-stretch: 1;
                                     gpu_mode: root.gpu_mode;
+                                    cpu-fan-rpm: root.cpu_fan_rpm;
+                                    gpu-fan-rpm: root.gpu_fan_rpm;
                                     set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
                                 }
 
