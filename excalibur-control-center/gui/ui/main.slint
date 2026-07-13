@@ -856,6 +856,12 @@ export component MainWindow inherits Window {
             horizontal-stretch: 1;
             background: @linear-gradient(90deg, #202631 0%, #4a342f 42%, #9a3b14 100%);
 
+            title_bar_touch := TouchArea {
+                width: max(parent.width - 220px, 0px);
+                height: parent.height;
+                double-clicked => { root.maximized = !root.maximized; }
+            }
+
             HorizontalBox {
                 x: 28px;
                 y: 0px;
