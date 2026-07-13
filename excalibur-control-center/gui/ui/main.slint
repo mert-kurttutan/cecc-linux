@@ -218,8 +218,10 @@ component DisplayModeCard inherits Rectangle {
     in property <bool> active: false;
     callback clicked <=> touch.clicked;
 
-    width: 180px;
-    height: 180px;
+    min-width: 120px;
+    preferred-width: 180px;
+    horizontal-stretch: 1;
+    height: self.width;
     border-radius: 8px;
     border-width: 1px;
     border-color: touch.has-hover ? #4b6987 : (root.active ? #f97316 : #2f3a46);
@@ -232,7 +234,7 @@ component DisplayModeCard inherits Rectangle {
         spacing: 8px;
 
         Image {
-            height: 112px;
+            vertical-stretch: 1;
             source: root.icon;
             image-fit: contain;
         }
@@ -501,36 +503,62 @@ component KeyboardTab inherits VerticalBox {
     Text { text: root.zones_summary; }
 }
 
-component GpuTab inherits VerticalBox {
+component GpuTab inherits Rectangle {
     in property <string> gpu_mode: "unknown";
     callback set_gpu_mode(GpuMode);
 
+    min-width: 460px;
+    min-height: 430px;
     vertical-stretch: 1;
-    spacing: 10px;
-    HorizontalBox {
-        spacing: 8px;
-        DisplayModeCard {
-            icon: @image-url("assets/gpu-discrete-mode.svg");
-            title: "Discrete";
-            active: root.gpu_mode == "discrete";
-            clicked => { root.set_gpu_mode(GpuMode.discrete); }
-        }
-        DisplayModeCard {
-            icon: @image-url("assets/gpu-hybrid-mode.svg");
-            title: "Hybrid";
-            active: root.gpu_mode == "hybrid";
-            clicked => { root.set_gpu_mode(GpuMode.hybrid); }
-        }
-        DisplayModeCard {
-            icon: @image-url("assets/gpu-uma-mode.svg");
-            title: "UMA";
-            active: root.gpu_mode == "uma";
-            clicked => { root.set_gpu_mode(GpuMode.uma); }
-        }
-    }
-    Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
+    border-width: 1px;
+    border-color: #2f3a46;
+    background: transparent;
+    clip: true;
 
-    FanSpeedSection { }
+    VerticalBox {
+        x: 1px;
+        y: 1px;
+        width: max(parent.width - 2px, 0px);
+        height: max(parent.height - 2px, 0px);
+        spacing: 10px;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+
+            VerticalBox {
+                width: parent.width;
+                height: parent.height;
+                spacing: 10px;
+                alignment: center;
+
+                HorizontalBox {
+                    spacing: 8px;
+                    DisplayModeCard {
+                        icon: @image-url("assets/gpu-discrete-mode.svg");
+                        title: "Discrete";
+                        active: root.gpu_mode == "discrete";
+                        clicked => { root.set_gpu_mode(GpuMode.discrete); }
+                    }
+                    DisplayModeCard {
+                        icon: @image-url("assets/gpu-hybrid-mode.svg");
+                        title: "Hybrid";
+                        active: root.gpu_mode == "hybrid";
+                        clicked => { root.set_gpu_mode(GpuMode.hybrid); }
+                    }
+                    DisplayModeCard {
+                        icon: @image-url("assets/gpu-uma-mode.svg");
+                        title: "UMA";
+                        active: root.gpu_mode == "uma";
+                        clicked => { root.set_gpu_mode(GpuMode.uma); }
+                    }
+                }
+                Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
+            }
+        }
+
+        FanSpeedSection { }
+    }
 }
 
 component AboutTab inherits VerticalBox {
