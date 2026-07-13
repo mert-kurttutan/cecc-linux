@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use excalibur_control_center_backend::{
-    CpuFrequency, FanSpeeds, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState,
-    RgbColor, SysfsBackend,
+    CpuFrequency, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone, KeyboardZoneSelection,
+    KeyboardZoneState, RgbColor, SysfsBackend,
 };
 use excalibur_control_center_gui::ui::{
     AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection, MainWindow,
@@ -28,6 +28,7 @@ struct AppState {
     gpu_mode: GpuMode,
     fan_speeds: FanSpeeds,
     cpu_frequency: CpuFrequency,
+    gpu_frequency: GpuFrequency,
     active_tab: AppTab,
     selected_zone: KeyboardZoneSelection,
     status: String,
@@ -41,6 +42,7 @@ impl AppState {
             gpu_mode: GpuMode::Hybrid,
             fan_speeds: FanSpeeds::default(),
             cpu_frequency: CpuFrequency::default(),
+            gpu_frequency: GpuFrequency::default(),
             active_tab: AppTab::SystemMode,
             selected_zone: KeyboardZoneSelection::All,
             status: String::new(),
@@ -56,6 +58,7 @@ impl AppState {
                 self.gpu_mode = state.gpu_mode;
                 self.fan_speeds = state.fan_speeds;
                 self.cpu_frequency = state.cpu_frequency;
+                self.gpu_frequency = state.gpu_frequency;
                 self.status = "refreshed hardware state".into();
             }
             Err(err) => {
@@ -122,6 +125,7 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_cpu_fan_rpm(format_fan_rpm(state.fan_speeds.cpu_rpm).into());
     window.set_gpu_fan_rpm(format_fan_rpm(state.fan_speeds.gpu_rpm).into());
     window.set_cpu_frequency(format_cpu_frequency(state.cpu_frequency.average_ghz).into());
+    window.set_gpu_frequency(format_gpu_frequency(state.gpu_frequency.graphics_ghz).into());
 
     if let Some(zone) = state.selected_zone_state() {
         window.set_brightness(zone.brightness as i32);
@@ -150,6 +154,12 @@ fn format_fan_rpm(rpm: Option<u32>) -> String {
 
 fn format_cpu_frequency(average_ghz: Option<f32>) -> String {
     average_ghz
+        .map(|value| format!("{value:.2} GHz"))
+        .unwrap_or_else(|| "--".to_string())
+}
+
+fn format_gpu_frequency(graphics_ghz: Option<f32>) -> String {
+    graphics_ghz
         .map(|value| format!("{value:.2} GHz"))
         .unwrap_or_else(|| "--".to_string())
 }

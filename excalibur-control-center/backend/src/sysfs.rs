@@ -1,9 +1,12 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use nvml_wrapper::Nvml;
+use nvml_wrapper::enum_wrappers::device::Clock;
+
 use crate::model::{
-    ControlCenterState, CpuFrequency, FanSpeeds, GpuMode, KeyboardZone, KeyboardZoneSelection,
-    KeyboardZoneState, RgbColor,
+    ControlCenterState, CpuFrequency, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone,
+    KeyboardZoneSelection, KeyboardZoneState, RgbColor,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
@@ -25,10 +28,11 @@ pub enum BackendError {
     OutOfRange(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SysfsBackend {
     root: PathBuf,
     cpu_freq_detection: CpuFreqDetection,
+    nvml: Option<Nvml>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -51,6 +55,7 @@ impl SysfsBackend {
         Self {
             root,
             cpu_freq_detection,
+            nvml: Nvml::init().ok(),
         }
     }
 
@@ -157,6 +162,7 @@ impl SysfsBackend {
             keyboard_zones: self.list_keyboard_zones()?,
             fan_speeds: self.read_fan_speeds().unwrap_or_default(),
             cpu_frequency: self.read_cpu_frequency().unwrap_or_default(),
+            gpu_frequency: self.read_gpu_frequency(),
         })
     }
 
@@ -241,6 +247,41 @@ impl SysfsBackend {
         match self.cpu_freq_detection {
             CpuFreqDetection::ScalingCurFreq => self.read_scaling_cur_freq(),
             CpuFreqDetection::ProcCpuinfo => self.read_proc_cpuinfo_frequency(),
+        }
+    }
+
+    pub fn read_gpu_frequency(&self) -> GpuFrequency {
+        let Some(nvml) = &self.nvml else {
+            return GpuFrequency::default();
+        };
+
+        let device_count = match nvml.device_count() {
+            Ok(count) => count,
+            Err(_) => {
+                return GpuFrequency::default();
+            }
+        };
+
+        if device_count == 0 {
+            return GpuFrequency::default();
+        }
+
+        let device = match nvml.device_by_index(0) {
+            Ok(device) => device,
+            Err(_) => {
+                return GpuFrequency::default();
+            }
+        };
+
+        let graphics_mhz = match device.clock_info(Clock::Graphics) {
+            Ok(clock) => clock,
+            Err(_) => {
+                return GpuFrequency::default();
+            }
+        };
+
+        GpuFrequency {
+            graphics_ghz: Some(graphics_mhz as f32 / 1000.0),
         }
     }
 
