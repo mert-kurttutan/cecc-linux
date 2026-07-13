@@ -95,6 +95,33 @@ component Hyperlink inherits Rectangle {
     }
 }
 
+component WindowControlButton inherits Rectangle {
+    in property <string> text: "";
+    in property <length> text-size: 28px;
+    in property <length> text-y-offset: 0px;
+    callback clicked <=> touch.clicked;
+
+    width: 44px;
+    height: 44px;
+    border-radius: 22px;
+    background: touch.has-hover ? #6d2a20 : #2f3540cc;
+
+    Text {
+        y: root.text-y-offset;
+        width: parent.width;
+        height: parent.height;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        text: root.text;
+        color: white;
+        font-size: root.text-size;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+    }
+}
+
 component FanSpeedCard inherits Rectangle {
     in property <string> label: "";
     in property <string> speed: "";
@@ -818,122 +845,193 @@ export component MainWindow inherits Window {
     min-height: 840px;
     default-font-size: 18px;
     title: "Excalibur Control Center";
+    no-frame: true;
+    resize-border-width: 6px;
 
-    HorizontalBox {
+    VerticalBox {
         spacing: 0px;
 
         Rectangle {
-            width: 180px;
-            vertical-stretch: 1;
-            background: #111820;
+            height: 72px;
+            horizontal-stretch: 1;
+            background: @linear-gradient(90deg, #202631 0%, #4a342f 42%, #9a3b14 100%);
 
-            VerticalBox {
-                spacing: 10px;
-                padding: 12px;
+            HorizontalBox {
+                x: 28px;
+                y: 0px;
+                width: max(parent.width - 56px, 0px);
+                height: parent.height;
+                spacing: 16px;
 
-                HoverButton { text: "System Mode"; selected: root.active_tab == AppTab.system_mode; clicked => { root.select_tab(AppTab.system_mode); } }
-                HoverButton { text: "Display Mode"; selected: root.active_tab == AppTab.display_mode; clicked => { root.select_tab(AppTab.display_mode); } }
-                HoverButton { text: "LED Control"; selected: root.active_tab == AppTab.led_control; clicked => { root.select_tab(AppTab.led_control); } }
-                HoverButton { text: "Main"; selected: root.active_tab == AppTab.main; clicked => { root.select_tab(AppTab.main); } }
-                HoverButton { text: "About"; selected: root.active_tab == AppTab.about; clicked => { root.select_tab(AppTab.about); } }
-                Rectangle { vertical-stretch: 1; }
-                HoverButton { text: "Refresh"; clicked => { root.refresh(); } }
+                Text {
+                    vertical-alignment: center;
+                    text: "EXCALIBUR CONTROL CENTER";
+                    color: white;
+                    font-size: 26px;
+                    font-weight: 700;
+                }
+
+                Rectangle { horizontal-stretch: 1; }
+
+                Rectangle {
+                    width: 44px;
+                    height: parent.height;
+
+                    WindowControlButton {
+                        y: (parent.height - self.height) / 2 - 6px;
+                        text: "-";
+                        text-y-offset: -1px;
+                        clicked => { root.minimized = true; }
+                    }
+                }
+
+                Rectangle {
+                    width: 44px;
+                    height: parent.height;
+
+                    WindowControlButton {
+                        y: (parent.height - self.height) / 2 - 6px;
+                        text: "□";
+                        text-size: 16px;
+                        text-y-offset: 1px;
+                        clicked => { root.maximized = !root.maximized; }
+                    }
+                }
+
+                Rectangle {
+                    width: 44px;
+                    height: parent.height;
+
+                    WindowControlButton {
+                        y: (parent.height - self.height) / 2 - 6px;
+                        text: "x";
+                        text-y-offset: -2px;
+                        clicked => { root.close(); }
+                    }
+                }
             }
         }
 
-        VerticalBox {
-            horizontal-stretch: 1;
-            spacing: 12px;
-
-            Rectangle {
-                horizontal-stretch: 1;
-                vertical-stretch: 1;
-
-                tab_content := Rectangle {
-                    x: 0px;
-                    y: 0px;
-                    width: min(parent.width, 1728px);
-                    height: min(parent.height, 1080px);
-
-                    if root.active_tab == AppTab.system_mode : HorizontalBox {
-                        width: parent.width;
-                        height: parent.height;
-                        spacing: 8px;
-
-                        SystemModeTab {
-                            horizontal-stretch: 1;
-                            vertical-stretch: 1;
-                        }
-
-                        HardwareStatsColumn { }
-                    }
-
-                    if root.active_tab == AppTab.main : MainTab {
-                        width: parent.width;
-                        height: parent.height;
-                        items: root.main_items;
-                    }
-
-                    if root.active_tab == AppTab.led_control : KeyboardTab {
-                        width: parent.width;
-                        height: parent.height;
-                        active_zone: root.active_zone;
-                        zones_summary: root.zones_summary;
-                        brightness <=> root.brightness;
-                        brightness_slider <=> root.brightness_slider;
-                        red <=> root.red;
-                        green <=> root.green;
-                        blue <=> root.blue;
-                        color_hue <=> root.color_hue;
-                        color_saturation <=> root.color_saturation;
-                        color_value <=> root.color_value;
-                        picker_base_color <=> root.picker_base_color;
-                        selected_color <=> root.selected_color;
-
-                        select_zone(zone) => { root.select_zone(zone); }
-                        brightness_edited(value) => { root.brightness_edited(value); }
-                        brightness_slider_changed(value) => { root.brightness_slider_changed(value); }
-                        apply_brightness => { root.apply_brightness(); }
-                        color_hue_changed(value) => { root.color_hue_changed(value); }
-                        color_sv_changed(saturation, value) => { root.color_sv_changed(saturation, value); }
-                        apply_color => { root.apply_color(); }
-                    }
-
-                    if root.active_tab == AppTab.display_mode : HorizontalBox {
-                        width: parent.width;
-                        height: parent.height;
-                        spacing: 8px;
-
-                        GpuTab {
-                            horizontal-stretch: 1;
-                            vertical-stretch: 1;
-                            gpu_mode: root.gpu_mode;
-                            set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
-                        }
-
-                        HardwareStatsColumn { }
-                    }
-
-                    if root.active_tab == AppTab.about : AboutTab {
-                        width: parent.width;
-                        height: parent.height;
-                        credit_items: root.credit_items;
-                    }
-                }
-            }
+        Rectangle {
+            vertical-stretch: 1;
 
             HorizontalBox {
-                padding: 0px;
-                alignment: space-between;
+                spacing: 0px;
 
-                Text {
-                    color: #6b7280;
-                    text: "Made by Mert Kurttutan";
+                Rectangle {
+                    width: 180px;
+                    vertical-stretch: 1;
+                    background: #111820;
+
+                    VerticalBox {
+                        spacing: 10px;
+                        padding: 12px;
+
+                        HoverButton { text: "System Mode"; selected: root.active_tab == AppTab.system_mode; clicked => { root.select_tab(AppTab.system_mode); } }
+                        HoverButton { text: "Display Mode"; selected: root.active_tab == AppTab.display_mode; clicked => { root.select_tab(AppTab.display_mode); } }
+                        HoverButton { text: "LED Control"; selected: root.active_tab == AppTab.led_control; clicked => { root.select_tab(AppTab.led_control); } }
+                        HoverButton { text: "Main"; selected: root.active_tab == AppTab.main; clicked => { root.select_tab(AppTab.main); } }
+                        HoverButton { text: "About"; selected: root.active_tab == AppTab.about; clicked => { root.select_tab(AppTab.about); } }
+                        Rectangle { vertical-stretch: 1; }
+                        HoverButton { text: "Refresh"; clicked => { root.refresh(); } }
+                    }
                 }
 
-                Text {
-                    color: #6b7280;
-                    text: "v" + root.app_version;
+                VerticalBox {
+                    horizontal-stretch: 1;
+                    spacing: 12px;
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        vertical-stretch: 1;
+
+                        tab_content := Rectangle {
+                            x: 0px;
+                            y: 0px;
+                            width: min(parent.width, 1728px);
+                            height: min(parent.height, 1080px);
+
+                            if root.active_tab == AppTab.system_mode : HorizontalBox {
+                                width: parent.width;
+                                height: parent.height;
+                                spacing: 8px;
+
+                                SystemModeTab {
+                                    horizontal-stretch: 1;
+                                    vertical-stretch: 1;
+                                }
+
+                                HardwareStatsColumn { }
+                            }
+
+                            if root.active_tab == AppTab.main : MainTab {
+                                width: parent.width;
+                                height: parent.height;
+                                items: root.main_items;
+                            }
+
+                            if root.active_tab == AppTab.led_control : KeyboardTab {
+                                width: parent.width;
+                                height: parent.height;
+                                active_zone: root.active_zone;
+                                zones_summary: root.zones_summary;
+                                brightness <=> root.brightness;
+                                brightness_slider <=> root.brightness_slider;
+                                red <=> root.red;
+                                green <=> root.green;
+                                blue <=> root.blue;
+                                color_hue <=> root.color_hue;
+                                color_saturation <=> root.color_saturation;
+                                color_value <=> root.color_value;
+                                picker_base_color <=> root.picker_base_color;
+                                selected_color <=> root.selected_color;
+
+                                select_zone(zone) => { root.select_zone(zone); }
+                                brightness_edited(value) => { root.brightness_edited(value); }
+                                brightness_slider_changed(value) => { root.brightness_slider_changed(value); }
+                                apply_brightness => { root.apply_brightness(); }
+                                color_hue_changed(value) => { root.color_hue_changed(value); }
+                                color_sv_changed(saturation, value) => { root.color_sv_changed(saturation, value); }
+                                apply_color => { root.apply_color(); }
+                            }
+
+                            if root.active_tab == AppTab.display_mode : HorizontalBox {
+                                width: parent.width;
+                                height: parent.height;
+                                spacing: 8px;
+
+                                GpuTab {
+                                    horizontal-stretch: 1;
+                                    vertical-stretch: 1;
+                                    gpu_mode: root.gpu_mode;
+                                    set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
+                                }
+
+                                HardwareStatsColumn { }
+                            }
+
+                            if root.active_tab == AppTab.about : AboutTab {
+                                width: parent.width;
+                                height: parent.height;
+                                credit_items: root.credit_items;
+                            }
+                        }
+                    }
+
+                    HorizontalBox {
+                        padding: 0px;
+                        alignment: space-between;
+
+                        Text {
+                            color: #6b7280;
+                            text: "Made by Mert Kurttutan";
+                        }
+
+                        Text {
+                            color: #6b7280;
+                            text: "v" + root.app_version;
+                        }
+                    }
                 }
             }
         }
