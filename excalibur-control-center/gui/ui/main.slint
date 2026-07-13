@@ -957,11 +957,7 @@ export component MainWindow inherits Window {
             title_bar_touch := TouchArea {
                 width: max(parent.width - 220px, 0px);
                 height: parent.height;
-                changed pressed => {
-                    if (self.pressed) {
-                        root.start_drag_window();
-                    }
-                }
+                moved => { root.start_drag_window(); }
                 double-clicked => { root.maximized = !root.maximized; }
             }
         }
