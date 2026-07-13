@@ -10,30 +10,66 @@ export struct CreditItem {
     url: string,
 }
 
-component HoverButton inherits Rectangle {
+component ControlButtonBase inherits Rectangle {
     in property <string> text: "";
+    in property <bool> selected: false;
+    in property <color> default-background: #2f3a46;
+    in property <color> hover-background: #37516c;
+    in property <color> selected-background: #2f3a46;
+    in property <color> default-border-color: #2f3a46;
+    in property <color> hover-border-color: #4b6987;
+    in property <color> selected-border-color: #4b6987;
+    in property <color> selected-text-color: white;
+    in property <color> default-text-color: #a3aab3;
     callback clicked <=> touch.clicked;
 
-    height: 40px;
-    border-radius: 6px;
-    border-width: 1px;
-    border-color: touch.has-hover ? #4b6987 : #2f3a46;
-    background: touch.has-hover ? #37516c : #2f3a46;
+    border-color: root.selected ? root.selected-border-color : (touch.has-hover ? root.hover-border-color : root.default-border-color);
+    background: root.selected ? root.selected-background : (touch.has-hover ? root.hover-background : root.default-background);
     animate background { duration: 120ms; }
     animate border-color { duration: 120ms; }
-
-    Text {
-        x: 10px;
-        height: parent.height;
-        vertical-alignment: center;
-        overflow: elide;
-        text: root.text;
-        color: white;
-    }
 
     touch := TouchArea {
         mouse-cursor: pointer;
     }
+
+    Text {
+        x: 12px;
+        width: max(parent.width - 24px, 0px);
+        height: parent.height;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+        text: root.text;
+        color: root.selected ? root.selected-text-color : root.default-text-color;
+        font-size: 16px;
+    }
+}
+
+component HoverButton inherits ControlButtonBase {
+    height: 40px;
+    border-radius: 6px;
+    border-width: 1px;
+    default-background: #1f2933;
+    selected-background: #2f3a46;
+    default-border-color: #2f3a46;
+    selected-border-color: #4b6987;
+}
+
+component SystemModeButton inherits ControlButtonBase {
+
+    min-height: 60px;
+    min-width: 120px;
+    preferred-width: 120px;
+    preferred-height: 60px;
+    max-height: 60px;
+    horizontal-stretch: 1;
+    border-width: root.selected ? 1px : 0px;
+    default-background: root.selected ? #2f3a46 : #151b22;
+    selected-background: #2f3a46;
+    hover-background: #273545;
+    default-border-color: #bdc1c4;
+    hover-border-color: #bdc1c4;
+    selected-border-color: #bdc1c4;
 }
 
 component Hyperlink inherits Rectangle {
@@ -59,41 +95,6 @@ component Hyperlink inherits Rectangle {
     }
 }
 
-component SystemModeButton inherits Rectangle {
-    in property <string> text: "";
-    in property <bool> selected: false;
-    callback clicked <=> touch.clicked;
-
-    height: 56px;
-    horizontal-stretch: 1;
-    border-width: root.selected ? 1px : 0px;
-    border-color: #4b6987;
-    background: touch.has-hover ? #273545 : (root.selected ? #2f3a46 : #151b22);
-    animate background { duration: 120ms; }
-
-    Text {
-        width: parent.width;
-        height: parent.height;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        overflow: elide;
-        text: root.text;
-        color: root.selected ? white : #a3aab3;
-    }
-
-    Rectangle {
-        visible: root.selected;
-        x: 0px;
-        y: parent.height - 2px;
-        height: 2px;
-        background: #f97316;
-    }
-
-    touch := TouchArea {
-        mouse-cursor: pointer;
-    }
-}
-
 component FanSpeedCard inherits Rectangle {
     in property <string> label: "";
     in property <string> speed: "";
@@ -103,8 +104,9 @@ component FanSpeedCard inherits Rectangle {
     background: transparent;
 
     VerticalBox {
-        padding: 6px;
-        spacing: 4px;
+        padding: 0px;
+        spacing: 2px;
+        alignment: start;
 
         Rectangle {
             height: 100px;
@@ -138,15 +140,18 @@ component FanSpeedCard inherits Rectangle {
 }
 
 component FanSpeedSection inherits Rectangle {
-    height: 200px;
+    min-height: 180px;
+    preferred-height: 180px;
+    max-height: 180px;
+    horizontal-stretch: 1;
     border-width: 1px;
     border-color: #2f3a46;
     background: #151b22;
     clip: true;
 
     VerticalBox {
-        spacing: 8px;
-        padding: 8px;
+        spacing: 0px;
+        padding: 4px;
         alignment: start;
 
         HorizontalBox {
@@ -170,7 +175,8 @@ component FanSpeedSection inherits Rectangle {
         }
 
         HorizontalBox {
-            spacing: 8px;
+            spacing: 4px;
+            vertical-stretch: 1;
 
             Rectangle {
                 horizontal-stretch: 1;
@@ -192,13 +198,15 @@ component FanSpeedSection inherits Rectangle {
 }
 
 component SystemModeDistributionGraph inherits Rectangle {
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
     clip: true;
 
     Image {
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
-        width: self.height * 520 / 430;
-        height: min(parent.height, parent.width * 430 / 520);
+        width: parent.width;
+        height: parent.height;
         source: @image-url("assets/system-mode-pentagon.svg");
         image-fit: contain;
     }
@@ -283,47 +291,68 @@ component MainTab inherits VerticalBox {
     }
 }
 
-component SystemModeTab inherits VerticalBox {
+component SystemModeTab inherits Rectangle {
     in-out property <SystemMode> selected_mode: SystemMode.gaming;
 
+    min-width: 460px;
+    min-height: 480px;
     vertical-stretch: 1;
-    spacing: 12px;
+    border-width: 1px;
+    border-color: #2f3a46;
+    background: transparent;
+    clip: true;
 
-    HorizontalBox {
-        spacing: 0px;
+    VerticalBox {
+        x: 1px;
+        y: 1px;
+        width: max(parent.width - 2px, 0px);
+        height: max(parent.height - 2px, 0px);
+        spacing: 6px;
 
-        SystemModeButton {
-            text: "Office Mode";
-            selected: root.selected_mode == SystemMode.office;
-            clicked => { root.selected_mode = SystemMode.office; }
+        Rectangle {
+            min-height: 60px;
+            preferred-height: 60px;
+            max-height: 60px;
+            horizontal-stretch: 1;
+            border-width: 1px;
+            border-color: #bdc1c4;
+
+            HorizontalBox {
+                x: 1px;
+                y: 1px;
+                width: max(parent.width - 2px, 0px);
+                height: max(parent.height - 2px, 0px);
+                padding: 0px;
+                spacing: 0px;
+
+                SystemModeButton {
+                    text: "Office Mode";
+                    selected: root.selected_mode == SystemMode.office;
+                    clicked => { root.selected_mode = SystemMode.office; }
+                }
+
+                SystemModeButton {
+                    text: "Gaming";
+                    selected: root.selected_mode == SystemMode.gaming;
+                    clicked => { root.selected_mode = SystemMode.gaming; }
+                }
+
+                SystemModeButton {
+                    text: "High Performance";
+                    selected: root.selected_mode == SystemMode.high_performance;
+                    clicked => { root.selected_mode = SystemMode.high_performance; }
+                }
+            }
         }
-
-        SystemModeButton {
-            text: "Gaming";
-            selected: root.selected_mode == SystemMode.gaming;
-            clicked => { root.selected_mode = SystemMode.gaming; }
-        }
-
-        SystemModeButton {
-            text: "High Performance";
-            selected: root.selected_mode == SystemMode.high_performance;
-            clicked => { root.selected_mode = SystemMode.high_performance; }
-        }
-    }
-
-    Rectangle {
-        min-height: 240px;
-        vertical-stretch: 1;
-        clip: true;
 
         if root.selected_mode == SystemMode.office : SystemModeDistributionGraph { }
 
         if root.selected_mode == SystemMode.gaming : SystemModeDistributionGraph { }
 
         if root.selected_mode == SystemMode.high_performance : SystemModeDistributionGraph { }
-    }
 
-    FanSpeedSection { }
+        FanSpeedSection { }
+    }
 }
 
 component KeyboardTab inherits VerticalBox {
@@ -586,7 +615,7 @@ export component MainWindow inherits Window {
     title: "Excalibur Control Center";
 
     HorizontalBox {
-        spacing: 16px;
+        spacing: 0px;
 
         Rectangle {
             width: 180px;
@@ -601,11 +630,11 @@ export component MainWindow inherits Window {
                     horizontal-alignment: center;
                     text: "Excalibur";
                 }
-                HoverButton { text: "System Mode"; clicked => { root.select_tab(AppTab.system_mode); } }
-                HoverButton { text: "Display Mode"; clicked => { root.select_tab(AppTab.display_mode); } }
-                HoverButton { text: "LED Control"; clicked => { root.select_tab(AppTab.led_control); } }
-                HoverButton { text: "Main"; clicked => { root.select_tab(AppTab.main); } }
-                HoverButton { text: "About"; clicked => { root.select_tab(AppTab.about); } }
+                HoverButton { text: "System Mode"; selected: root.active_tab == AppTab.system_mode; clicked => { root.select_tab(AppTab.system_mode); } }
+                HoverButton { text: "Display Mode"; selected: root.active_tab == AppTab.display_mode; clicked => { root.select_tab(AppTab.display_mode); } }
+                HoverButton { text: "LED Control"; selected: root.active_tab == AppTab.led_control; clicked => { root.select_tab(AppTab.led_control); } }
+                HoverButton { text: "Main"; selected: root.active_tab == AppTab.main; clicked => { root.select_tab(AppTab.main); } }
+                HoverButton { text: "About"; selected: root.active_tab == AppTab.about; clicked => { root.select_tab(AppTab.about); } }
                 Rectangle { vertical-stretch: 1; }
                 HoverButton { text: "Refresh"; clicked => { root.refresh(); } }
             }
