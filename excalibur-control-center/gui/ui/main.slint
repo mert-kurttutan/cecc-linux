@@ -415,6 +415,8 @@ component ResourceStatRow inherits HorizontalBox {
 }
 
 component HardwareStatsColumn inherits Rectangle {
+    in property <string> cpu-frequency: "--";
+
     min-width: 280px;
     preferred-width: 280px;
     max-width: 280px;
@@ -439,7 +441,7 @@ component HardwareStatsColumn inherits Rectangle {
 
                 SensorStatRow {
                     label: "CPU";
-                    value: "2.34 GHz";
+                    value: root.cpu-frequency;
                     percent: "1%";
                     fill: 1;
                 }
@@ -809,6 +811,7 @@ export component MainWindow inherits Window {
     in property <string> app_version: "";
     in property <string> cpu_fan_rpm: "--";
     in property <string> gpu_fan_rpm: "--";
+    in property <string> cpu_frequency: "--";
     out property <[string]> main_items: [
         "Linux control center for Casper Excalibur laptops.",
         "Origin: Linux port of Casper Excalibur Control Center behavior.",
@@ -988,7 +991,9 @@ export component MainWindow inherits Window {
                                     gpu-fan-rpm: root.gpu_fan_rpm;
                                 }
 
-                                HardwareStatsColumn { }
+                                HardwareStatsColumn {
+                                    cpu-frequency: root.cpu_frequency;
+                                }
                             }
 
                             if root.active_tab == AppTab.main : MainTab {
@@ -1036,7 +1041,9 @@ export component MainWindow inherits Window {
                                     set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
                                 }
 
-                                HardwareStatsColumn { }
+                                HardwareStatsColumn {
+                                    cpu-frequency: root.cpu_frequency;
+                                }
                             }
 
                             if root.active_tab == AppTab.about : AboutTab {

@@ -2,14 +2,16 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::model::{
-    ControlCenterState, FanSpeeds, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState,
-    RgbColor,
+    ControlCenterState, CpuFrequency, FanSpeeds, GpuMode, KeyboardZone, KeyboardZoneSelection,
+    KeyboardZoneState, RgbColor,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
 const GPU_MODE_PATH: &str = "module/casper_wmi/parameters/gpu_mode";
 const LED_ROOT: &str = "class/leds";
 const HWMON_ROOT: &str = "class/hwmon";
+const CPUFREQ_POLICY_ROOT: &str = "devices/system/cpu/cpufreq";
+const PROC_CPUINFO_PATH: &str = "/proc/cpuinfo";
 
 #[derive(Debug, thiserror::Error)]
 pub enum BackendError {
@@ -26,6 +28,13 @@ pub enum BackendError {
 #[derive(Debug, Clone)]
 pub struct SysfsBackend {
     root: PathBuf,
+    cpu_freq_detection: CpuFreqDetection,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum CpuFreqDetection {
+    ScalingCurFreq,
+    ProcCpuinfo,
 }
 
 impl Default for SysfsBackend {
@@ -36,7 +45,13 @@ impl Default for SysfsBackend {
 
 impl SysfsBackend {
     pub fn new(root: impl Into<PathBuf>) -> Self {
-        Self { root: root.into() }
+        let root = root.into();
+        let cpu_freq_detection = Self::detect_cpu_freq_method(&root);
+
+        Self {
+            root,
+            cpu_freq_detection,
+        }
     }
 
     fn path(&self, rel: impl AsRef<Path>) -> PathBuf {
@@ -80,6 +95,16 @@ impl SysfsBackend {
         value
             .trim()
             .parse::<u32>()
+            .map_err(|_| BackendError::Parse {
+                path: path.display().to_string(),
+                value: value.trim().to_string(),
+            })
+    }
+
+    fn parse_f32(path: &Path, value: &str) -> Result<f32, BackendError> {
+        value
+            .trim()
+            .parse::<f32>()
             .map_err(|_| BackendError::Parse {
                 path: path.display().to_string(),
                 value: value.trim().to_string(),
@@ -131,6 +156,7 @@ impl SysfsBackend {
             gpu_mode: self.read_gpu_mode()?,
             keyboard_zones: self.list_keyboard_zones()?,
             fan_speeds: self.read_fan_speeds().unwrap_or_default(),
+            cpu_frequency: self.read_cpu_frequency().unwrap_or_default(),
         })
     }
 
@@ -209,6 +235,111 @@ impl SysfsBackend {
         }
 
         Ok(speeds)
+    }
+
+    pub fn read_cpu_frequency(&self) -> Result<CpuFrequency, BackendError> {
+        match self.cpu_freq_detection {
+            CpuFreqDetection::ScalingCurFreq => self.read_scaling_cur_freq(),
+            CpuFreqDetection::ProcCpuinfo => self.read_proc_cpuinfo_frequency(),
+        }
+    }
+
+    fn detect_cpu_freq_method(root: &Path) -> CpuFreqDetection {
+        let policy_root = root.join(CPUFREQ_POLICY_ROOT);
+        if Self::has_cpufreq_policy_values(&policy_root, "scaling_cur_freq") {
+            return CpuFreqDetection::ScalingCurFreq;
+        }
+
+        CpuFreqDetection::ProcCpuinfo
+    }
+
+    fn has_cpufreq_policy_values(policy_root: &Path, file_name: &str) -> bool {
+        let Ok(entries) = fs::read_dir(policy_root) else {
+            return false;
+        };
+
+        for entry in entries.flatten() {
+            let policy_dir = entry.path();
+            if policy_dir.is_dir() && policy_dir.join(file_name).exists() {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn read_scaling_cur_freq(&self) -> Result<CpuFrequency, BackendError> {
+        let policy_root = self.path(CPUFREQ_POLICY_ROOT);
+        let khz_values = self.read_cpufreq_values(&policy_root, "scaling_cur_freq")?;
+
+        Ok(CpuFrequency {
+            average_ghz: Self::average_khz_as_ghz(&khz_values),
+        })
+    }
+
+    fn read_cpufreq_values(
+        &self,
+        policy_root: &Path,
+        file_name: &str,
+    ) -> Result<Vec<u32>, BackendError> {
+        if !policy_root.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut values = Vec::new();
+        for entry in fs::read_dir(policy_root)? {
+            let policy_dir = entry?.path();
+            if !policy_dir.is_dir() {
+                continue;
+            }
+
+            let path = policy_dir.join(file_name);
+            if path.exists() {
+                values.push(Self::parse_u32(&path, &fs::read_to_string(&path)?)?);
+            }
+        }
+
+        Ok(values)
+    }
+
+    fn read_proc_cpuinfo_frequency(&self) -> Result<CpuFrequency, BackendError> {
+        let path = Path::new(PROC_CPUINFO_PATH);
+        let value = fs::read_to_string(path)?;
+        let mut mhz_values = Vec::new();
+
+        for line in value.lines() {
+            let Some((key, value)) = line.split_once(':') else {
+                continue;
+            };
+
+            if key.trim() == "cpu MHz" {
+                mhz_values.push(Self::parse_f32(path, value)?);
+            }
+        }
+
+        Ok(CpuFrequency {
+            average_ghz: Self::average_mhz_as_ghz(&mhz_values),
+        })
+    }
+
+    fn average_khz_as_ghz(values: &[u32]) -> Option<f32> {
+        if values.is_empty() {
+            return None;
+        }
+
+        Some(
+            values.iter().map(|value| *value as f32).sum::<f32>()
+                / values.len() as f32
+                / 1_000_000.0,
+        )
+    }
+
+    fn average_mhz_as_ghz(values: &[f32]) -> Option<f32> {
+        if values.is_empty() {
+            return None;
+        }
+
+        Some(values.iter().sum::<f32>() / values.len() as f32 / 1000.0)
     }
 
     pub fn list_keyboard_zones(&self) -> Result<Vec<KeyboardZoneState>, BackendError> {

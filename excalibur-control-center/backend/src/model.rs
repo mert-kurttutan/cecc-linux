@@ -91,9 +91,15 @@ pub struct FanSpeeds {
     pub gpu_rpm: Option<u32>,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CpuFrequency {
+    pub average_ghz: Option<f32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct ControlCenterState {
     pub gpu_mode: GpuMode,
     pub keyboard_zones: Vec<KeyboardZoneState>,
     pub fan_speeds: FanSpeeds,
+    pub cpu_frequency: CpuFrequency,
 }
