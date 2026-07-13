@@ -7,6 +7,7 @@ use excalibur_control_center_backend::{
 use excalibur_control_center_gui::ui::{
     AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection, MainWindow,
 };
+use slint::winit_030::WinitWindowAccessor;
 use slint::ComponentHandle;
 
 fn zone_selection_from_ui(zone: UiKeyboardZoneSelection) -> KeyboardZoneSelection {
@@ -212,6 +213,17 @@ fn main() -> Result<(), slint::PlatformError> {
             state.set_active_tab(index);
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
+            }
+        });
+    }
+
+    {
+        let window_weak = window.as_weak();
+        window.on_start_drag_window(move || {
+            if let Some(window) = window_weak.upgrade() {
+                window.window().with_winit_window(|window| {
+                    let _ = window.drag_window();
+                });
             }
         });
     }

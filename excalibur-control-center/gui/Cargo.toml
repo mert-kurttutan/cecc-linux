@@ -9,4 +9,4 @@ slint-build = "1"
 
 [dependencies]
 excalibur-control-center-backend = { path = "../backend" }
-slint = { version = "1", default-features = false, features = ["compat-1-2", "backend-winit-wayland", "renderer-software"] }
+slint = { version = "1", default-features = false, features = ["compat-1-2", "backend-winit-wayland", "renderer-software", "unstable-winit-030"] }

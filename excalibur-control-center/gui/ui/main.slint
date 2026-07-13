@@ -828,6 +828,7 @@ export component MainWindow inherits Window {
     callback color_hue_changed(float);
     callback color_sv_changed(float, float);
     callback apply_color();
+    callback start_drag_window();
 
     preferred-width: 1180px;
     preferred-height: 840px;
@@ -845,12 +846,6 @@ export component MainWindow inherits Window {
             height: 72px;
             horizontal-stretch: 1;
             background: @linear-gradient(90deg, #202631 0%, #4a342f 42%, #9a3b14 100%);
-
-            title_bar_touch := TouchArea {
-                width: max(parent.width - 220px, 0px);
-                height: parent.height;
-                double-clicked => { root.maximized = !root.maximized; }
-            }
 
             HorizontalBox {
                 x: 28px;
@@ -905,6 +900,17 @@ export component MainWindow inherits Window {
                         clicked => { root.close(); }
                     }
                 }
+            }
+
+            title_bar_touch := TouchArea {
+                width: max(parent.width - 220px, 0px);
+                height: parent.height;
+                changed pressed => {
+                    if (self.pressed) {
+                        root.start_drag_window();
+                    }
+                }
+                double-clicked => { root.maximized = !root.maximized; }
             }
         }
 
