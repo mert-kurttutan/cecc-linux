@@ -6,7 +6,7 @@ use nvml_wrapper::enum_wrappers::device::Clock;
 
 use crate::model::{
     ControlCenterState, CpuFrequency, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone,
-    KeyboardZoneSelection, KeyboardZoneState, RgbColor,
+    KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
@@ -15,6 +15,7 @@ const LED_ROOT: &str = "class/leds";
 const HWMON_ROOT: &str = "class/hwmon";
 const CPUFREQ_POLICY_ROOT: &str = "devices/system/cpu/cpufreq";
 const PROC_CPUINFO_PATH: &str = "/proc/cpuinfo";
+const PROC_MEMINFO_PATH: &str = "/proc/meminfo";
 
 #[derive(Debug, thiserror::Error)]
 pub enum BackendError {
@@ -163,6 +164,7 @@ impl SysfsBackend {
             fan_speeds: self.read_fan_speeds().unwrap_or_default(),
             cpu_frequency: self.read_cpu_frequency().unwrap_or_default(),
             gpu_frequency: self.read_gpu_frequency(),
+            memory_stats: self.read_memory_stats().unwrap_or_default(),
         })
     }
 
@@ -283,6 +285,56 @@ impl SysfsBackend {
         GpuFrequency {
             graphics_ghz: Some(graphics_mhz as f32 / 1000.0),
         }
+    }
+
+    pub fn read_memory_stats(&self) -> Result<MemoryStats, BackendError> {
+        let path = Path::new(PROC_MEMINFO_PATH);
+        let value = fs::read_to_string(path)?;
+        let mut total_kb = None;
+        let mut available_kb = None;
+
+        for line in value.lines() {
+            let Some((key, value)) = line.split_once(':') else {
+                continue;
+            };
+
+            match key.trim() {
+                "MemTotal" => total_kb = Some(Self::parse_meminfo_kb(path, value)?),
+                "MemAvailable" => available_kb = Some(Self::parse_meminfo_kb(path, value)?),
+                _ => {}
+            }
+        }
+
+        let Some(total_kb) = total_kb else {
+            return Ok(MemoryStats::default());
+        };
+        let Some(available_kb) = available_kb else {
+            return Ok(MemoryStats::default());
+        };
+
+        let used_kb = total_kb.saturating_sub(available_kb);
+        let total_bytes = total_kb * 1024;
+        let used_bytes = used_kb * 1024;
+
+        Ok(MemoryStats {
+            used_bytes: Some(used_bytes),
+            total_bytes: Some(total_bytes),
+            used_percent: Some(used_bytes as f32 / total_bytes as f32 * 100.0),
+        })
+    }
+
+    fn parse_meminfo_kb(path: &Path, value: &str) -> Result<u64, BackendError> {
+        let Some(raw_kb) = value.split_whitespace().next() else {
+            return Err(BackendError::Parse {
+                path: path.display().to_string(),
+                value: value.trim().to_string(),
+            });
+        };
+
+        raw_kb.parse::<u64>().map_err(|_| BackendError::Parse {
+            path: path.display().to_string(),
+            value: value.trim().to_string(),
+        })
     }
 
     fn detect_cpu_freq_method(root: &Path) -> CpuFreqDetection {

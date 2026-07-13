@@ -101,6 +101,13 @@ pub struct GpuFrequency {
     pub graphics_ghz: Option<f32>,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct MemoryStats {
+    pub used_bytes: Option<u64>,
+    pub total_bytes: Option<u64>,
+    pub used_percent: Option<f32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct ControlCenterState {
     pub gpu_mode: GpuMode,
@@ -108,4 +115,5 @@ pub struct ControlCenterState {
     pub fan_speeds: FanSpeeds,
     pub cpu_frequency: CpuFrequency,
     pub gpu_frequency: GpuFrequency,
+    pub memory_stats: MemoryStats,
 }

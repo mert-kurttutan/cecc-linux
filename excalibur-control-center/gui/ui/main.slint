@@ -365,6 +365,7 @@ component ResourceStatRow inherits HorizontalBox {
     in property <string> label: "";
     in property <string> percent: "";
     in property <string> detail: "";
+    in property <float> fill: 0;
     in property <color> accent: #f97316;
 
     height: 96px;
@@ -417,6 +418,9 @@ component ResourceStatRow inherits HorizontalBox {
 component HardwareStatsColumn inherits Rectangle {
     in property <string> cpu-frequency: "--";
     in property <string> gpu-frequency: "--";
+    in property <string> memory-usage: "--";
+    in property <string> memory-percent: "--";
+    in property <float> memory-fill: 0;
 
     min-width: 280px;
     preferred-width: 280px;
@@ -469,9 +473,10 @@ component HardwareStatsColumn inherits Rectangle {
 
                 ResourceStatRow {
                     label: "RAM";
-                    percent: "11.4%";
-                    detail: "7.3/63.7GB";
+                    percent: root.memory-percent;
+                    detail: root.memory-usage;
                     accent: #f97316;
+                    fill: root.memory-fill;
                 }
 
                 ResourceStatRow {
@@ -814,6 +819,9 @@ export component MainWindow inherits Window {
     in property <string> gpu_fan_rpm: "--";
     in property <string> cpu_frequency: "--";
     in property <string> gpu_frequency: "--";
+    in property <string> memory_usage: "--";
+    in property <string> memory_percent: "--";
+    in property <float> memory_fill: 0;
     out property <[string]> main_items: [
         "Linux control center for Casper Excalibur laptops.",
         "Origin: Linux port of Casper Excalibur Control Center behavior.",
@@ -996,6 +1004,9 @@ export component MainWindow inherits Window {
                                 HardwareStatsColumn {
                                     cpu-frequency: root.cpu_frequency;
                                     gpu-frequency: root.gpu_frequency;
+                                    memory-usage: root.memory_usage;
+                                    memory-percent: root.memory_percent;
+                                    memory-fill: root.memory_fill;
                                 }
                             }
 
@@ -1047,6 +1058,9 @@ export component MainWindow inherits Window {
                                 HardwareStatsColumn {
                                     cpu-frequency: root.cpu_frequency;
                                     gpu-frequency: root.gpu_frequency;
+                                    memory-usage: root.memory_usage;
+                                    memory-percent: root.memory_percent;
+                                    memory-fill: root.memory_fill;
                                 }
                             }
 

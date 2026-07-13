@@ -24,6 +24,18 @@ sudo apt update
 sudo apt install build-essential pkg-config libfontconfig1-dev
 ```
 
+Optional NVIDIA GPU frequency support requires NVML (`libnvidia-ml.so.1`).
+On conventional Linux distributions such as Ubuntu, this is normally provided by
+the proprietary NVIDIA driver packages. If the driver is installed correctly and
+`nvidia-smi` works, the app can usually load NVML at runtime and display NVIDIA
+GPU frequency. If NVML is not available, the GPU frequency field shows `--`.
+
+On NixOS, the NVIDIA driver libraries live in Nix store paths and are not always
+visible to dynamically-loaded libraries by default. The project flake handles
+this for development by adding the host NVIDIA driver package to
+`LD_LIBRARY_PATH` inside `nix develop`, so `nvml-wrapper` can find
+`libnvidia-ml.so.1` when NVIDIA support is enabled on the host.
+
 Run the CLI:
 
 ```sh
