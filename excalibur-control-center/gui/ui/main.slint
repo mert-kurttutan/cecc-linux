@@ -293,68 +293,58 @@ component MainTab inherits VerticalBox {
     }
 }
 
-component SystemModeTab inherits Rectangle {
+component SystemModeTab inherits VerticalBox {
     in-out property <SystemMode> selected_mode: SystemMode.gaming;
 
     min-width: 460px;
     min-height: 480px;
+    spacing: 6px;
+    horizontal-stretch: 1;
     vertical-stretch: 1;
-    border-width: 1px;
-    border-color: #2f3a46;
-    background: transparent;
-    clip: true;
 
-    VerticalBox {
-        x: 1px;
-        y: 1px;
-        width: max(parent.width - 2px, 0px);
-        height: max(parent.height - 2px, 0px);
-        spacing: 6px;
+    Rectangle {
+        min-height: 60px;
+        preferred-height: 60px;
+        max-height: 60px;
+        horizontal-stretch: 1;
+        border-width: 1px;
+        border-color: #bdc1c4;
 
-        Rectangle {
-            min-height: 60px;
-            preferred-height: 60px;
-            max-height: 60px;
-            horizontal-stretch: 1;
-            border-width: 1px;
-            border-color: #bdc1c4;
+        HorizontalBox {
+            x: 1px;
+            y: 1px;
+            width: max(parent.width - 2px, 0px);
+            height: max(parent.height - 2px, 0px);
+            padding: 0px;
+            spacing: 0px;
 
-            HorizontalBox {
-                x: 1px;
-                y: 1px;
-                width: max(parent.width - 2px, 0px);
-                height: max(parent.height - 2px, 0px);
-                padding: 0px;
-                spacing: 0px;
+            SystemModeButton {
+                text: "Office Mode";
+                selected: root.selected_mode == SystemMode.office;
+                clicked => { root.selected_mode = SystemMode.office; }
+            }
 
-                SystemModeButton {
-                    text: "Office Mode";
-                    selected: root.selected_mode == SystemMode.office;
-                    clicked => { root.selected_mode = SystemMode.office; }
-                }
+            SystemModeButton {
+                text: "Gaming";
+                selected: root.selected_mode == SystemMode.gaming;
+                clicked => { root.selected_mode = SystemMode.gaming; }
+            }
 
-                SystemModeButton {
-                    text: "Gaming";
-                    selected: root.selected_mode == SystemMode.gaming;
-                    clicked => { root.selected_mode = SystemMode.gaming; }
-                }
-
-                SystemModeButton {
-                    text: "High Performance";
-                    selected: root.selected_mode == SystemMode.high_performance;
-                    clicked => { root.selected_mode = SystemMode.high_performance; }
-                }
+            SystemModeButton {
+                text: "High Performance";
+                selected: root.selected_mode == SystemMode.high_performance;
+                clicked => { root.selected_mode = SystemMode.high_performance; }
             }
         }
-
-        if root.selected_mode == SystemMode.office : SystemModeDistributionGraph { }
-
-        if root.selected_mode == SystemMode.gaming : SystemModeDistributionGraph { }
-
-        if root.selected_mode == SystemMode.high_performance : SystemModeDistributionGraph { }
-
-        FanSpeedSection { }
     }
+
+    if root.selected_mode == SystemMode.office : SystemModeDistributionGraph { }
+
+    if root.selected_mode == SystemMode.gaming : SystemModeDistributionGraph { }
+
+    if root.selected_mode == SystemMode.high_performance : SystemModeDistributionGraph { }
+
+    FanSpeedSection { }
 }
 
 component KeyboardTab inherits VerticalBox {
@@ -503,62 +493,52 @@ component KeyboardTab inherits VerticalBox {
     Text { text: root.zones_summary; }
 }
 
-component GpuTab inherits Rectangle {
+component GpuTab inherits VerticalBox {
     in property <string> gpu_mode: "unknown";
     callback set_gpu_mode(GpuMode);
 
     min-width: 460px;
     min-height: 430px;
+    horizontal-stretch: 1;
     vertical-stretch: 1;
-    border-width: 1px;
-    border-color: #2f3a46;
-    background: transparent;
-    clip: true;
+    spacing: 10px;
 
-    VerticalBox {
-        x: 1px;
-        y: 1px;
-        width: max(parent.width - 2px, 0px);
-        height: max(parent.height - 2px, 0px);
-        spacing: 10px;
+    Rectangle {
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
 
-        Rectangle {
-            horizontal-stretch: 1;
-            vertical-stretch: 1;
+        VerticalBox {
+            width: parent.width;
+            height: parent.height;
+            spacing: 10px;
+            alignment: center;
 
-            VerticalBox {
-                width: parent.width;
-                height: parent.height;
-                spacing: 10px;
-                alignment: center;
-
-                HorizontalBox {
-                    spacing: 8px;
-                    DisplayModeCard {
-                        icon: @image-url("assets/gpu-discrete-mode.svg");
-                        title: "Discrete";
-                        active: root.gpu_mode == "discrete";
-                        clicked => { root.set_gpu_mode(GpuMode.discrete); }
-                    }
-                    DisplayModeCard {
-                        icon: @image-url("assets/gpu-hybrid-mode.svg");
-                        title: "Hybrid";
-                        active: root.gpu_mode == "hybrid";
-                        clicked => { root.set_gpu_mode(GpuMode.hybrid); }
-                    }
-                    DisplayModeCard {
-                        icon: @image-url("assets/gpu-uma-mode.svg");
-                        title: "UMA";
-                        active: root.gpu_mode == "uma";
-                        clicked => { root.set_gpu_mode(GpuMode.uma); }
-                    }
+            HorizontalBox {
+                spacing: 8px;
+                DisplayModeCard {
+                    icon: @image-url("assets/gpu-discrete-mode.svg");
+                    title: "Discrete";
+                    active: root.gpu_mode == "discrete";
+                    clicked => { root.set_gpu_mode(GpuMode.discrete); }
                 }
-                Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
+                DisplayModeCard {
+                    icon: @image-url("assets/gpu-hybrid-mode.svg");
+                    title: "Hybrid";
+                    active: root.gpu_mode == "hybrid";
+                    clicked => { root.set_gpu_mode(GpuMode.hybrid); }
+                }
+                DisplayModeCard {
+                    icon: @image-url("assets/gpu-uma-mode.svg");
+                    title: "UMA";
+                    active: root.gpu_mode == "uma";
+                    clicked => { root.set_gpu_mode(GpuMode.uma); }
+                }
             }
+            Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
         }
-
-        FanSpeedSection { }
     }
+
+    FanSpeedSection { }
 }
 
 component AboutTab inherits VerticalBox {
@@ -700,43 +680,65 @@ export component MainWindow inherits Window {
                 }
             }
 
-            if root.active_tab == AppTab.system_mode : SystemModeTab {
-            }
+            Rectangle {
+                horizontal-stretch: 1;
+                vertical-stretch: 1;
 
-            if root.active_tab == AppTab.main : MainTab {
-                items: root.main_items;
-            }
+                tab_content := Rectangle {
+                    x: 0px;
+                    y: 0px;
+                    width: min(parent.width, 1440px);
+                    height: min(parent.height, 1080px);
 
-            if root.active_tab == AppTab.led_control : KeyboardTab {
-                active_zone: root.active_zone;
-                zones_summary: root.zones_summary;
-                brightness <=> root.brightness;
-                brightness_slider <=> root.brightness_slider;
-                red <=> root.red;
-                green <=> root.green;
-                blue <=> root.blue;
-                color_hue <=> root.color_hue;
-                color_saturation <=> root.color_saturation;
-                color_value <=> root.color_value;
-                picker_base_color <=> root.picker_base_color;
-                selected_color <=> root.selected_color;
+                    if root.active_tab == AppTab.system_mode : SystemModeTab {
+                        width: parent.width;
+                        height: parent.height;
+                    }
 
-                select_zone(zone) => { root.select_zone(zone); }
-                brightness_edited(value) => { root.brightness_edited(value); }
-                brightness_slider_changed(value) => { root.brightness_slider_changed(value); }
-                apply_brightness => { root.apply_brightness(); }
-                color_hue_changed(value) => { root.color_hue_changed(value); }
-                color_sv_changed(saturation, value) => { root.color_sv_changed(saturation, value); }
-                apply_color => { root.apply_color(); }
-            }
+                    if root.active_tab == AppTab.main : MainTab {
+                        width: parent.width;
+                        height: parent.height;
+                        items: root.main_items;
+                    }
 
-            if root.active_tab == AppTab.display_mode : GpuTab {
-                gpu_mode: root.gpu_mode;
-                set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
-            }
+                    if root.active_tab == AppTab.led_control : KeyboardTab {
+                        width: parent.width;
+                        height: parent.height;
+                        active_zone: root.active_zone;
+                        zones_summary: root.zones_summary;
+                        brightness <=> root.brightness;
+                        brightness_slider <=> root.brightness_slider;
+                        red <=> root.red;
+                        green <=> root.green;
+                        blue <=> root.blue;
+                        color_hue <=> root.color_hue;
+                        color_saturation <=> root.color_saturation;
+                        color_value <=> root.color_value;
+                        picker_base_color <=> root.picker_base_color;
+                        selected_color <=> root.selected_color;
 
-            if root.active_tab == AppTab.about : AboutTab {
-                credit_items: root.credit_items;
+                        select_zone(zone) => { root.select_zone(zone); }
+                        brightness_edited(value) => { root.brightness_edited(value); }
+                        brightness_slider_changed(value) => { root.brightness_slider_changed(value); }
+                        apply_brightness => { root.apply_brightness(); }
+                        color_hue_changed(value) => { root.color_hue_changed(value); }
+                        color_sv_changed(saturation, value) => { root.color_sv_changed(saturation, value); }
+                        apply_color => { root.apply_color(); }
+                    }
+
+                    if root.active_tab == AppTab.display_mode : GpuTab {
+                        width: parent.width;
+                        height: parent.height;
+                        gpu_mode: root.gpu_mode;
+                        set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
+                    }
+
+                    if root.active_tab == AppTab.about : AboutTab {
+                        width: parent.width;
+                        height: parent.height;
+                        credit_items: root.credit_items;
+                    }
+                }
             }
 
             HorizontalBox {
