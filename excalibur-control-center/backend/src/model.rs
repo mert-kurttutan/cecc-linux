@@ -97,6 +97,11 @@ pub struct CpuFrequency {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
+pub struct CpuLoad {
+    pub used_percent: Option<f32>,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
 pub struct GpuFrequency {
     pub graphics_ghz: Option<f32>,
 }
@@ -121,6 +126,7 @@ pub struct ControlCenterState {
     pub keyboard_zones: Vec<KeyboardZoneState>,
     pub fan_speeds: FanSpeeds,
     pub cpu_frequency: CpuFrequency,
+    pub cpu_load: CpuLoad,
     pub gpu_frequency: GpuFrequency,
     pub memory_stats: MemoryStats,
     pub storage_stats: StorageStats,

@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::ffi::CString;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -6,7 +7,7 @@ use nvml_wrapper::Nvml;
 use nvml_wrapper::enum_wrappers::device::Clock;
 
 use crate::model::{
-    ControlCenterState, CpuFrequency, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone,
+    ControlCenterState, CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone,
     KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats,
 };
 
@@ -17,6 +18,7 @@ const HWMON_ROOT: &str = "class/hwmon";
 const CPUFREQ_POLICY_ROOT: &str = "devices/system/cpu/cpufreq";
 const PROC_CPUINFO_PATH: &str = "/proc/cpuinfo";
 const PROC_MEMINFO_PATH: &str = "/proc/meminfo";
+const PROC_STAT_PATH: &str = "/proc/stat";
 const ROOT_MOUNT_PATH: &str = "/";
 
 #[derive(Debug, thiserror::Error)]
@@ -35,6 +37,7 @@ pub enum BackendError {
 pub struct SysfsBackend {
     root: PathBuf,
     cpu_freq_detection: CpuFreqDetection,
+    previous_cpu_time: RefCell<Option<CpuTimeSample>>,
     nvml: Option<Nvml>,
 }
 
@@ -42,6 +45,12 @@ pub struct SysfsBackend {
 enum CpuFreqDetection {
     ScalingCurFreq,
     ProcCpuinfo,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct CpuTimeSample {
+    total: u64,
+    idle: u64,
 }
 
 impl Default for SysfsBackend {
@@ -58,6 +67,7 @@ impl SysfsBackend {
         Self {
             root,
             cpu_freq_detection,
+            previous_cpu_time: RefCell::new(None),
             nvml: Nvml::init().ok(),
         }
     }
@@ -165,6 +175,7 @@ impl SysfsBackend {
             keyboard_zones: self.list_keyboard_zones()?,
             fan_speeds: self.read_fan_speeds().unwrap_or_default(),
             cpu_frequency: self.read_cpu_frequency().unwrap_or_default(),
+            cpu_load: self.read_cpu_load().unwrap_or_default(),
             gpu_frequency: self.read_gpu_frequency(),
             memory_stats: self.read_memory_stats().unwrap_or_default(),
             storage_stats: self.read_storage_stats(ROOT_MOUNT_PATH).unwrap_or_default(),
@@ -253,6 +264,64 @@ impl SysfsBackend {
             CpuFreqDetection::ScalingCurFreq => self.read_scaling_cur_freq(),
             CpuFreqDetection::ProcCpuinfo => self.read_proc_cpuinfo_frequency(),
         }
+    }
+
+    pub fn read_cpu_load(&self) -> Result<CpuLoad, BackendError> {
+        let sample = self.read_cpu_time_sample()?;
+        let mut previous = self.previous_cpu_time.borrow_mut();
+        let load = match *previous {
+            Some(previous) => Self::calculate_cpu_load(previous, sample),
+            None => None,
+        };
+
+        *previous = Some(sample);
+
+        Ok(CpuLoad { used_percent: load })
+    }
+
+    fn read_cpu_time_sample(&self) -> Result<CpuTimeSample, BackendError> {
+        let path = Path::new(PROC_STAT_PATH);
+        let value = fs::read_to_string(path)?;
+        let Some(cpu_line) = value.lines().find(|line| line.starts_with("cpu ")) else {
+            return Err(BackendError::Parse {
+                path: path.display().to_string(),
+                value: "missing aggregate cpu line".to_string(),
+            });
+        };
+
+        let values = cpu_line
+            .split_whitespace()
+            .skip(1)
+            .map(|value| {
+                value.parse::<u64>().map_err(|_| BackendError::Parse {
+                    path: path.display().to_string(),
+                    value: cpu_line.to_string(),
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        if values.len() < 5 {
+            return Err(BackendError::Parse {
+                path: path.display().to_string(),
+                value: cpu_line.to_string(),
+            });
+        }
+
+        let idle = values[3].saturating_add(values[4]);
+        let total = values.iter().sum();
+
+        Ok(CpuTimeSample { total, idle })
+    }
+
+    fn calculate_cpu_load(previous: CpuTimeSample, current: CpuTimeSample) -> Option<f32> {
+        let total_delta = current.total.checked_sub(previous.total)?;
+        let idle_delta = current.idle.checked_sub(previous.idle)?;
+
+        if total_delta == 0 {
+            return None;
+        }
+
+        Some((1.0 - idle_delta as f32 / total_delta as f32) * 100.0)
     }
 
     pub fn read_gpu_frequency(&self) -> GpuFrequency {

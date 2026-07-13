@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use excalibur_control_center_backend::{
-    CpuFrequency, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone, KeyboardZoneSelection,
+    CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone, KeyboardZoneSelection,
     KeyboardZoneState, MemoryStats, RgbColor, StorageStats, SysfsBackend,
 };
 use excalibur_control_center_gui::ui::{
@@ -28,6 +28,7 @@ struct AppState {
     gpu_mode: GpuMode,
     fan_speeds: FanSpeeds,
     cpu_frequency: CpuFrequency,
+    cpu_load: CpuLoad,
     gpu_frequency: GpuFrequency,
     memory_stats: MemoryStats,
     storage_stats: StorageStats,
@@ -44,6 +45,7 @@ impl AppState {
             gpu_mode: GpuMode::Hybrid,
             fan_speeds: FanSpeeds::default(),
             cpu_frequency: CpuFrequency::default(),
+            cpu_load: CpuLoad::default(),
             gpu_frequency: GpuFrequency::default(),
             memory_stats: MemoryStats::default(),
             storage_stats: StorageStats::default(),
@@ -62,6 +64,7 @@ impl AppState {
                 self.gpu_mode = state.gpu_mode;
                 self.fan_speeds = state.fan_speeds;
                 self.cpu_frequency = state.cpu_frequency;
+                self.cpu_load = state.cpu_load;
                 self.gpu_frequency = state.gpu_frequency;
                 self.memory_stats = state.memory_stats;
                 self.storage_stats = state.storage_stats;
@@ -131,6 +134,8 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_cpu_fan_rpm(format_fan_rpm(state.fan_speeds.cpu_rpm).into());
     window.set_gpu_fan_rpm(format_fan_rpm(state.fan_speeds.gpu_rpm).into());
     window.set_cpu_frequency(format_cpu_frequency(state.cpu_frequency.average_ghz).into());
+    window.set_cpu_load_percent(format_metric_percent(state.cpu_load.used_percent).into());
+    window.set_cpu_load_fill(format_metric_fill(state.cpu_load.used_percent));
     window.set_gpu_frequency(format_gpu_frequency(state.gpu_frequency.graphics_ghz).into());
     window.set_memory_usage(format_memory_usage(&state.memory_stats).into());
     window.set_memory_percent(format_memory_percent(state.memory_stats.used_percent).into());
@@ -186,15 +191,11 @@ fn format_memory_usage(stats: &MemoryStats) -> String {
 }
 
 fn format_memory_percent(used_percent: Option<f32>) -> String {
-    used_percent
-        .map(|value| format!("{value:.1}%"))
-        .unwrap_or_else(|| "--".to_string())
+    format_metric_percent(used_percent)
 }
 
 fn format_memory_fill(used_percent: Option<f32>) -> f32 {
-    used_percent
-        .map(|value| (value / 100.0).clamp(0.0, 1.0))
-        .unwrap_or(0.0)
+    format_metric_fill(used_percent)
 }
 
 fn format_storage_usage(stats: &StorageStats) -> String {
@@ -207,13 +208,21 @@ fn format_storage_usage(stats: &StorageStats) -> String {
 }
 
 fn format_storage_percent(used_percent: Option<f32>) -> String {
-    used_percent
+    format_metric_percent(used_percent)
+}
+
+fn format_storage_fill(used_percent: Option<f32>) -> f32 {
+    format_metric_fill(used_percent)
+}
+
+fn format_metric_percent(percent: Option<f32>) -> String {
+    percent
         .map(|value| format!("{value:.1}%"))
         .unwrap_or_else(|| "--".to_string())
 }
 
-fn format_storage_fill(used_percent: Option<f32>) -> f32 {
-    used_percent
+fn format_metric_fill(percent: Option<f32>) -> f32 {
+    percent
         .map(|value| (value / 100.0).clamp(0.0, 1.0))
         .unwrap_or(0.0)
 }
