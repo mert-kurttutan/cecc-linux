@@ -130,16 +130,22 @@ component FanSpeedCard inherits Rectangle {
     horizontal-stretch: 1;
     background: transparent;
 
-    VerticalBox {
+    HorizontalBox {
         padding: 0px;
-        spacing: 2px;
-        alignment: start;
+        spacing: 8px;
+        alignment: center;
+
+        Text {
+            vertical-alignment: bottom;
+            overflow: elide;
+            text: root.label;
+        }
 
         Rectangle {
+            width: 100px;
             height: 100px;
 
             Image {
-                x: (parent.width - self.width) / 2;
                 width: 100px;
                 height: 100px;
                 source: @image-url("assets/fan-circle.svg");
@@ -158,11 +164,6 @@ component FanSpeedCard inherits Rectangle {
             }
         }
 
-        Text {
-            horizontal-alignment: center;
-            overflow: elide;
-            text: root.label;
-        }
     }
 }
 
@@ -176,50 +177,39 @@ component FanSpeedSection inherits Rectangle {
     background: #151b22;
     clip: true;
 
-    VerticalBox {
-        spacing: 0px;
-        padding: 4px;
-        alignment: start;
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: fan_speed_title.preferred-width + 20px;
+        height: 32px;
+        background: #2f3a46;
 
-        HorizontalBox {
+        fan_speed_title := Text {
+            x: 10px;
             height: 32px;
-            padding: 0px;
-            alignment: start;
+            vertical-alignment: center;
+            text: "Fan Speed";
+            color: white;
+        }
+    }
 
-            Rectangle {
-                width: fan_speed_title.preferred-width + 20px;
-                height: 32px;
-                background: #2f3a46;
+    HorizontalBox {
+        x: 12px;
+        y: 36px;
+        width: max(parent.width - 24px, 0px);
+        height: max(parent.height - 40px, 0px);
+        spacing: 0px;
 
-                fan_speed_title := Text {
-                    x: 10px;
-                    height: parent.height;
-                    vertical-alignment: center;
-                    text: "Fan Speed";
-                    color: white;
-                }
-            }
+        FanSpeedCard {
+            horizontal-stretch: 1;
+            label: "CPU FAN";
+            speed: "3600 RPM";
         }
 
-        HorizontalBox {
-            spacing: 4px;
-            vertical-stretch: 1;
-
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-
-            FanSpeedCard {
-                horizontal-stretch: 4;
-                label: "CPU FAN";
-                speed: "3600 RPM";
-            }
-
-            FanSpeedCard {
-                horizontal-stretch: 4;
-                label: "GPU FAN";
-                speed: "3600 RPM";
-            }
+        FanSpeedCard {
+            horizontal-stretch: 1;
+            label: "GPU FAN";
+            speed: "3600 RPM";
         }
     }
 }
