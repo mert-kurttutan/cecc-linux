@@ -29,6 +29,7 @@
             vulkan-loader
             mesa
           ];
+          runtimeLibs = guiLibs ++ pkgs.lib.optional (hostConfig.hardware.nvidia.package != null) hostConfig.hardware.nvidia.package;
         in
         {
           default = pkgs.mkShell {
@@ -45,7 +46,7 @@
                 kernel.dev
               ];
 
-            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath guiLibs;
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath runtimeLibs;
 
             shellHook = ''
               export DRIVER_DIR="$PWD/casper-wmi"
