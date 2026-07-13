@@ -107,6 +107,11 @@ pub struct GpuFrequency {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
+pub struct GpuLoad {
+    pub used_percent: Option<f32>,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
 pub struct MemoryStats {
     pub used_bytes: Option<u64>,
     pub total_bytes: Option<u64>,
@@ -128,6 +133,7 @@ pub struct ControlCenterState {
     pub cpu_frequency: CpuFrequency,
     pub cpu_load: CpuLoad,
     pub gpu_frequency: GpuFrequency,
+    pub gpu_load: GpuLoad,
     pub memory_stats: MemoryStats,
     pub storage_stats: StorageStats,
 }

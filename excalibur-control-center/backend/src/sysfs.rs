@@ -7,8 +7,8 @@ use nvml_wrapper::Nvml;
 use nvml_wrapper::enum_wrappers::device::Clock;
 
 use crate::model::{
-    ControlCenterState, CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone,
-    KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats,
+    ControlCenterState, CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode,
+    KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
@@ -177,6 +177,7 @@ impl SysfsBackend {
             cpu_frequency: self.read_cpu_frequency().unwrap_or_default(),
             cpu_load: self.read_cpu_load().unwrap_or_default(),
             gpu_frequency: self.read_gpu_frequency(),
+            gpu_load: self.read_gpu_load(),
             memory_stats: self.read_memory_stats().unwrap_or_default(),
             storage_stats: self.read_storage_stats(ROOT_MOUNT_PATH).unwrap_or_default(),
         })
@@ -356,6 +357,41 @@ impl SysfsBackend {
 
         GpuFrequency {
             graphics_ghz: Some(graphics_mhz as f32 / 1000.0),
+        }
+    }
+
+    pub fn read_gpu_load(&self) -> GpuLoad {
+        let Some(nvml) = &self.nvml else {
+            return GpuLoad::default();
+        };
+
+        let device_count = match nvml.device_count() {
+            Ok(count) => count,
+            Err(_) => {
+                return GpuLoad::default();
+            }
+        };
+
+        if device_count == 0 {
+            return GpuLoad::default();
+        }
+
+        let device = match nvml.device_by_index(0) {
+            Ok(device) => device,
+            Err(_) => {
+                return GpuLoad::default();
+            }
+        };
+
+        let utilization = match device.utilization_rates() {
+            Ok(utilization) => utilization,
+            Err(_) => {
+                return GpuLoad::default();
+            }
+        };
+
+        GpuLoad {
+            used_percent: Some(utilization.gpu as f32),
         }
     }
 

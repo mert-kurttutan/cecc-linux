@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use excalibur_control_center_backend::{
-    CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuMode, KeyboardZone, KeyboardZoneSelection,
-    KeyboardZoneState, MemoryStats, RgbColor, StorageStats, SysfsBackend,
+    CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode, KeyboardZone,
+    KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats, SysfsBackend,
 };
 use excalibur_control_center_gui::ui::{
     AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection, MainWindow,
@@ -30,6 +30,7 @@ struct AppState {
     cpu_frequency: CpuFrequency,
     cpu_load: CpuLoad,
     gpu_frequency: GpuFrequency,
+    gpu_load: GpuLoad,
     memory_stats: MemoryStats,
     storage_stats: StorageStats,
     active_tab: AppTab,
@@ -47,6 +48,7 @@ impl AppState {
             cpu_frequency: CpuFrequency::default(),
             cpu_load: CpuLoad::default(),
             gpu_frequency: GpuFrequency::default(),
+            gpu_load: GpuLoad::default(),
             memory_stats: MemoryStats::default(),
             storage_stats: StorageStats::default(),
             active_tab: AppTab::SystemMode,
@@ -66,6 +68,7 @@ impl AppState {
                 self.cpu_frequency = state.cpu_frequency;
                 self.cpu_load = state.cpu_load;
                 self.gpu_frequency = state.gpu_frequency;
+                self.gpu_load = state.gpu_load;
                 self.memory_stats = state.memory_stats;
                 self.storage_stats = state.storage_stats;
                 self.status = "refreshed hardware state".into();
@@ -137,6 +140,8 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_cpu_load_percent(format_metric_percent(state.cpu_load.used_percent).into());
     window.set_cpu_load_fill(format_metric_fill(state.cpu_load.used_percent));
     window.set_gpu_frequency(format_gpu_frequency(state.gpu_frequency.graphics_ghz).into());
+    window.set_gpu_load_percent(format_metric_percent(state.gpu_load.used_percent).into());
+    window.set_gpu_load_fill(format_metric_fill(state.gpu_load.used_percent));
     window.set_memory_usage(format_memory_usage(&state.memory_stats).into());
     window.set_memory_percent(format_memory_percent(state.memory_stats.used_percent).into());
     window.set_memory_fill(format_memory_fill(state.memory_stats.used_percent));

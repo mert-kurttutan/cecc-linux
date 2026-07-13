@@ -421,6 +421,8 @@ component HardwareStatsColumn inherits Rectangle {
     in property <string> cpu-load-percent: "--";
     in property <float> cpu-load-fill: 0;
     in property <string> gpu-frequency: "--";
+    in property <string> gpu-load-percent: "--";
+    in property <float> gpu-load-fill: 0;
     in property <string> memory-usage: "--";
     in property <string> memory-percent: "--";
     in property <float> memory-fill: 0;
@@ -460,8 +462,8 @@ component HardwareStatsColumn inherits Rectangle {
                 SensorStatRow {
                     label: "GPU";
                     value: root.gpu-frequency;
-                    percent: "0%";
-                    fill: 0;
+                    percent: root.gpu-load-percent;
+                    fill: root.gpu-load-fill;
                 }
             }
         }
@@ -828,6 +830,8 @@ export component MainWindow inherits Window {
     in property <string> cpu_load_percent: "--";
     in property <float> cpu_load_fill: 0;
     in property <string> gpu_frequency: "--";
+    in property <string> gpu_load_percent: "--";
+    in property <float> gpu_load_fill: 0;
     in property <string> memory_usage: "--";
     in property <string> memory_percent: "--";
     in property <float> memory_fill: 0;
@@ -1018,6 +1022,8 @@ export component MainWindow inherits Window {
                                     cpu-load-percent: root.cpu_load_percent;
                                     cpu-load-fill: root.cpu_load_fill;
                                     gpu-frequency: root.gpu_frequency;
+                                    gpu-load-percent: root.gpu_load_percent;
+                                    gpu-load-fill: root.gpu_load_fill;
                                     memory-usage: root.memory_usage;
                                     memory-percent: root.memory_percent;
                                     memory-fill: root.memory_fill;
@@ -1077,6 +1083,8 @@ export component MainWindow inherits Window {
                                     cpu-load-percent: root.cpu_load_percent;
                                     cpu-load-fill: root.cpu_load_fill;
                                     gpu-frequency: root.gpu_frequency;
+                                    gpu-load-percent: root.gpu_load_percent;
+                                    gpu-load-fill: root.gpu_load_fill;
                                     memory-usage: root.memory_usage;
                                     memory-percent: root.memory_percent;
                                     memory-fill: root.memory_fill;
