@@ -267,6 +267,201 @@ component DisplayModeCard inherits Rectangle {
     }
 }
 
+component StatusSectionHeader inherits Rectangle {
+    in property <string> text: "";
+
+    height: 34px;
+    horizontal-stretch: 1;
+    background: #2f3a46;
+
+    Text {
+        x: 12px;
+        width: max(parent.width - 24px, 0px);
+        height: parent.height;
+        vertical-alignment: center;
+        overflow: elide;
+        text: root.text;
+        color: white;
+    }
+}
+
+component SensorStatRow inherits VerticalBox {
+    in property <string> label: "";
+    in property <string> value: "";
+    in property <string> percent: "";
+    in property <float> fill: 0;
+
+    min-height: 108px;
+    preferred-height: 108px;
+    spacing: 8px;
+
+    HorizontalBox {
+        padding: 0px;
+        spacing: 8px;
+
+        Rectangle {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: #f97316;
+        }
+
+        Text {
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            overflow: elide;
+            text: root.label;
+            color: white;
+        }
+
+        Text {
+            vertical-alignment: center;
+            text: root.value;
+            color: white;
+        }
+    }
+
+    Rectangle {
+        height: 12px;
+        horizontal-stretch: 1;
+        background: #0f141a;
+
+        Rectangle {
+            width: parent.width * root.fill / 100;
+            height: parent.height;
+            background: #f97316;
+        }
+    }
+
+    Text {
+        horizontal-alignment: end;
+        text: root.percent;
+        color: white;
+        font-weight: 700;
+    }
+}
+
+component ResourceStatRow inherits HorizontalBox {
+    in property <string> label: "";
+    in property <string> percent: "";
+    in property <string> detail: "";
+    in property <color> accent: #f97316;
+
+    height: 96px;
+    spacing: 14px;
+    padding: 0px;
+
+    Rectangle {
+        width: 72px;
+        height: 72px;
+        border-radius: 36px;
+        border-width: 6px;
+        border-color: root.accent;
+        background: transparent;
+
+        Rectangle {
+            x: 16px;
+            y: 16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            background: #2f3a46;
+        }
+    }
+
+    VerticalBox {
+        vertical-stretch: 1;
+        spacing: 2px;
+        alignment: center;
+
+        Text {
+            text: root.label;
+            color: white;
+        }
+
+        Text {
+            text: root.percent;
+            color: white;
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        Text {
+            text: root.detail;
+            color: #a3aab3;
+            font-size: 14px;
+        }
+    }
+}
+
+component HardwareStatsColumn inherits Rectangle {
+    min-width: 280px;
+    preferred-width: 280px;
+    max-width: 280px;
+    vertical-stretch: 1;
+    background: #151b22;
+
+    VerticalBox {
+        width: parent.width;
+        height: parent.height;
+        spacing: 0px;
+
+        StatusSectionHeader { text: "CPU stats & GPU stats"; }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: #10161d;
+
+            VerticalBox {
+                padding: 18px;
+                spacing: 16px;
+
+                SensorStatRow {
+                    label: "CPU";
+                    value: "2.34 GHz";
+                    percent: "1%";
+                    fill: 1;
+                }
+
+                SensorStatRow {
+                    label: "GPU";
+                    value: "0.00 GHz";
+                    percent: "0%";
+                    fill: 0;
+                }
+            }
+        }
+
+        StatusSectionHeader { text: "Memory & Disk"; }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: #181f27;
+
+            VerticalBox {
+                padding: 18px;
+                spacing: 16px;
+
+                ResourceStatRow {
+                    label: "RAM";
+                    percent: "11.4%";
+                    detail: "7.3/63.7GB";
+                    accent: #f97316;
+                }
+
+                ResourceStatRow {
+                    label: "SSD";
+                    percent: "70.7%";
+                    detail: "667.2/943.3GB";
+                    accent: #2563eb;
+                }
+            }
+        }
+    }
+}
+
 component MainTab inherits VerticalBox {
     in property <[string]> items: [];
 
@@ -617,8 +812,10 @@ export component MainWindow inherits Window {
     callback color_sv_changed(float, float);
     callback apply_color();
 
-    preferred-width: 980px;
-    preferred-height: 640px;
+    preferred-width: 1180px;
+    preferred-height: 840px;
+    min-width: 1180px;
+    min-height: 840px;
     default-font-size: 18px;
     title: "Excalibur Control Center";
 
@@ -687,12 +884,20 @@ export component MainWindow inherits Window {
                 tab_content := Rectangle {
                     x: 0px;
                     y: 0px;
-                    width: min(parent.width, 1440px);
+                    width: min(parent.width, 1728px);
                     height: min(parent.height, 1080px);
 
-                    if root.active_tab == AppTab.system_mode : SystemModeTab {
+                    if root.active_tab == AppTab.system_mode : HorizontalBox {
                         width: parent.width;
                         height: parent.height;
+                        spacing: 8px;
+
+                        SystemModeTab {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+                        }
+
+                        HardwareStatsColumn { }
                     }
 
                     if root.active_tab == AppTab.main : MainTab {
@@ -726,11 +931,19 @@ export component MainWindow inherits Window {
                         apply_color => { root.apply_color(); }
                     }
 
-                    if root.active_tab == AppTab.display_mode : GpuTab {
+                    if root.active_tab == AppTab.display_mode : HorizontalBox {
                         width: parent.width;
                         height: parent.height;
-                        gpu_mode: root.gpu_mode;
-                        set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
+                        spacing: 8px;
+
+                        GpuTab {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+                            gpu_mode: root.gpu_mode;
+                            set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
+                        }
+
+                        HardwareStatsColumn { }
                     }
 
                     if root.active_tab == AppTab.about : AboutTab {
