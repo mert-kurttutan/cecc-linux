@@ -1,6 +1,6 @@
 import { AboutSlint, Button, HorizontalBox, ListView, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
 
-export enum AppTab { system_mode, display_mode, led_control, main, about }
+export enum AppTab { system_mode, display_mode, led_control, about }
 export enum GpuMode { hybrid, discrete, uma }
 export enum KeyboardZoneSelection { all, left, middle, right, bias }
 enum SystemMode { office, gaming, high_performance }
@@ -574,32 +574,6 @@ component HardwareStatsColumn inherits Rectangle {
     }
 }
 
-component MainTab inherits VerticalBox {
-    in property <[string]> items: [];
-
-    horizontal-stretch: 1;
-    vertical-stretch: 1;
-    spacing: 0px;
-
-    Rectangle {
-        horizontal-stretch: 1;
-        vertical-stretch: 1;
-
-        ListView {
-            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-
-            for item in root.items: HorizontalBox {
-                padding: 0px;
-
-                Text {
-                    text: "- " + item;
-                }
-            }
-        }
-    }
-}
-
 component SystemModeTab inherits VerticalBox {
     in-out property <SystemMode> selected_mode: SystemMode.gaming;
     in property <string> cpu-fan-rpm: "--";
@@ -920,10 +894,29 @@ component GpuTab inherits VerticalBox {
 }
 
 component AboutTab inherits VerticalBox {
+    in property <[string]> items: [];
     in property <[CreditItem]> credit_items: [];
 
     vertical-stretch: 1;
     spacing: 12px;
+
+    Text {
+        text: "About";
+    }
+
+    ListView {
+        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+        vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+        height: 160px;
+
+        for item in root.items: HorizontalBox {
+            padding: 0px;
+
+            Text {
+                text: "- " + item;
+            }
+        }
+    }
 
     Text {
         text: "Credits";
@@ -1128,7 +1121,6 @@ export component MainWindow inherits Window {
                         HoverButton { text: "System Mode"; selected: root.active_tab == AppTab.system_mode; clicked => { root.select_tab(AppTab.system_mode); } }
                         HoverButton { text: "Display Mode"; selected: root.active_tab == AppTab.display_mode; clicked => { root.select_tab(AppTab.display_mode); } }
                         HoverButton { text: "LED Control"; selected: root.active_tab == AppTab.led_control; clicked => { root.select_tab(AppTab.led_control); } }
-                        HoverButton { text: "Main"; selected: root.active_tab == AppTab.main; clicked => { root.select_tab(AppTab.main); } }
                         HoverButton { text: "About"; selected: root.active_tab == AppTab.about; clicked => { root.select_tab(AppTab.about); } }
                         Rectangle { vertical-stretch: 1; }
                         HoverButton { text: "Refresh"; clicked => { root.refresh(); } }
@@ -1175,12 +1167,6 @@ export component MainWindow inherits Window {
                                     storage-percent: root.storage_percent;
                                     storage-fill: root.storage_fill;
                                 }
-                            }
-
-                            if root.active_tab == AppTab.main : MainTab {
-                                width: parent.width;
-                                height: parent.height;
-                                items: root.main_items;
                             }
 
                             if root.active_tab == AppTab.led_control : KeyboardTab {
@@ -1247,6 +1233,7 @@ export component MainWindow inherits Window {
                             if root.active_tab == AppTab.about : AboutTab {
                                 width: parent.width;
                                 height: parent.height;
+                                items: root.main_items;
                                 credit_items: root.credit_items;
                             }
                         }
