@@ -913,6 +913,8 @@ component AboutTab inherits VerticalBox {
 
         for item in root.items: HorizontalBox {
             padding: 0px;
+            x: 16px;
+            width: max(parent.width - 16px, 0px);
 
             Text {
                 text: "- " + item;
@@ -930,6 +932,8 @@ component AboutTab inherits VerticalBox {
 
         for credit in root.credit_items: HorizontalBox {
             padding: 0px;
+            x: 16px;
+            width: max(parent.width - 16px, 0px);
             spacing: 4px;
             alignment: start;
 
@@ -939,6 +943,28 @@ component AboutTab inherits VerticalBox {
             }
 
             Hyperlink { text: credit.name; url: credit.url; }
+        }
+    }
+
+    Text {
+        text: "Donation";
+    }
+
+    HorizontalBox {
+        padding: 0px;
+        x: 16px;
+        width: max(parent.width - 16px, 0px);
+        spacing: 4px;
+        alignment: start;
+
+        Text {
+            horizontal-stretch: 0;
+            text: "- Support development:";
+        }
+
+        Hyperlink {
+            text: "GitHub Sponsors";
+            url: "https://github.com/sponsors/mert-kurttutan";
         }
     }
 
