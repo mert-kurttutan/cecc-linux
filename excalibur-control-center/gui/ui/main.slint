@@ -894,7 +894,7 @@ export component MainWindow inherits Window {
         spacing: 0px;
 
         Rectangle {
-            height: 72px;
+            height: 56px;
             horizontal-stretch: 1;
             background: @linear-gradient(90deg, #202631 0%, #4a342f 42%, #9a3b14 100%);
 
@@ -905,6 +905,9 @@ export component MainWindow inherits Window {
                     if (self.pressed) {
                         root.start_drag_window();
                     }
+                }
+                double-clicked => {
+                    root.maximized = !root.maximized;
                 }
             }
 
