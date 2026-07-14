@@ -75,6 +75,8 @@ component SystemModeButton inherits ControlButtonBase {
 component Hyperlink inherits Rectangle {
     in property <string> text: "";
     in property <string> url: "";
+    in property <color> default-color: #2563eb;
+    in property <color> hover-color: #1d4ed8;
 
     height: 24px;
     min-width: link_text.min-width;
@@ -84,7 +86,7 @@ component Hyperlink inherits Rectangle {
     link_text := Text {
         height: parent.height;
         vertical-alignment: center;
-        color: touch.has-hover ? #1d4ed8 : #2563eb;
+        color: touch.has-hover ? root.hover-color : root.default-color;
         font-weight: touch.has-hover ? 700 : 400;
         text: root.text;
     }
@@ -1239,18 +1241,59 @@ export component MainWindow inherits Window {
                         }
                     }
 
-                    HorizontalBox {
-                        padding: 0px;
-                        alignment: space-between;
+                    Rectangle {
+                        height: 34px;
+                        horizontal-stretch: 1;
+                        background: #111820;
+                        border-width: 1px;
+                        border-color: #2f3a46;
 
-                        Text {
-                            color: #6b7280;
-                            text: "Made by Mert Kurttutan";
-                        }
+                        HorizontalBox {
+                            x: 12px;
+                            width: max(parent.width - 24px, 0px);
+                            height: parent.height;
+                            padding: 0px;
+                            alignment: space-between;
 
-                        Text {
-                            color: #6b7280;
-                            text: "v" + root.app_version;
+                            HorizontalBox {
+                                padding: 0px;
+                                spacing: 4px;
+
+                                Text {
+                                    vertical-alignment: center;
+                                    color: #a3aab3;
+                                    font-size: 14px;
+                                    text: "Made by";
+                                }
+
+                                Rectangle {
+                                    height: parent.height;
+                                    min-width: author_text.min-width;
+                                    preferred-width: author_text.preferred-width;
+                                    horizontal-stretch: 0;
+
+                                    author_text := Text {
+                                        height: parent.height;
+                                        vertical-alignment: center;
+                                        color: author_touch.has-hover ? white : #a3aab3;
+                                        font-size: 14px;
+                                        font-weight: author_touch.has-hover ? 700 : 400;
+                                        text: "Mert Kurttutan";
+                                    }
+
+                                    author_touch := TouchArea {
+                                        mouse-cursor: pointer;
+                                        clicked => { Platform.open-url("https://github.com/mert-kurttutan"); }
+                                    }
+                                }
+                            }
+
+                            Text {
+                                vertical-alignment: center;
+                                color: #a3aab3;
+                                font-size: 14px;
+                                text: "v" + root.app_version;
+                            }
                         }
                     }
                 }
