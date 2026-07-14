@@ -216,6 +216,82 @@ component FanSpeedSection inherits Rectangle {
     }
 }
 
+component KeyboardZonePreview inherits Rectangle {
+    in property <string> active-zone: "";
+    in property <color> left-color: #000000;
+    in property <color> middle-color: #000000;
+    in property <color> right-color: #000000;
+    in property <color> bias-color: #000000;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: #080a0d;
+    border-width: 1px;
+    border-color: #2f3a46;
+    clip: true;
+
+    deck := Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: min(parent.width - 48px, (parent.height - 48px) * 900 / 500);
+        height: self.width * 500 / 900;
+
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: @image-url("assets/keyboard-preview.svg");
+            image-fit: contain;
+        }
+
+        Rectangle {
+            x: parent.width * 104 / 900;
+            y: parent.height * 150 / 500;
+            width: parent.width * 230 / 900;
+            height: parent.height * 196 / 500;
+            border-radius: 8px;
+            background: root.left-color;
+            opacity: 0.55;
+        }
+
+        Rectangle {
+            x: parent.width * 334 / 900;
+            y: parent.height * 150 / 500;
+            width: parent.width * 230 / 900;
+            height: parent.height * 196 / 500;
+            border-radius: 8px;
+            background: root.middle-color;
+            opacity: 0.55;
+        }
+
+        Rectangle {
+            x: parent.width * 564 / 900;
+            y: parent.height * 150 / 500;
+            width: parent.width * 232 / 900;
+            height: parent.height * 196 / 500;
+            border-radius: 8px;
+            background: root.right-color;
+            opacity: 0.55;
+        }
+
+        Rectangle {
+            x: parent.width * 84 / 900;
+            y: parent.height * 76 / 500;
+            width: parent.width * 732 / 900;
+            height: parent.height * 38 / 500;
+            border-radius: 8px;
+            background: root.bias-color;
+            opacity: 0.62;
+        }
+
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: @image-url("assets/keyboard-key-outlines.svg");
+            image-fit: contain;
+        }
+    }
+}
+
 component SystemModeDistributionGraph inherits Rectangle {
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -596,137 +672,198 @@ component KeyboardTab inherits VerticalBox {
     in-out property <float> color_value: 1;
     in-out property <color> picker_base_color: #ff0000;
     in-out property <color> selected_color: #ff0000;
+    in-out property <color> applied_color: #ff0000;
+    in property <color> applied_left_color: #000000;
+    in property <color> applied_middle_color: #000000;
+    in property <color> applied_right_color: #000000;
+    in property <color> applied_bias_color: #000000;
 
     callback select_zone(KeyboardZoneSelection);
     callback brightness_edited(int);
     callback brightness_slider_changed(float);
     callback apply_brightness();
     callback color_hue_changed(float);
+    callback color_wheel_changed(float, float);
     callback color_sv_changed(float, float);
     callback apply_color();
 
     vertical-stretch: 1;
-    spacing: 12px;
+    horizontal-stretch: 1;
 
     HorizontalBox {
-        spacing: 8px;
-        Button { text: "All"; clicked => { root.select_zone(KeyboardZoneSelection.all); } }
-        Button { text: "Left"; clicked => { root.select_zone(KeyboardZoneSelection.left); } }
-        Button { text: "Middle"; clicked => { root.select_zone(KeyboardZoneSelection.middle); } }
-        Button { text: "Right"; clicked => { root.select_zone(KeyboardZoneSelection.right); } }
-        Button { text: "Bias"; clicked => { root.select_zone(KeyboardZoneSelection.bias); } }
-    }
+        spacing: 0px;
 
-    Text { text: "Selected: " + root.active_zone; }
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: #050608;
 
-    HorizontalBox {
-        spacing: 8px;
-        Text { text: "Brightness"; }
-        Slider {
-            minimum: 0;
-            maximum: 2;
-            step: 1;
-            value <=> root.brightness_slider;
-            changed(value) => { root.brightness_slider_changed(value); }
-        }
-        SpinBox {
-            minimum: 0;
-            maximum: 2;
-            value <=> root.brightness;
-            edited(value) => { root.brightness_edited(value); }
-        }
-        Button { text: "Apply brightness"; clicked => { root.apply_brightness(); } }
-    }
+            VerticalBox {
+                padding: 28px;
+                spacing: 18px;
 
-    VerticalBox {
-        spacing: 8px;
-        Text { text: "Color"; }
+                HorizontalBox {
+                    spacing: 28px;
+                    alignment: center;
 
-        hue_bar := Rectangle {
-            height: 18px;
-            border-radius: 9px;
-            border-width: 1px;
-            border-color: #2f3a46;
-            background: @linear-gradient(90deg, #ff0000 0%, #ffff00 16.6%, #00ff00 33.3%, #00ffff 50%, #0000ff 66.6%, #ff00ff 83.3%, #ff0000 100%);
-
-            hue_bar_touch := TouchArea {
-                clicked => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
-                moved => { root.color_hue_changed(hue_bar_touch.mouse_x / hue_bar.width); }
-            }
-
-            Rectangle {
-                x: root.color_hue / 360 * hue_bar.width - 5px;
-                y: 0px;
-                width: 10px;
-                height: parent.height;
-                border-width: 2px;
-                border-color: white;
-                background: transparent;
-            }
-        }
-
-        picker_square := Rectangle {
-            height: 220px;
-            border-radius: 12px;
-            border-width: 1px;
-            border-color: #2f3a46;
-            background: root.picker_base_color;
-
-            Rectangle {
-                background: @linear-gradient(90deg, white, transparent);
-                border-radius: 12px;
-            }
-            Rectangle {
-                background: @linear-gradient(0deg, black, transparent);
-                border-radius: 12px;
-            }
-
-            picker_square_touch := TouchArea {
-                clicked => {
-                    root.color_sv_changed(
-                        picker_square_touch.mouse_x / picker_square.width,
-                        picker_square_touch.mouse_y / picker_square.height
-                    );
+                    SystemModeButton {
+                        text: "Zone A";
+                        selected: root.active_zone == "left";
+                        clicked => { root.select_zone(KeyboardZoneSelection.left); }
+                    }
+                    SystemModeButton {
+                        text: "Zone B";
+                        selected: root.active_zone == "middle";
+                        clicked => { root.select_zone(KeyboardZoneSelection.middle); }
+                    }
+                    SystemModeButton {
+                        text: "Zone C";
+                        selected: root.active_zone == "right";
+                        clicked => { root.select_zone(KeyboardZoneSelection.right); }
+                    }
+                    SystemModeButton {
+                        text: "Trunk";
+                        selected: root.active_zone == "bias";
+                        clicked => { root.select_zone(KeyboardZoneSelection.bias); }
+                    }
                 }
-                moved => {
-                    root.color_sv_changed(
-                        picker_square_touch.mouse_x / picker_square.width,
-                        picker_square_touch.mouse_y / picker_square.height
-                    );
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+
+                    KeyboardZonePreview {
+                        active-zone: root.active_zone;
+                        left-color: root.applied_left_color;
+                        middle-color: root.applied_middle_color;
+                        right-color: root.applied_right_color;
+                        bias-color: root.applied_bias_color;
+                    }
                 }
             }
-
-            Rectangle {
-                x: root.color_saturation * picker_square.width - 6px;
-                y: (1 - root.color_value) * picker_square.height - 6px;
-                width: 12px;
-                height: 12px;
-                border-radius: 6px;
-                border-width: 2px;
-                border-color: white;
-                background: transparent;
-            }
         }
 
-        HorizontalBox {
-            spacing: 12px;
-            Rectangle {
-                width: 64px;
-                height: 36px;
-                border-radius: 8px;
-                border-width: 1px;
-                border-color: #2f3a46;
-                background: root.selected_color;
+        Rectangle {
+            min-width: 280px;
+            preferred-width: 280px;
+            max-width: 280px;
+            vertical-stretch: 1;
+            background: #1b1f26;
+            border-width: 1px;
+            border-color: #2f3a46;
+
+            VerticalBox {
+                padding: 18px;
+                spacing: 14px;
+
+                HorizontalBox {
+                    spacing: 8px;
+
+                    Button {
+                        text: "LED on/off";
+                        clicked => { root.apply_color(); }
+                    }
+
+                    Button {
+                        text: "Select all";
+                        clicked => { root.select_zone(KeyboardZoneSelection.all); }
+                    }
+                }
+
+                Rectangle {
+                    height: 116px;
+                    horizontal-stretch: 1;
+
+                    VerticalBox {
+                        spacing: 8px;
+
+                        Button { text: "Static"; clicked => { root.apply_color(); } }
+                        Button { text: "Breathing"; }
+                        Button { text: "Cycle"; }
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+
+                    color_wheel := Rectangle {
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        width: min(parent.width - 28px, min(parent.height - 28px, 220px));
+                        height: self.width;
+                        border-radius: self.width / 2;
+                        clip: true;
+
+                        Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: @image-url("assets/color-wheel.png");
+                            image-fit: contain;
+                        }
+
+                        color_wheel_touch := TouchArea {
+                            clicked => {
+                                root.color_wheel_changed(
+                                    color_wheel_touch.mouse_x / color_wheel.width,
+                                    color_wheel_touch.mouse_y / color_wheel.height
+                                );
+                            }
+                            moved => {
+                                root.color_wheel_changed(
+                                    color_wheel_touch.mouse_x / color_wheel.width,
+                                    color_wheel_touch.mouse_y / color_wheel.height
+                                );
+                            }
+                        }
+
+                        Rectangle {
+                            x: color_wheel.width / 2 + Math.cos(root.color_hue * 1deg) * min(root.color_saturation, 0.94) * color_wheel.width / 2 - 7px;
+                            y: color_wheel.height / 2 + Math.sin(root.color_hue * 1deg) * min(root.color_saturation, 0.94) * color_wheel.height / 2 - 7px;
+                            width: 14px;
+                            height: 14px;
+                            border-radius: 7px;
+                            border-width: 2px;
+                            border-color: black;
+                            background: transparent;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 136px;
+                    horizontal-stretch: 1;
+
+                    VerticalBox {
+                        spacing: 10px;
+
+                        HorizontalBox {
+                            Text {
+                                text: "Brightness";
+                                color: white;
+                            }
+                            Rectangle { horizontal-stretch: 1; }
+                            Text {
+                                text: root.brightness * 50 + "%";
+                                color: white;
+                                font-size: 28px;
+                                font-weight: 700;
+                            }
+                        }
+
+                        Slider {
+                            minimum: 0;
+                            maximum: 2;
+                            step: 1;
+                            value <=> root.brightness_slider;
+                            changed(value) => { root.brightness_slider_changed(value); }
+                        }
+                        Button { text: "Apply"; clicked => { root.apply_color(); root.apply_brightness(); } }
+                    }
+                }
             }
-            Text {
-                text: "RGB: " + root.red + ", " + root.green + ", " + root.blue;
-            }
-            Button { text: "Apply color"; clicked => { root.apply_color(); } }
         }
     }
-
-    Text { text: "Zones"; }
-    Text { text: root.zones_summary; }
 }
 
 component GpuTab inherits VerticalBox {
@@ -860,6 +997,11 @@ export component MainWindow inherits Window {
     in-out property <float> color_value: 1;
     in-out property <color> picker_base_color: #ff0000;
     in-out property <color> selected_color: #ff0000;
+    in-out property <color> applied_color: #ff0000;
+    in property <color> applied_left_color: #000000;
+    in property <color> applied_middle_color: #000000;
+    in property <color> applied_right_color: #000000;
+    in property <color> applied_bias_color: #000000;
 
     callback refresh();
     callback select_tab(AppTab);
@@ -869,6 +1011,7 @@ export component MainWindow inherits Window {
     callback brightness_slider_changed(float);
     callback apply_brightness();
     callback color_hue_changed(float);
+    callback color_wheel_changed(float, float);
     callback color_sv_changed(float, float);
     callback apply_color();
     callback start_drag_window();
@@ -1055,12 +1198,18 @@ export component MainWindow inherits Window {
                                 color_value <=> root.color_value;
                                 picker_base_color <=> root.picker_base_color;
                                 selected_color <=> root.selected_color;
+                                applied_color <=> root.applied_color;
+                                applied_left_color: root.applied_left_color;
+                                applied_middle_color: root.applied_middle_color;
+                                applied_right_color: root.applied_right_color;
+                                applied_bias_color: root.applied_bias_color;
 
                                 select_zone(zone) => { root.select_zone(zone); }
                                 brightness_edited(value) => { root.brightness_edited(value); }
                                 brightness_slider_changed(value) => { root.brightness_slider_changed(value); }
                                 apply_brightness => { root.apply_brightness(); }
                                 color_hue_changed(value) => { root.color_hue_changed(value); }
+                                color_wheel_changed(x, y) => { root.color_wheel_changed(x, y); }
                                 color_sv_changed(saturation, value) => { root.color_sv_changed(saturation, value); }
                                 apply_color => { root.apply_color(); }
                             }

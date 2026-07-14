@@ -1,0 +1,88 @@
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="key-shapes">
+      <rect x="126" y="174" width="35" height="22" rx="4"/>
+      <rect x="168" y="174" width="35" height="22" rx="4"/>
+      <rect x="210" y="174" width="35" height="22" rx="4"/>
+      <rect x="252" y="174" width="35" height="22" rx="4"/>
+      <rect x="294" y="174" width="35" height="22" rx="4"/>
+      <rect x="336" y="174" width="35" height="22" rx="4"/>
+      <rect x="378" y="174" width="35" height="22" rx="4"/>
+      <rect x="420" y="174" width="35" height="22" rx="4"/>
+      <rect x="462" y="174" width="35" height="22" rx="4"/>
+      <rect x="504" y="174" width="35" height="22" rx="4"/>
+      <rect x="546" y="174" width="35" height="22" rx="4"/>
+      <rect x="588" y="174" width="35" height="22" rx="4"/>
+      <rect x="630" y="174" width="35" height="22" rx="4"/>
+      <rect x="672" y="174" width="35" height="22" rx="4"/>
+      <rect x="714" y="174" width="54" height="22" rx="4"/>
+
+      <rect x="126" y="204" width="52" height="30" rx="4"/>
+      <rect x="186" y="204" width="39" height="30" rx="4"/>
+      <rect x="233" y="204" width="39" height="30" rx="4"/>
+      <rect x="280" y="204" width="39" height="30" rx="4"/>
+      <rect x="327" y="204" width="39" height="30" rx="4"/>
+      <rect x="374" y="204" width="39" height="30" rx="4"/>
+      <rect x="421" y="204" width="39" height="30" rx="4"/>
+      <rect x="468" y="204" width="39" height="30" rx="4"/>
+      <rect x="515" y="204" width="39" height="30" rx="4"/>
+      <rect x="562" y="204" width="39" height="30" rx="4"/>
+      <rect x="609" y="204" width="39" height="30" rx="4"/>
+      <rect x="656" y="204" width="39" height="30" rx="4"/>
+      <rect x="703" y="204" width="65" height="30" rx="4"/>
+
+      <rect x="126" y="242" width="64" height="30" rx="4"/>
+      <rect x="198" y="242" width="39" height="30" rx="4"/>
+      <rect x="245" y="242" width="39" height="30" rx="4"/>
+      <rect x="292" y="242" width="39" height="30" rx="4"/>
+      <rect x="339" y="242" width="39" height="30" rx="4"/>
+      <rect x="386" y="242" width="39" height="30" rx="4"/>
+      <rect x="433" y="242" width="39" height="30" rx="4"/>
+      <rect x="480" y="242" width="39" height="30" rx="4"/>
+      <rect x="527" y="242" width="39" height="30" rx="4"/>
+      <rect x="574" y="242" width="39" height="30" rx="4"/>
+      <rect x="621" y="242" width="39" height="30" rx="4"/>
+      <rect x="668" y="242" width="100" height="30" rx="4"/>
+
+      <rect x="126" y="280" width="84" height="30" rx="4"/>
+      <rect x="218" y="280" width="39" height="30" rx="4"/>
+      <rect x="265" y="280" width="39" height="30" rx="4"/>
+      <rect x="312" y="280" width="39" height="30" rx="4"/>
+      <rect x="359" y="280" width="39" height="30" rx="4"/>
+      <rect x="406" y="280" width="39" height="30" rx="4"/>
+      <rect x="453" y="280" width="39" height="30" rx="4"/>
+      <rect x="500" y="280" width="39" height="30" rx="4"/>
+      <rect x="547" y="280" width="39" height="30" rx="4"/>
+      <rect x="594" y="280" width="39" height="30" rx="4"/>
+      <rect x="641" y="280" width="127" height="30" rx="4"/>
+
+      <rect x="126" y="318" width="55" height="22" rx="4"/>
+      <rect x="189" y="318" width="55" height="22" rx="4"/>
+      <rect x="252" y="318" width="55" height="22" rx="4"/>
+      <rect x="315" y="318" width="210" height="22" rx="4"/>
+      <rect x="533" y="318" width="55" height="22" rx="4"/>
+      <rect x="596" y="318" width="55" height="22" rx="4"/>
+      <rect x="659" y="318" width="109" height="22" rx="4"/>
+    </g>
+
+    <mask id="key-light-gaps">
+      <rect x="104" y="150" width="692" height="196" rx="10" fill="white"/>
+      <use href="#key-shapes" fill="black" stroke="black" stroke-width="14"/>
+    </mask>
+  </defs>
+
+  <rect x="104" y="150" width="692" height="196" rx="10" fill="#151a20" mask="url(#key-light-gaps)"/>
+  <rect x="104" y="150" width="692" height="196" rx="10" fill="none" stroke="#4b5563" stroke-width="1"/>
+
+  <use href="#key-shapes" fill="#050608" stroke="#1f2933" stroke-width="1"/>
+
+  <g fill="#384456" opacity="0.8">
+    <circle cx="143" cy="185" r="2"/>
+    <circle cx="190" cy="219" r="2"/>
+    <circle cx="248" cy="257" r="2"/>
+    <circle cx="379" cy="295" r="2"/>
+    <circle cx="438" cy="329" r="2"/>
+    <circle cx="610" cy="185" r="2"/>
+    <circle cx="742" cy="219" r="2"/>
+  </g>
+</svg>

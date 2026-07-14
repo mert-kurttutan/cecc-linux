@@ -109,6 +109,24 @@ impl AppState {
         }
     }
 
+    fn zone_state(&self, zone: KeyboardZone) -> Option<&KeyboardZoneState> {
+        self.zones.iter().find(|entry| entry.name == zone)
+    }
+
+    fn update_zones(&mut self, zones: Vec<KeyboardZoneState>) {
+        for zone in zones {
+            if let Some(existing) = self
+                .zones
+                .iter_mut()
+                .find(|existing| existing.name == zone.name)
+            {
+                *existing = zone;
+            } else {
+                self.zones.push(zone);
+            }
+        }
+    }
+
     fn zone_summary(&self) -> String {
         self.zones
             .iter()
@@ -148,6 +166,10 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_storage_usage(format_storage_usage(&state.storage_stats).into());
     window.set_storage_percent(format_storage_percent(state.storage_stats.used_percent).into());
     window.set_storage_fill(format_storage_fill(state.storage_stats.used_percent));
+    window.set_applied_left_color(zone_color(state, KeyboardZone::Left));
+    window.set_applied_middle_color(zone_color(state, KeyboardZone::Middle));
+    window.set_applied_right_color(zone_color(state, KeyboardZone::Right));
+    window.set_applied_bias_color(zone_color(state, KeyboardZone::Bias));
 
     if let Some(zone) = state.selected_zone_state() {
         window.set_brightness(zone.brightness as i32);
@@ -166,7 +188,21 @@ fn sync_window(window: &MainWindow, state: &AppState) {
             zone.color.green,
             zone.color.blue,
         ));
+        window.set_applied_color(slint::Color::from_rgb_u8(
+            zone.color.red,
+            zone.color.green,
+            zone.color.blue,
+        ));
     }
+}
+
+fn zone_color(state: &AppState, zone: KeyboardZone) -> slint::Color {
+    state
+        .zone_state(zone)
+        .map(|zone| {
+            slint::Color::from_rgb_u8(zone.color.red, zone.color.green, zone.color.blue)
+        })
+        .unwrap_or_else(|| slint::Color::from_rgb_u8(0, 0, 0))
 }
 
 fn format_fan_rpm(rpm: Option<u32>) -> String {
@@ -291,6 +327,21 @@ fn rgb_to_hsv(color: RgbColor) -> (f32, f32, f32) {
     (hue, saturation, max)
 }
 
+fn color_wheel_to_hsv(x_norm: f32, y_norm: f32) -> Option<(f32, f32, f32)> {
+    let dx = clamp01(x_norm) - 0.5;
+    let dy = clamp01(y_norm) - 0.5;
+    let radius = (dx * dx + dy * dy).sqrt();
+    if radius > 0.5 {
+        return None;
+    }
+    let saturation = (radius * 2.0).clamp(0.0, 1.0);
+    let mut hue = dy.atan2(dx).to_degrees();
+    if hue < 0.0 {
+        hue += 360.0;
+    }
+    Some((hue, saturation, 1.0))
+}
+
 fn main() -> Result<(), slint::PlatformError> {
     let window = MainWindow::new()?;
     window.set_app_version(env!("CARGO_PKG_VERSION").into());
@@ -398,7 +449,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             match result {
                 Ok(zones) => {
-                    state.zones = zones;
+                    state.update_zones(zones);
                     state.status = format!(
                         "brightness set to {} for {}",
                         brightness,
@@ -433,7 +484,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             match result {
                 Ok(zones) => {
-                    state.zones = zones;
+                    state.update_zones(zones);
                     state.status = format!(
                         "color set to {},{},{} for {}",
                         color.red,
@@ -479,6 +530,34 @@ fn main() -> Result<(), slint::PlatformError> {
                 window.set_selected_color(slint::Color::from_rgb_u8(rgb.red, rgb.green, rgb.blue));
             }
             state.status = format!("color hue set to {:.0}°", hue);
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_color_wheel_changed(move |x_norm, y_norm| {
+            let mut state = state.borrow_mut();
+            let Some((hue, sat, val)) = color_wheel_to_hsv(x_norm, y_norm) else {
+                state.status = "color wheel click ignored outside circle".to_string();
+                return;
+            };
+            let rgb = hsv_to_rgb(hue, sat, val);
+            if let Some(window) = window_weak.upgrade() {
+                window.set_color_hue(hue);
+                window.set_color_saturation(sat);
+                window.set_color_value(val);
+                window.set_red(rgb.red as i32);
+                window.set_green(rgb.green as i32);
+                window.set_blue(rgb.blue as i32);
+                window.set_picker_base_color(slint::Color::from_rgb_u8(
+                    hsv_to_rgb(hue, 1.0, 1.0).red,
+                    hsv_to_rgb(hue, 1.0, 1.0).green,
+                    hsv_to_rgb(hue, 1.0, 1.0).blue,
+                ));
+                window.set_selected_color(slint::Color::from_rgb_u8(rgb.red, rgb.green, rgb.blue));
+            }
+            state.status = format!("color updated to {},{},{}", rgb.red, rgb.green, rgb.blue);
         });
     }
 
