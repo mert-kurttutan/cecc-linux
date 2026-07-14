@@ -96,9 +96,7 @@ component Hyperlink inherits Rectangle {
 }
 
 component WindowControlButton inherits Rectangle {
-    in property <string> text: "";
-    in property <length> text-size: 28px;
-    in property <length> text-y-offset: 0px;
+    in property <image> icon;
     callback clicked <=> touch.clicked;
 
     width: 44px;
@@ -106,18 +104,19 @@ component WindowControlButton inherits Rectangle {
     border-radius: 22px;
     background: touch.has-hover ? #6d2a20 : #2f3540cc;
 
-    Text {
-        y: root.text-y-offset;
-        width: parent.width;
-        height: parent.height;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        text: root.text;
-        color: white;
-        font-size: root.text-size;
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 18px;
+        height: 18px;
+        source: root.icon;
     }
 
     touch := TouchArea {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
         mouse-cursor: pointer;
     }
 }
@@ -899,12 +898,22 @@ export component MainWindow inherits Window {
             horizontal-stretch: 1;
             background: @linear-gradient(90deg, #202631 0%, #4a342f 42%, #9a3b14 100%);
 
-            HorizontalBox {
+            TouchArea {
+                width: max(parent.width - 160px, 0px);
+                height: parent.height;
+                changed pressed => {
+                    if (self.pressed) {
+                        root.start_drag_window();
+                    }
+                }
+            }
+
+            titlebar_content := HorizontalBox {
                 x: 28px;
                 y: 0px;
-                width: max(parent.width - 56px, 0px);
+                width: max(parent.width - 28px, 0px);
                 height: parent.height;
-                spacing: 16px;
+                spacing: 8px;
 
                 Text {
                     vertical-alignment: center;
@@ -914,52 +923,45 @@ export component MainWindow inherits Window {
                     font-weight: 700;
                 }
 
-                Rectangle { horizontal-stretch: 1; }
+                drag_area := Rectangle {
+                    horizontal-stretch: 1;
+                    height: parent.height;
+                }
 
                 Rectangle {
-                    width: 44px;
+                    width: 40px;
                     height: parent.height;
 
                     WindowControlButton {
                         y: (parent.height - self.height) / 2 - 6px;
-                        text: "-";
-                        text-y-offset: -1px;
+                        icon: @image-url("assets/window-minimize.svg");
                         clicked => { root.minimized = true; }
                     }
                 }
 
                 Rectangle {
-                    width: 44px;
+                    width: 40px;
                     height: parent.height;
 
                     WindowControlButton {
                         y: (parent.height - self.height) / 2 - 6px;
-                        text: "□";
-                        text-size: 16px;
-                        text-y-offset: 1px;
+                        icon: @image-url("assets/window-maximize.svg");
                         clicked => { root.maximized = !root.maximized; }
                     }
                 }
 
                 Rectangle {
-                    width: 44px;
+                    width: 40px;
                     height: parent.height;
 
                     WindowControlButton {
                         y: (parent.height - self.height) / 2 - 6px;
-                        text: "x";
-                        text-y-offset: -2px;
+                        icon: @image-url("assets/window-close.svg");
                         clicked => { root.close(); }
                     }
                 }
             }
 
-            title_bar_touch := TouchArea {
-                width: max(parent.width - 220px, 0px);
-                height: parent.height;
-                moved => { root.start_drag_window(); }
-                double-clicked => { root.maximized = !root.maximized; }
-            }
         }
 
         Rectangle {
