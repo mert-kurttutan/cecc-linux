@@ -1023,6 +1023,7 @@ export component MainWindow inherits Window {
     in property <color> applied_middle_color: #000000;
     in property <color> applied_right_color: #000000;
     in property <color> applied_bias_color: #000000;
+    in property <color> app_background_color: #0b0f14;
 
     callback refresh();
     callback select_tab(AppTab);
@@ -1045,6 +1046,7 @@ export component MainWindow inherits Window {
     title: "Excalibur Control Center";
     no-frame: true;
     resize-border-width: 6px;
+    background: root.app_background_color;
 
     Timer {
         interval: 1s;
@@ -1133,6 +1135,7 @@ export component MainWindow inherits Window {
 
         Rectangle {
             vertical-stretch: 1;
+            background: root.app_background_color;
 
             HorizontalBox {
                 spacing: 0px;
@@ -1162,12 +1165,14 @@ export component MainWindow inherits Window {
                     Rectangle {
                         horizontal-stretch: 1;
                         vertical-stretch: 1;
+                        background: root.app_background_color;
 
                         tab_content := Rectangle {
                             x: 0px;
                             y: 0px;
                             width: min(parent.width, 1728px);
                             height: min(parent.height, 1080px);
+                            background: root.app_background_color;
 
                             if root.active_tab == AppTab.system_mode : HorizontalBox {
                                 width: parent.width;
