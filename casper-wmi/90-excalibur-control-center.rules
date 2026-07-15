@@ -1,0 +1,8 @@
+# Give the Excalibur Control Center group write access to casper-wmi sysfs controls.
+#
+# Sysfs attributes such as LED brightness and multi_intensity are not device
+# nodes, so MODE/GROUP alone is not enough. A helper applies permissions after
+# the kernel creates the sysfs files.
+
+ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="casper:rgb:*", RUN+="/usr/local/libexec/excalibur-control-center/udev-permissions leds %k"
+ACTION=="add|change", SUBSYSTEM=="module", KERNEL=="casper_wmi", RUN+="/usr/local/libexec/excalibur-control-center/udev-permissions module casper_wmi"
