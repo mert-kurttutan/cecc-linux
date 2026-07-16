@@ -2,14 +2,9 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Release tag to create or update, for example v0.1.0"
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -24,14 +19,57 @@ jobs:
         working-directory: excalibur-control-center
 
     env:
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
       ASSET_DIR: ../release-assets
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Read release version
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import pathlib
+          import sys
+          import tomllib
+
+          crates = {
+              "gui": pathlib.Path("gui/Cargo.toml"),
+              "cli": pathlib.Path("cli/Cargo.toml"),
+              "backend": pathlib.Path("backend/Cargo.toml"),
+          }
+          versions = {
+              name: tomllib.loads(path.read_text())["package"]["version"]
+              for name, path in crates.items()
+          }
+          gui_version = versions["gui"]
+          mismatches = {
+              name: version
+              for name, version in versions.items()
+              if version != gui_version
+          }
+          if mismatches:
+              print(f"Version mismatch: {versions}", file=sys.stderr)
+              sys.exit(1)
+
+          print(f"RELEASE_VERSION={gui_version}")
+          print(f"RELEASE_TAG=v{gui_version}")
+          PY
+
+      - name: Check existing release
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "RELEASE_EXISTS=1" >> "$GITHUB_ENV"
+            echo "Release $RELEASE_TAG already exists."
+          else
+            echo "RELEASE_EXISTS=0" >> "$GITHUB_ENV"
+            echo "Release $RELEASE_TAG will be created."
+          fi
+
       - name: Install system dependencies
+        if: env.RELEASE_EXISTS == '0' || github.event_name == 'workflow_dispatch'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -40,20 +78,24 @@ jobs:
             pkg-config
 
       - name: Install Rust
+        if: env.RELEASE_EXISTS == '0' || github.event_name == 'workflow_dispatch'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Cargo
+        if: env.RELEASE_EXISTS == '0' || github.event_name == 'workflow_dispatch'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: excalibur-control-center
 
       - name: Build release binaries
+        if: env.RELEASE_EXISTS == '0' || github.event_name == 'workflow_dispatch'
         run: |
           cargo build --release \
             -p excalibur-control-center-gui \
             -p excalibur-control-center-cli
 
       - name: Prepare release assets
+        if: env.RELEASE_EXISTS == '0' || github.event_name == 'workflow_dispatch'
         run: |
           mkdir -p "$ASSET_DIR"
           install -m 0755 target/release/excalibur-control-center-gui \
@@ -64,17 +106,20 @@ jobs:
             > "$ASSET_DIR/SHA256SUMS"
 
       - name: Create release if needed
+        if: env.RELEASE_EXISTS == '0' || github.event_name == 'workflow_dispatch'
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
+              --target "$GITHUB_SHA" \
               --title "$RELEASE_TAG" \
               --notes "Release $RELEASE_TAG"
           fi
 
       - name: Upload release assets
+        if: env.RELEASE_EXISTS == '0' || github.event_name == 'workflow_dispatch'
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
