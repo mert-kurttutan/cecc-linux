@@ -126,6 +126,7 @@ component WindowControlButton inherits Rectangle {
 component FanSpeedCard inherits Rectangle {
     in property <string> label: "";
     in property <string> speed: "";
+    in property <color> default-text-color: #cbd5e1;
 
     // height: 124px;
     horizontal-stretch: 1;
@@ -140,6 +141,7 @@ component FanSpeedCard inherits Rectangle {
             vertical-alignment: bottom;
             overflow: elide;
             text: root.label;
+            color: root.default-text-color;
         }
 
         Rectangle {
@@ -171,6 +173,7 @@ component FanSpeedCard inherits Rectangle {
 component FanSpeedSection inherits Rectangle {
     in property <string> cpu-speed: "--";
     in property <string> gpu-speed: "--";
+    in property <color> default-text-color: #cbd5e1;
 
     min-height: 180px;
     preferred-height: 180px;
@@ -208,12 +211,14 @@ component FanSpeedSection inherits Rectangle {
             horizontal-stretch: 1;
             label: "CPU FAN";
             speed: root.cpu-speed;
+            default-text-color: root.default-text-color;
         }
 
         FanSpeedCard {
             horizontal-stretch: 1;
             label: "GPU FAN";
             speed: root.gpu-speed;
+            default-text-color: root.default-text-color;
         }
     }
 }
@@ -580,6 +585,7 @@ component SystemModeTab inherits VerticalBox {
     in-out property <SystemMode> selected_mode: SystemMode.gaming;
     in property <string> cpu-fan-rpm: "--";
     in property <string> gpu-fan-rpm: "--";
+    in property <color> default-text-color: #cbd5e1;
 
     min-width: 460px;
     min-height: 480px;
@@ -632,6 +638,7 @@ component SystemModeTab inherits VerticalBox {
     FanSpeedSection {
         cpu-speed: root.cpu-fan-rpm;
         gpu-speed: root.gpu-fan-rpm;
+        default-text-color: root.default-text-color;
     }
 }
 
@@ -846,6 +853,7 @@ component GpuTab inherits VerticalBox {
     in property <string> gpu_mode: "unknown";
     in property <string> cpu-fan-rpm: "--";
     in property <string> gpu-fan-rpm: "--";
+    in property <color> default-text-color: #cbd5e1;
     callback set_gpu_mode(GpuMode);
 
     min-width: 460px;
@@ -885,25 +893,31 @@ component GpuTab inherits VerticalBox {
                     clicked => { root.set_gpu_mode(GpuMode.uma); }
                 }
             }
-            Text { text: "GPU mode changes may require reboot and matching OS graphics configuration."; }
+            Text {
+                text: "GPU mode changes may require reboot and matching OS graphics configuration.";
+                color: root.default-text-color;
+            }
         }
     }
 
     FanSpeedSection {
         cpu-speed: root.cpu-fan-rpm;
         gpu-speed: root.gpu-fan-rpm;
+        default-text-color: root.default-text-color;
     }
 }
 
 component AboutTab inherits VerticalBox {
     in property <[string]> items: [];
     in property <[CreditItem]> credit_items: [];
+    in property <color> default-text-color: #cbd5e1;
 
     vertical-stretch: 1;
     spacing: 12px;
 
     Text {
         text: "About";
+        color: root.default-text-color;
     }
 
     ListView {
@@ -918,12 +932,14 @@ component AboutTab inherits VerticalBox {
 
             Text {
                 text: "- " + item;
+                color: root.default-text-color;
             }
         }
     }
 
     Text {
         text: "Credits";
+        color: root.default-text-color;
     }
 
     ListView {
@@ -940,6 +956,7 @@ component AboutTab inherits VerticalBox {
             Text {
                 horizontal-stretch: 0;
                 text: "- " + credit.label + ":";
+                color: root.default-text-color;
             }
 
             Hyperlink { text: credit.name; url: credit.url; }
@@ -948,6 +965,7 @@ component AboutTab inherits VerticalBox {
 
     Text {
         text: "Donation";
+        color: root.default-text-color;
     }
 
     HorizontalBox {
@@ -960,6 +978,7 @@ component AboutTab inherits VerticalBox {
         Text {
             horizontal-stretch: 0;
             text: "- Support development:";
+            color: root.default-text-color;
         }
 
         Hyperlink {
@@ -1024,6 +1043,7 @@ export component MainWindow inherits Window {
     in property <color> applied_right_color: #000000;
     in property <color> applied_bias_color: #000000;
     in property <color> app_background_color: #0b0f14;
+    in property <color> app_text_color: #cbd5e1;
 
     callback refresh();
     callback select_tab(AppTab);
@@ -1184,6 +1204,7 @@ export component MainWindow inherits Window {
                                     vertical-stretch: 1;
                                     cpu-fan-rpm: root.cpu_fan_rpm;
                                     gpu-fan-rpm: root.gpu_fan_rpm;
+                                    default-text-color: root.app_text_color;
                                 }
 
                                 HardwareStatsColumn {
@@ -1244,6 +1265,7 @@ export component MainWindow inherits Window {
                                     gpu_mode: root.gpu_mode;
                                     cpu-fan-rpm: root.cpu_fan_rpm;
                                     gpu-fan-rpm: root.gpu_fan_rpm;
+                                    default-text-color: root.app_text_color;
                                     set_gpu_mode(mode) => { root.set_gpu_mode(mode); }
                                 }
 
@@ -1268,6 +1290,7 @@ export component MainWindow inherits Window {
                                 height: parent.height;
                                 items: root.main_items;
                                 credit_items: root.credit_items;
+                                default-text-color: root.app_text_color;
                             }
                         }
                     }
