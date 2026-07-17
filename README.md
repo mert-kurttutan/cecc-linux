@@ -14,19 +14,19 @@ Casper WMI driver work is based on and credits:
 Install the app, Casper WMI driver, and udev permission rules:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/install-linux.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-linux.sh | bash
 ```
 
 Install a specific release:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/install-linux.sh | bash -s -- --version v0.0.2
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-linux.sh | bash -s -- --version v0.0.2
 ```
 
 Install only the app binary, without driver or udev setup:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/install-linux.sh | bash -s -- --skip-driver --skip-udev
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-linux.sh | bash -s -- --skip-driver --skip-udev
 ```
 
 After installation, log out and back in if the installer adds your user to the

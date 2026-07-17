@@ -17,7 +17,7 @@ INSTALL_CLI="${EXCALIBUR_INSTALL_CLI:-1}"
 
 download_dir=""
 repo_checkout_dir=""
-driver_dir=""
+driver_script_dir=""
 
 usage() {
   cat <<EOF
@@ -149,7 +149,7 @@ prepare_repo_checkout() {
     fi
   fi
 
-  driver_dir="$repo_checkout_dir/cecc-linux/casper-wmi"
+  driver_script_dir="$repo_checkout_dir/cecc-linux/scripts/driver-bash"
 }
 
 install_driver() {
@@ -159,7 +159,7 @@ install_driver() {
   fi
 
   echo "Installing casper-wmi driver..."
-  "$driver_dir/install-full.sh"
+  sudo_cmd "$driver_script_dir/install.sh"
 }
 
 install_udev_rules() {
@@ -169,7 +169,7 @@ install_udev_rules() {
   fi
 
   echo "Installing udev rules and permission helper..."
-  sudo_cmd "$driver_dir/install-udev-rules.sh"
+  sudo_cmd "$driver_script_dir/install-udev-rules.sh"
 }
 
 download_release_binaries() {

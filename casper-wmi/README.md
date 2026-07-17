@@ -5,12 +5,14 @@
 This driver is installed out of tree. On most mutable distros, use DKMS. On
 NixOS, prefer a Nix package/module or the dev reload script.
 
+Run the installer commands below from the repository root.
+
 ### Ubuntu / Linux Mint
 
 ```bash
 sudo apt update
 sudo apt install dkms build-essential linux-headers-$(uname -r)
-sudo ./install.sh
+sudo ./scripts/driver-bash/install.sh
 ```
 
 ### Debian
@@ -18,7 +20,7 @@ sudo ./install.sh
 ```bash
 sudo apt update
 sudo apt install dkms build-essential linux-headers-$(uname -r)
-sudo ./install.sh
+sudo ./scripts/driver-bash/install.sh
 ```
 
 If `linux-headers-$(uname -r)` is not available, enable the matching Debian
@@ -28,7 +30,7 @@ repository for your running kernel first.
 
 ```bash
 sudo dnf install dkms gcc make kernel-devel kernel-headers
-sudo ./install.sh
+sudo ./scripts/driver-bash/install.sh
 ```
 
 After a kernel update, reboot into the new kernel before checking the rebuilt
@@ -38,7 +40,7 @@ module.
 
 ```bash
 sudo pacman -S --needed dkms base-devel linux-headers
-sudo ./install.sh
+sudo ./scripts/driver-bash/install.sh
 ```
 
 If you use another kernel, install its matching headers instead, for example
@@ -48,22 +50,22 @@ If you use another kernel, install its matching headers instead, for example
 
 ```bash
 sudo zypper install dkms gcc make kernel-devel kernel-default-devel
-sudo ./install.sh
+sudo ./scripts/driver-bash/install.sh
 ```
 
 ### RHEL / Rocky / Alma / CentOS Stream
 
 ```bash
 sudo dnf install dkms gcc make kernel-devel kernel-headers
-sudo ./install.sh
+sudo ./scripts/driver-bash/install.sh
 ```
 
 You may need EPEL or the distro's DKMS repository enabled first.
 
 ### NixOS
 
-Do not use `install.sh` as the normal install path on NixOS. From the repo
-root, use the dev shell for local testing:
+Do not use the DKMS installer as the normal install path on NixOS. From the
+repo root, use the dev shell for local testing:
 
 ```bash
 nix develop

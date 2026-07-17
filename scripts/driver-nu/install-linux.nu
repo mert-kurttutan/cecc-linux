@@ -69,36 +69,36 @@ def prepare-repo-checkout [github_repo: string, release_tag: string, repo_checko
     }
   }
 
-  $checkout_path | path join "casper-wmi"
+  $checkout_path | path join "scripts" "driver-nu"
 }
 
 def run-root-script [script_path: string] {
   if (is-root) {
-    ^bash $script_path
+    ^nu $script_path
   } else {
     need-command sudo
-    ^sudo bash $script_path
+    ^sudo nu $script_path
   }
 }
 
-def install-driver [driver_dir: string, skip_driver: bool] {
+def install-driver [driver_script_dir: string, skip_driver: bool] {
   if $skip_driver {
     print "Skipping driver installation."
     return
   }
 
   print "Installing casper-wmi driver..."
-  run-root-script ($driver_dir | path join "install-full.sh")
+  run-root-script ($driver_script_dir | path join "install.nu")
 }
 
-def install-udev-rules [driver_dir: string, skip_udev: bool] {
+def install-udev-rules [driver_script_dir: string, skip_udev: bool] {
   if $skip_udev {
     print "Skipping udev rule installation."
     return
   }
 
   print "Installing udev rules and permission helper..."
-  run-root-script ($driver_dir | path join "install-udev-rules.sh")
+  run-root-script ($driver_script_dir | path join "install-udev-rules.nu")
 }
 
 def download-release-binaries [
@@ -199,9 +199,9 @@ def main [
   let download_dir = (^mktemp -d | str trim)
 
   try {
-    let driver_dir = (prepare-repo-checkout $github_repo $release_tag $repo_checkout_dir)
-    install-driver $driver_dir $skip_driver
-    install-udev-rules $driver_dir $skip_udev
+    let driver_script_dir = (prepare-repo-checkout $github_repo $release_tag $repo_checkout_dir)
+    install-driver $driver_script_dir $skip_driver
+    install-udev-rules $driver_script_dir $skip_udev
     download-release-binaries $github_repo $release_tag $gui_release_asset $cli_release_asset $install_cli $download_dir
     install-app-binaries $download_dir $bin_dir $install_cli
 

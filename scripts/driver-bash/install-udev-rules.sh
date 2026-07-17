@@ -13,6 +13,8 @@ HELPER_DIR="/usr/local/libexec/excalibur-control-center"
 RULE_DIR="/etc/udev/rules.d"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+RULE_SOURCE="$REPO_ROOT/casper-wmi/$RULE_NAME"
 
 echo "Creating group: $GROUP"
 groupadd -f "$GROUP"
@@ -23,7 +25,7 @@ install -m 0755 "$SCRIPT_DIR/udev-permissions.sh" "$HELPER_DIR/$HELPER_NAME"
 
 echo "Installing udev rules..."
 install -d -m 0755 "$RULE_DIR"
-install -m 0644 "$SCRIPT_DIR/$RULE_NAME" "$RULE_DIR/$RULE_NAME"
+install -m 0644 "$RULE_SOURCE" "$RULE_DIR/$RULE_NAME"
 
 echo "Reloading udev rules..."
 udevadm control --reload-rules
