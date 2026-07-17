@@ -7,12 +7,16 @@ NixOS, prefer a Nix package/module or the dev reload script.
 
 Run the installer commands below from the repository root.
 
+The Bash installer is `./scripts/driver-bash/install.sh`. The Nushell
+equivalent is `./scripts/driver-nu/install.nu`.
+
 ### Ubuntu / Linux Mint
 
 ```bash
 sudo apt update
 sudo apt install dkms build-essential linux-headers-$(uname -r)
 sudo ./scripts/driver-bash/install.sh
+# or: sudo nu ./scripts/driver-nu/install.nu
 ```
 
 ### Debian
@@ -21,6 +25,7 @@ sudo ./scripts/driver-bash/install.sh
 sudo apt update
 sudo apt install dkms build-essential linux-headers-$(uname -r)
 sudo ./scripts/driver-bash/install.sh
+# or: sudo nu ./scripts/driver-nu/install.nu
 ```
 
 If `linux-headers-$(uname -r)` is not available, enable the matching Debian
@@ -31,6 +36,7 @@ repository for your running kernel first.
 ```bash
 sudo dnf install dkms gcc make kernel-devel kernel-headers
 sudo ./scripts/driver-bash/install.sh
+# or: sudo nu ./scripts/driver-nu/install.nu
 ```
 
 After a kernel update, reboot into the new kernel before checking the rebuilt
@@ -41,6 +47,7 @@ module.
 ```bash
 sudo pacman -S --needed dkms base-devel linux-headers
 sudo ./scripts/driver-bash/install.sh
+# or: sudo nu ./scripts/driver-nu/install.nu
 ```
 
 If you use another kernel, install its matching headers instead, for example
@@ -51,6 +58,7 @@ If you use another kernel, install its matching headers instead, for example
 ```bash
 sudo zypper install dkms gcc make kernel-devel kernel-default-devel
 sudo ./scripts/driver-bash/install.sh
+# or: sudo nu ./scripts/driver-nu/install.nu
 ```
 
 ### RHEL / Rocky / Alma / CentOS Stream
@@ -58,6 +66,7 @@ sudo ./scripts/driver-bash/install.sh
 ```bash
 sudo dnf install dkms gcc make kernel-devel kernel-headers
 sudo ./scripts/driver-bash/install.sh
+# or: sudo nu ./scripts/driver-nu/install.nu
 ```
 
 You may need EPEL or the distro's DKMS repository enabled first.

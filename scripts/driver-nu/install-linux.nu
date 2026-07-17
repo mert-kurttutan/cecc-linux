@@ -69,7 +69,19 @@ def prepare-repo-checkout [github_repo: string, release_tag: string, repo_checko
     }
   }
 
-  $checkout_path | path join "scripts" "driver-nu"
+  let new_layout = ($checkout_path | path join "scripts" "driver-nu")
+  let old_layout = ($checkout_path | path join "casper-wmi")
+
+  if (($new_layout | path join "install.nu") | path exists) {
+    $new_layout
+  } else if (($old_layout | path join "install.nu") | path exists) {
+    $old_layout
+  } else {
+    error make {
+      msg: "Could not locate Nushell driver installer in cloned release source"
+      help: $"Checked ($new_layout) and ($old_layout)"
+    }
+  }
 }
 
 def run-root-script [script_path: string] {

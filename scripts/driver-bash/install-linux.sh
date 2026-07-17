@@ -149,7 +149,17 @@ prepare_repo_checkout() {
     fi
   fi
 
-  driver_script_dir="$repo_checkout_dir/cecc-linux/scripts/driver-bash"
+  if [ -x "$repo_checkout_dir/cecc-linux/scripts/driver-bash/install.sh" ]; then
+    driver_script_dir="$repo_checkout_dir/cecc-linux/scripts/driver-bash"
+  elif [ -x "$repo_checkout_dir/cecc-linux/casper-wmi/install.sh" ]; then
+    driver_script_dir="$repo_checkout_dir/cecc-linux/casper-wmi"
+  else
+    echo "Could not locate Bash driver installer in cloned release source"
+    echo "Checked:"
+    echo "  $repo_checkout_dir/cecc-linux/scripts/driver-bash"
+    echo "  $repo_checkout_dir/cecc-linux/casper-wmi"
+    exit 1
+  fi
 }
 
 install_driver() {
