@@ -22,10 +22,17 @@ def apply-led [led_name: string, group: string] {
 }
 
 def apply-all-leds [group: string] {
-  let leds = (glob ($LED_ROOT | path join "casper:rgb:*"))
+  if not ($LED_ROOT | path exists) {
+    return
+  }
+
+  let leds = (
+    ls $LED_ROOT
+    | where {|entry| ($entry.name | path basename | str starts-with "casper:rgb:") }
+  )
 
   for led in $leds {
-    apply-led ($led | path basename) $group
+    apply-led ($led.name | path basename) $group
   }
 }
 
