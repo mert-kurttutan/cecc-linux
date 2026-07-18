@@ -15,16 +15,17 @@ SKIP_DRIVER="${EXCALIBUR_SKIP_DRIVER:-0}"
 SKIP_UDEV="${EXCALIBUR_SKIP_UDEV:-0}"
 INSTALL_CLI="${EXCALIBUR_INSTALL_CLI:-1}"
 
+INSTALLER_PATH="scripts/driver-bash/install-full.sh"
+
 download_dir=""
 repo_checkout_dir=""
-driver_script_dir=""
 
 usage() {
   cat <<EOF
 Usage: $0 [--version <tag>] [--tag <tag>] [--no-cli] [--skip-driver] [--skip-udev]
 
 Installs Excalibur Control Center from GitHub Releases, then installs the
-casper-wmi driver and udev permissions.
+casper-wmi driver and udev permissions from a temporary repo checkout.
 
 Options:
   --version <tag>     Install binaries from a specific GitHub release tag.
@@ -139,7 +140,7 @@ prepare_repo_checkout() {
 
   repo_checkout_dir="$(mktemp -d)"
 
-  echo "Cloning $GITHUB_REPO for driver and udev installer files..."
+  echo "Cloning $GITHUB_REPO for local installer files..."
   if ! git clone --depth 1 --branch "$ref" "https://github.com/$GITHUB_REPO.git" "$repo_checkout_dir/cecc-linux"; then
     if [ -n "${EXCALIBUR_REPO_REF:-}" ] || [ "$RELEASE_TAG" != "latest" ]; then
       echo "Could not clone ref '$ref'. Falling back to main."
@@ -149,37 +150,26 @@ prepare_repo_checkout() {
     fi
   fi
 
-  if [ -x "$repo_checkout_dir/cecc-linux/scripts/driver-bash/install.sh" ]; then
-    driver_script_dir="$repo_checkout_dir/cecc-linux/scripts/driver-bash"
-  elif [ -x "$repo_checkout_dir/cecc-linux/casper-wmi/install.sh" ]; then
-    driver_script_dir="$repo_checkout_dir/cecc-linux/casper-wmi"
-  else
-    echo "Could not locate Bash driver installer in cloned release source"
-    echo "Checked:"
-    echo "  $repo_checkout_dir/cecc-linux/scripts/driver-bash"
-    echo "  $repo_checkout_dir/cecc-linux/casper-wmi"
+  if [ ! -x "$repo_checkout_dir/cecc-linux/$INSTALLER_PATH" ]; then
+    echo "Could not locate Bash local installer in cloned release source"
+    echo "Checked: $repo_checkout_dir/cecc-linux/$INSTALLER_PATH"
     exit 1
   fi
 }
 
-install_driver() {
+run_local_installer() {
+  local installer="$repo_checkout_dir/cecc-linux/$INSTALLER_PATH"
+  local args=()
+
   if [ "$SKIP_DRIVER" = "1" ]; then
-    echo "Skipping driver installation."
-    return
+    args+=(--skip-driver)
   fi
 
-  echo "Installing casper-wmi driver..."
-  sudo_cmd "$driver_script_dir/install.sh"
-}
-
-install_udev_rules() {
   if [ "$SKIP_UDEV" = "1" ]; then
-    echo "Skipping udev rule installation."
-    return
+    args+=(--skip-udev)
   fi
 
-  echo "Installing udev rules and permission helper..."
-  sudo_cmd "$driver_script_dir/install-udev-rules.sh"
+  "$installer" "${args[@]}"
 }
 
 download_release_binaries() {
@@ -231,8 +221,7 @@ main() {
   trap 'rm -rf "$download_dir" "$repo_checkout_dir"' EXIT
   parse_args "$@"
   prepare_repo_checkout
-  install_driver
-  install_udev_rules
+  run_local_installer
   download_release_binaries
   install_app_binaries
 
