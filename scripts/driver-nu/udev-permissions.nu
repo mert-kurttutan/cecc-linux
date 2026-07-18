@@ -40,7 +40,7 @@ def apply-module [group: string] {
   apply-file $GPU_MODE_PATH $group
 }
 
-def main [
+export def apply-excalibur-udev-permissions [
   mode: string = "all"
   led_name: string = ""
 ] {
@@ -59,4 +59,11 @@ def main [
       }
     }
   }
+}
+
+def main [
+  mode: string = "all"
+  led_name: string = ""
+] {
+  apply-excalibur-udev-permissions $mode $led_name
 }

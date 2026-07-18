@@ -9,7 +9,10 @@ def is-root [] {
   ((^id -u | str trim) == "0")
 }
 
-def main [] {
+export def install-excalibur-udev-rules [
+  --rule-source: string = ""
+  --helper-source: string = ""
+] {
   if not (is-root) {
     error make {
       msg: "Please run as root: 'sudo ./install-udev-rules.nu'"
@@ -19,8 +22,16 @@ def main [] {
   let group = ($env.EXCALIBUR_GROUP? | default "excalibur")
   let script_dir = ($env.FILE_PWD? | default (pwd))
   let repo_root = ($script_dir | path join ".." ".." | path expand)
-  let rule_source = ($repo_root | path join "casper-wmi" $RULE_NAME)
-  let helper_source = ($script_dir | path join "udev-permissions.nu")
+  let rule_source = if $rule_source != "" {
+    $rule_source
+  } else {
+    ($repo_root | path join "casper-wmi" $RULE_NAME)
+  }
+  let helper_source = if $helper_source != "" {
+    $helper_source
+  } else {
+    ($script_dir | path join "udev-permissions.nu")
+  }
   let helper_target = ($HELPER_DIR | path join $HELPER_NAME)
   let rule_target = ($RULE_DIR | path join $RULE_NAME)
 
@@ -46,4 +57,8 @@ def main [] {
   print "Installed udev rules."
   print $"Add users with: sudo usermod -aG ($group) <username>"
   print "Users must log out and back in for group membership to apply."
+}
+
+def main [] {
+  install-excalibur-udev-rules
 }

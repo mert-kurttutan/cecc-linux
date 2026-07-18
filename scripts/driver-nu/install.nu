@@ -79,7 +79,9 @@ def install-deps [] {
   }
 }
 
-def main [] {
+export def install-casper-driver [
+  --driver-source-dir: string = ""
+] {
   if not (is-root) {
     error make {
       msg: "Please run as root: 'sudo ./install.nu'"
@@ -88,7 +90,11 @@ def main [] {
 
   let script_dir = ($env.FILE_PWD? | default (pwd))
   let repo_root = ($script_dir | path join ".." ".." | path expand)
-  let driver_source_dir = ($env.CASPER_WMI_SOURCE_DIR? | default ($repo_root | path join "casper-wmi"))
+  let driver_source_dir = if $driver_source_dir != "" {
+    $driver_source_dir
+  } else {
+    ($env.CASPER_WMI_SOURCE_DIR? | default ($repo_root | path join "casper-wmi"))
+  }
   let src_dir = $"/usr/src/($DRIVER_NAME)-($DRIVER_VERSION)"
 
   print $"Installing ($DRIVER_NAME) driver version ($DRIVER_VERSION)..."
@@ -116,4 +122,8 @@ def main [] {
   ^modprobe $DRIVER_NAME
 
   print "NOTICE: Check dmesg for any errors: 'dmesg | grep casper'"
+}
+
+def main [] {
+  install-casper-driver
 }

@@ -20,7 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scri
 Nushell version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-linux.nu | nu --stdin -c 'nu -c ($in + "\nmain")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-remote.nu | nu --stdin -c 'nu -c ($in + "\nmain")'
 ```
 
 Install a specific release:
@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scri
 Nushell version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-linux.nu | nu --stdin -c 'nu -c ($in + "\nmain --version v0.0.2")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-remote.nu | nu --stdin -c 'nu -c ($in + "\nmain --version v0.0.2")'
 ```
 
 Install only the app binary, without driver or udev setup:
@@ -44,7 +44,7 @@ curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scri
 Nushell version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-linux.nu | nu --stdin -c 'nu -c ($in + "\nmain --skip-driver --skip-udev")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-remote.nu | nu --stdin -c 'nu -c ($in + "\nmain --skip-driver --skip-udev")'
 ```
 
 After installation, log out and back in if the installer adds your user to the

@@ -1,5 +1,6 @@
 #!/usr/bin/env nu
 
+const INSTALLER_PATH = "scripts/driver-nu/install-full.nu"
 const GUI_BIN_NAME = "excalibur-control-center-gui"
 const CLI_BIN_NAME = "excalibur-control-center-cli"
 
@@ -15,14 +16,6 @@ def is-root [] {
   ((^id -u | str trim) == "0")
 }
 
-def release-asset-url [github_repo: string, release_tag: string, asset: string] {
-  if $release_tag == "latest" {
-    $"https://github.com/($github_repo)/releases/latest/download/($asset)"
-  } else {
-    $"https://github.com/($github_repo)/releases/download/($release_tag)/($asset)"
-  }
-}
-
 def clone-ref [release_tag: string] {
   let explicit_ref = ($env.EXCALIBUR_REPO_REF? | default "")
 
@@ -32,6 +25,14 @@ def clone-ref [release_tag: string] {
     "main"
   } else {
     $release_tag
+  }
+}
+
+def release-asset-url [github_repo: string, release_tag: string, asset: string] {
+  if $release_tag == "latest" {
+    $"https://github.com/($github_repo)/releases/latest/download/($asset)"
+  } else {
+    $"https://github.com/($github_repo)/releases/download/($release_tag)/($asset)"
   }
 }
 
@@ -47,67 +48,36 @@ def download-file [url: string, output: string] {
   }
 }
 
-def prepare-repo-checkout [github_repo: string, release_tag: string, repo_checkout_dir: string] {
-  need-command git
-
-  let ref = (clone-ref $release_tag)
-  let checkout_path = ($repo_checkout_dir | path join "cecc-linux")
-  let repo_url = $"https://github.com/($github_repo).git"
-
-  print $"Cloning ($github_repo) for driver and udev installer files..."
-  let clone_result = (^git clone --depth 1 --branch $ref $repo_url $checkout_path | complete)
-
-  if $clone_result.exit_code != 0 {
-    if (($env.EXCALIBUR_REPO_REF? | default "") != "") or ($release_tag != "latest") {
-      print $"Could not clone ref '($ref)'. Falling back to main."
-      ^git clone --depth 1 --branch main $repo_url $checkout_path
-    } else {
-      error make {
-        msg: $"Could not clone ($github_repo)"
-        help: ($clone_result.stderr | str trim)
-      }
-    }
-  }
-
-  let driver_script_dir = ($checkout_path | path join "scripts" "driver-nu")
-
-  if (($driver_script_dir | path join "install.nu") | path exists) {
-    $driver_script_dir
-  } else {
-    error make {
-      msg: "Could not locate Nushell driver installer in cloned release source"
-      help: $"Checked ($driver_script_dir)"
-    }
-  }
-}
-
-def run-root-script [script_path: string] {
+def install-dir [bin_dir: string] {
   if (is-root) {
-    ^nu $script_path
+    ^install -d -m 0755 $bin_dir
   } else {
     need-command sudo
-    ^sudo nu $script_path
+    ^sudo install -d -m 0755 $bin_dir
   }
 }
 
-def install-driver [driver_script_dir: string, skip_driver: bool] {
+def install-file [source: string, target: string] {
+  if (is-root) {
+    ^install -m 0755 $source $target
+  } else {
+    need-command sudo
+    ^sudo install -m 0755 $source $target
+  }
+}
+
+def local-installer-args [--skip-driver --skip-udev] {
+  mut args = []
+
   if $skip_driver {
-    print "Skipping driver installation."
-    return
+    $args = ($args | append "--skip-driver")
   }
 
-  print "Installing casper-wmi driver..."
-  run-root-script ($driver_script_dir | path join "install.nu")
-}
-
-def install-udev-rules [driver_script_dir: string, skip_udev: bool] {
   if $skip_udev {
-    print "Skipping udev rule installation."
-    return
+    $args = ($args | append "--skip-udev")
   }
 
-  print "Installing udev rules and permission helper..."
-  run-root-script ($driver_script_dir | path join "install-udev-rules.nu")
+  $args
 }
 
 def download-release-binaries [
@@ -137,24 +107,6 @@ def download-release-binaries [
   }
 }
 
-def sudo-install-dir [bin_dir: string] {
-  if (is-root) {
-    ^install -d -m 0755 $bin_dir
-  } else {
-    need-command sudo
-    ^sudo install -d -m 0755 $bin_dir
-  }
-}
-
-def sudo-install-file [source: string, target: string] {
-  if (is-root) {
-    ^install -m 0755 $source $target
-  } else {
-    need-command sudo
-    ^sudo install -m 0755 $source $target
-  }
-}
-
 def install-app-binaries [download_dir: string, bin_dir: string, install_cli: bool] {
   let gui_source = ($download_dir | path join $GUI_BIN_NAME)
   let cli_source = ($download_dir | path join $CLI_BIN_NAME)
@@ -166,8 +118,8 @@ def install-app-binaries [download_dir: string, bin_dir: string, install_cli: bo
   }
 
   print $"Installing application binaries into ($bin_dir)..."
-  sudo-install-dir $bin_dir
-  sudo-install-file $gui_source ($bin_dir | path join $GUI_BIN_NAME)
+  install-dir $bin_dir
+  install-file $gui_source ($bin_dir | path join $GUI_BIN_NAME)
 
   if $install_cli {
     if not ($cli_source | path exists) {
@@ -176,20 +128,35 @@ def install-app-binaries [download_dir: string, bin_dir: string, install_cli: bo
       }
     }
 
-    sudo-install-file $cli_source ($bin_dir | path join $CLI_BIN_NAME)
+    install-file $cli_source ($bin_dir | path join $CLI_BIN_NAME)
   }
 }
 
-def main [
+def run-local-installer [
+  installer_path: string
+  args: list<string>
+  --needs-root
+] {
+  if (is-root) or (not $needs_root) {
+    ^nu $installer_path ...$args
+  } else {
+    need-command sudo
+    ^sudo nu $installer_path ...$args
+  }
+}
+
+export def install-excalibur-remote [
   --version: string = ""
   --tag: string = ""
   --no-cli
   --skip-driver
   --skip-udev
 ] {
+  need-command git
+
+  let github_repo = ($env.EXCALIBUR_GITHUB_REPO? | default "mert-kurttutan/cecc-linux")
   let prefix = ($env.PREFIX? | default "/usr/local")
   let bin_dir = ($env.BIN_DIR? | default ($prefix | path join "bin"))
-  let github_repo = ($env.EXCALIBUR_GITHUB_REPO? | default "mert-kurttutan/cecc-linux")
   let env_release_tag = ($env.EXCALIBUR_RELEASE_TAG? | default "latest")
   let release_tag = if $version != "" {
     $version
@@ -201,28 +168,63 @@ def main [
   let gui_release_asset = ($env.EXCALIBUR_GUI_RELEASE_ASSET? | default $GUI_BIN_NAME)
   let cli_release_asset = ($env.EXCALIBUR_CLI_RELEASE_ASSET? | default $CLI_BIN_NAME)
   let install_cli = not ($no_cli or (($env.EXCALIBUR_INSTALL_CLI? | default "1") == "0"))
-  let skip_driver = $skip_driver or (($env.EXCALIBUR_SKIP_DRIVER? | default "0") == "1")
-  let skip_udev = $skip_udev or (($env.EXCALIBUR_SKIP_UDEV? | default "0") == "1")
-
-  let repo_checkout_dir = (^mktemp -d | str trim)
+  let ref = (clone-ref $release_tag)
+  let repo_url = $"https://github.com/($github_repo).git"
+  let tmp_dir = (^mktemp -d | str trim)
   let download_dir = (^mktemp -d | str trim)
 
   try {
-    let driver_script_dir = (prepare-repo-checkout $github_repo $release_tag $repo_checkout_dir)
-    install-driver $driver_script_dir $skip_driver
-    install-udev-rules $driver_script_dir $skip_udev
+    let checkout_dir = ($tmp_dir | path join "cecc-linux")
+    let installer_path = ($checkout_dir | path join $INSTALLER_PATH)
+
+    print $"Cloning ($github_repo) for local installer files..."
+    let clone_result = (^git clone --depth 1 --branch $ref $repo_url $checkout_dir | complete)
+
+    if $clone_result.exit_code != 0 {
+      if (($env.EXCALIBUR_REPO_REF? | default "") != "") or ($release_tag != "latest") {
+        print $"Could not clone ref '($ref)'. Falling back to main."
+        ^git clone --depth 1 --branch main $repo_url $checkout_dir
+      } else {
+        error make {
+          msg: $"Could not clone ($github_repo)"
+          help: ($clone_result.stderr | str trim)
+        }
+      }
+    }
+
+    if not ($installer_path | path exists) {
+      error make {
+        msg: "Could not locate Nushell local installer in cloned release source"
+        help: $"Checked ($installer_path)"
+      }
+    }
+
+    let args = (local-installer-args --skip-driver=$skip_driver --skip-udev=$skip_udev)
+    let needs_root = not ($skip_driver and $skip_udev)
+    run-local-installer $installer_path $args --needs-root=$needs_root
+
     download-release-binaries $github_repo $release_tag $gui_release_asset $cli_release_asset $install_cli $download_dir
     install-app-binaries $download_dir $bin_dir $install_cli
 
     print "Installation complete."
     print $"Run: (($bin_dir | path join $GUI_BIN_NAME))"
   } catch {|err|
-    ^rm -rf $repo_checkout_dir $download_dir
+    ^rm -rf $tmp_dir $download_dir
     error make {
       msg: $err.msg
       help: ($err.help? | default "")
     }
   }
 
-  ^rm -rf $repo_checkout_dir $download_dir
+  ^rm -rf $tmp_dir $download_dir
+}
+
+def main [
+  --version: string = ""
+  --tag: string = ""
+  --no-cli
+  --skip-driver
+  --skip-udev
+] {
+  install-excalibur-remote --version $version --tag $tag --no-cli=$no_cli --skip-driver=$skip_driver --skip-udev=$skip_udev
 }

@@ -1,53 +1,49 @@
 #!/usr/bin/env nu
 
-const INSTALLER_PATH = "scripts/driver-nu/install.nu"
-
-def need-command [name: string] {
-  if ((which $name) | is-empty) {
-    error make {
-      msg: $"Missing required command: ($name)"
-    }
-  }
-}
+use ./install.nu install-casper-driver
+use ./install-udev-rules.nu install-excalibur-udev-rules
 
 def is-root [] {
   ((^id -u | str trim) == "0")
 }
 
-def run-installer [installer_path: string] {
-  if (is-root) {
-    ^nu $installer_path
-  } else {
-    need-command sudo
-    ^sudo nu $installer_path
-  }
-}
+export def install-excalibur-full [
+  --skip-driver
+  --skip-udev
+] {
+  let skip_driver = $skip_driver or (($env.EXCALIBUR_SKIP_DRIVER? | default "0") == "1")
+  let skip_udev = $skip_udev or (($env.EXCALIBUR_SKIP_UDEV? | default "0") == "1")
+  let script_dir = ($env.FILE_PWD? | default (pwd))
+  let repo_root = ($script_dir | path join ".." ".." | path expand)
+  let driver_source_dir = ($repo_root | path join "casper-wmi")
+  let rule_source = ($driver_source_dir | path join "90-excalibur-control-center.rules")
+  let helper_source = ($script_dir | path join "udev-permissions.nu")
 
-def main [] {
-  let repo_url = ($env.CECC_REPO_URL? | default "https://github.com/mert-kurttutan/cecc-linux.git")
-  let repo_ref = ($env.CECC_REPO_REF? | default "main")
-
-  need-command git
-
-  let tmp_dir = (^mktemp -d | str trim)
-
-  try {
-    let checkout_dir = ($tmp_dir | path join "cecc-linux")
-
-    print $"Cloning cecc-linux from ($repo_url)..."
-    ^git clone --depth 1 --branch $repo_ref $repo_url $checkout_dir
-
-    print "Installing casper-wmi from temporary checkout..."
-    run-installer ($checkout_dir | path join $INSTALLER_PATH)
-
-    print "Done."
-  } catch {|err|
-    ^rm -rf $tmp_dir
+  if (not (is-root)) and (not ($skip_driver and $skip_udev)) {
     error make {
-      msg: $err.msg
-      help: ($err.help? | default "")
+      msg: "Please run as root when installing the driver or udev rules."
+      help: "Use sudo nu scripts/driver-nu/install-full.nu, or pass --skip-driver --skip-udev."
     }
   }
 
-  ^rm -rf $tmp_dir
+  if $skip_driver {
+    print "Skipping driver installation."
+  } else {
+    print "Installing casper-wmi driver..."
+    install-casper-driver --driver-source-dir $driver_source_dir
+  }
+
+  if $skip_udev {
+    print "Skipping udev rule installation."
+  } else {
+    print "Installing udev rules and permission helper..."
+    install-excalibur-udev-rules --rule-source $rule_source --helper-source $helper_source
+  }
+}
+
+def main [
+  --skip-driver
+  --skip-udev
+] {
+  install-excalibur-full --skip-driver=$skip_driver --skip-udev=$skip_udev
 }
