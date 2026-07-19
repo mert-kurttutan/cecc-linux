@@ -7,16 +7,16 @@ NixOS, prefer a Nix package/module or the dev reload script.
 
 Run the installer commands below from the repository root.
 
-The Bash installer is `./scripts/driver-bash/install.sh`. The Nushell
-equivalent is `./scripts/driver-nu/install.nu`.
+The Bash installer is `./scripts/driver-bash/install-dkms-driver.sh`. The
+Nushell equivalent is `./scripts/driver-nu/install-dkms-driver.nu`.
 
 ### Ubuntu / Linux Mint
 
 ```bash
 sudo apt update
 sudo apt install dkms build-essential linux-headers-$(uname -r)
-sudo ./scripts/driver-bash/install.sh
-# or: sudo nu ./scripts/driver-nu/install.nu
+sudo ./scripts/driver-bash/install-dkms-driver.sh
+# or: sudo nu ./scripts/driver-nu/install-dkms-driver.nu
 ```
 
 ### Debian
@@ -24,8 +24,8 @@ sudo ./scripts/driver-bash/install.sh
 ```bash
 sudo apt update
 sudo apt install dkms build-essential linux-headers-$(uname -r)
-sudo ./scripts/driver-bash/install.sh
-# or: sudo nu ./scripts/driver-nu/install.nu
+sudo ./scripts/driver-bash/install-dkms-driver.sh
+# or: sudo nu ./scripts/driver-nu/install-dkms-driver.nu
 ```
 
 If `linux-headers-$(uname -r)` is not available, enable the matching Debian
@@ -35,8 +35,8 @@ repository for your running kernel first.
 
 ```bash
 sudo dnf install dkms gcc make kernel-devel kernel-headers
-sudo ./scripts/driver-bash/install.sh
-# or: sudo nu ./scripts/driver-nu/install.nu
+sudo ./scripts/driver-bash/install-dkms-driver.sh
+# or: sudo nu ./scripts/driver-nu/install-dkms-driver.nu
 ```
 
 After a kernel update, reboot into the new kernel before checking the rebuilt
@@ -46,8 +46,8 @@ module.
 
 ```bash
 sudo pacman -S --needed dkms base-devel linux-headers
-sudo ./scripts/driver-bash/install.sh
-# or: sudo nu ./scripts/driver-nu/install.nu
+sudo ./scripts/driver-bash/install-dkms-driver.sh
+# or: sudo nu ./scripts/driver-nu/install-dkms-driver.nu
 ```
 
 If you use another kernel, install its matching headers instead, for example
@@ -57,16 +57,16 @@ If you use another kernel, install its matching headers instead, for example
 
 ```bash
 sudo zypper install dkms gcc make kernel-devel kernel-default-devel
-sudo ./scripts/driver-bash/install.sh
-# or: sudo nu ./scripts/driver-nu/install.nu
+sudo ./scripts/driver-bash/install-dkms-driver.sh
+# or: sudo nu ./scripts/driver-nu/install-dkms-driver.nu
 ```
 
 ### RHEL / Rocky / Alma / CentOS Stream
 
 ```bash
 sudo dnf install dkms gcc make kernel-devel kernel-headers
-sudo ./scripts/driver-bash/install.sh
-# or: sudo nu ./scripts/driver-nu/install.nu
+sudo ./scripts/driver-bash/install-dkms-driver.sh
+# or: sudo nu ./scripts/driver-nu/install-dkms-driver.nu
 ```
 
 You may need EPEL or the distro's DKMS repository enabled first.

@@ -2,13 +2,13 @@
 set -euo pipefail
 
 if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root: 'sudo ./install-udev-rules.sh'"
+  echo "Please run as root: 'sudo ./install-permission-rules.sh'"
   exit 1
 fi
 
 GROUP="excalibur"
 RULE_NAME="90-excalibur-control-center.rules"
-HELPER_NAME="udev-permissions"
+HELPER_NAME="apply-sysfs-permissions"
 HELPER_DIR="/usr/local/libexec/excalibur-control-center"
 RULE_DIR="/etc/udev/rules.d"
 
@@ -21,7 +21,7 @@ groupadd -f "$GROUP"
 
 echo "Installing udev permission helper..."
 install -d -m 0755 "$HELPER_DIR"
-install -m 0755 "$SCRIPT_DIR/udev-permissions.sh" "$HELPER_DIR/$HELPER_NAME"
+install -m 0755 "$SCRIPT_DIR/apply-sysfs-permissions.sh" "$HELPER_DIR/$HELPER_NAME"
 
 echo "Installing udev rules..."
 install -d -m 0755 "$RULE_DIR"

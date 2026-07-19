@@ -14,37 +14,37 @@ Casper WMI driver work is based on and credits:
 Install the app, Casper WMI driver, and udev permission rules:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-remote.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | bash
 ```
 
 Nushell version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-remote.nu | nu --stdin -c 'nu -c ($in + "\nmain")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-release.nu | nu --stdin -c 'nu -c ($in + "\nmain")'
 ```
 
 Install a specific release:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-remote.sh | bash -s -- --version v0.0.2
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | bash -s -- --version v0.0.2
 ```
 
 Nushell version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-remote.nu | nu --stdin -c 'nu -c ($in + "\nmain --version v0.0.2")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-release.nu | nu --stdin -c 'nu -c ($in + "\nmain --version v0.0.2")'
 ```
 
 Install only the app binary, without driver or udev setup:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-remote.sh | bash -s -- --skip-driver
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | bash -s -- --skip-driver
 ```
 
 Nushell version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-remote.nu | nu --stdin -c 'nu -c ($in + "\nmain --skip-driver")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-release.nu | nu --stdin -c 'nu -c ($in + "\nmain --skip-driver")'
 ```
 
 After installation, log out and back in if the installer adds your user to the

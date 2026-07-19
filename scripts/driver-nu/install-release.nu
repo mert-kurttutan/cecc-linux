@@ -1,6 +1,6 @@
 #!/usr/bin/env nu
 
-const INSTALLER_PATH = "scripts/driver-nu/install-full.nu"
+const INSTALLER_PATH = "scripts/driver-nu/install-driver-stack.nu"
 const GUI_BIN_NAME = "excalibur-control-center-gui"
 const CLI_BIN_NAME = "excalibur-control-center-cli"
 const GITHUB_REPO = "mert-kurttutan/cecc-linux"
@@ -139,7 +139,7 @@ def run-local-installer [
   }
 }
 
-export def install-excalibur-remote [
+export def install-excalibur-release [
   --version: string = ""
   --tag: string = ""
   --no-cli
@@ -212,5 +212,5 @@ def main [
   --no-cli
   --skip-driver
 ] {
-  install-excalibur-remote --version $version --tag $tag --no-cli=$no_cli --skip-driver=$skip_driver
+  install-excalibur-release --version $version --tag $tag --no-cli=$no_cli --skip-driver=$skip_driver
 }

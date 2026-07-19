@@ -41,7 +41,7 @@ def apply-module [group: string] {
   apply-file $GPU_MODE_PATH $group
 }
 
-export def apply-excalibur-udev-permissions [
+export def apply-excalibur-sysfs-permissions [
   mode: string = "all"
   led_name: string = ""
 ] {
@@ -54,7 +54,7 @@ export def apply-excalibur-udev-permissions [
     }
     _ => {
       error make {
-        msg: "usage: udev-permissions.nu [all|leds <name>|module]"
+        msg: "usage: apply-sysfs-permissions.nu [all|leds <name>|module]"
       }
     }
   }
@@ -64,5 +64,5 @@ def main [
   mode: string = "all"
   led_name: string = ""
 ] {
-  apply-excalibur-udev-permissions $mode $led_name
+  apply-excalibur-sysfs-permissions $mode $led_name
 }

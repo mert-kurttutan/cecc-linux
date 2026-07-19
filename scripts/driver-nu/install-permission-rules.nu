@@ -1,7 +1,7 @@
 #!/usr/bin/env nu
 
 const RULE_NAME = "90-excalibur-control-center.rules"
-const HELPER_NAME = "udev-permissions"
+const HELPER_NAME = "apply-sysfs-permissions"
 const HELPER_DIR = "/usr/local/libexec/excalibur-control-center"
 const RULE_DIR = "/etc/udev/rules.d"
 const GROUP = "excalibur"
@@ -10,16 +10,16 @@ def is-root [] {
   ((^id -u | str trim) == "0")
 }
 
-export def install-excalibur-udev-rules [] {
+export def install-excalibur-permission-rules [] {
   if not (is-root) {
     error make {
-      msg: "Please run as root: 'sudo ./install-udev-rules.nu'"
+      msg: "Please run as root: 'sudo ./install-permission-rules.nu'"
     }
   }
 
   let repo_root = ($env.FILE_PWD | path join ".." "..")
   let rule_source = ($repo_root | path join "casper-wmi" $RULE_NAME)
-  let helper_source = ($env.FILE_PWD | path join "udev-permissions.nu")
+  let helper_source = ($env.FILE_PWD | path join "apply-sysfs-permissions.nu")
   let helper_target = ($HELPER_DIR | path join $HELPER_NAME)
   let rule_target = ($RULE_DIR | path join $RULE_NAME)
 
@@ -48,5 +48,5 @@ export def install-excalibur-udev-rules [] {
 }
 
 def main [] {
-  install-excalibur-udev-rules
+  install-excalibur-permission-rules
 }

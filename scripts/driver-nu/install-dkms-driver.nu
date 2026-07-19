@@ -73,10 +73,10 @@ def install-deps [] {
   }
 }
 
-export def install-casper-driver [] {
+export def install-casper-dkms-driver [] {
   if not (is-root) {
     error make {
-      msg: "Please run as root: 'sudo ./install.nu'"
+      msg: "Please run as root: 'sudo ./install-dkms-driver.nu'"
     }
   }
 
@@ -112,5 +112,5 @@ export def install-casper-driver [] {
 }
 
 def main [] {
-  install-casper-driver
+  install-casper-dkms-driver
 }

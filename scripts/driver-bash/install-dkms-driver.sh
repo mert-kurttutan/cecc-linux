@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root: 'sudo ./install.sh'"
+  echo "Please run as root: 'sudo ./install-dkms-driver.sh'"
   exit 1
 fi
 

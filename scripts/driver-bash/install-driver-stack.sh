@@ -60,10 +60,10 @@ main() {
     echo "Skipping driver and udev rule installation."
   else
     echo "Installing casper-wmi driver..."
-    sudo_cmd "$script_dir/install.sh"
+    sudo_cmd "$script_dir/install-dkms-driver.sh"
 
     echo "Installing udev rules and permission helper..."
-    sudo_cmd "$script_dir/install-udev-rules.sh"
+    sudo_cmd "$script_dir/install-permission-rules.sh"
   fi
 }
 

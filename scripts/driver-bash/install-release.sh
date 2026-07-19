@@ -10,7 +10,7 @@ RELEASE_TAG="latest"
 SKIP_DRIVER=0
 INSTALL_CLI=1
 
-INSTALLER_PATH="scripts/driver-bash/install-full.sh"
+INSTALLER_PATH="scripts/driver-bash/install-driver-stack.sh"
 
 download_dir=""
 repo_checkout_dir=""
