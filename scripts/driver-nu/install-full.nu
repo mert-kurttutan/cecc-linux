@@ -14,8 +14,6 @@ export def install-excalibur-full [
   let script_dir = ($env.FILE_PWD? | default (pwd))
   let repo_root = ($script_dir | path join ".." ".." | path expand)
   let driver_source_dir = ($repo_root | path join "casper-wmi")
-  let rule_source = ($driver_source_dir | path join "90-excalibur-control-center.rules")
-  let helper_source = ($script_dir | path join "udev-permissions.nu")
 
   if (not (is-root)) and (not ($skip_driver and $skip_udev)) {
     error make {
@@ -35,7 +33,7 @@ export def install-excalibur-full [
     print "Skipping udev rule installation."
   } else {
     print "Installing udev rules and permission helper..."
-    install-excalibur-udev-rules --rule-source $rule_source --helper-source $helper_source
+    install-excalibur-udev-rules
   }
 }
 
