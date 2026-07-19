@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-GROUP="${EXCALIBUR_GROUP:-excalibur}"
+GROUP="excalibur"
 RULE_NAME="90-excalibur-control-center.rules"
 HELPER_NAME="udev-permissions"
 HELPER_DIR="/usr/local/libexec/excalibur-control-center"

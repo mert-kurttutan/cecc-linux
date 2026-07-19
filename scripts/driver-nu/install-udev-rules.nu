@@ -4,6 +4,7 @@ const RULE_NAME = "90-excalibur-control-center.rules"
 const HELPER_NAME = "udev-permissions"
 const HELPER_DIR = "/usr/local/libexec/excalibur-control-center"
 const RULE_DIR = "/etc/udev/rules.d"
+const GROUP = "excalibur"
 
 def is-root [] {
   ((^id -u | str trim) == "0")
@@ -19,7 +20,6 @@ export def install-excalibur-udev-rules [
     }
   }
 
-  let group = ($env.EXCALIBUR_GROUP? | default "excalibur")
   let script_dir = ($env.FILE_PWD? | default (pwd))
   let repo_root = ($script_dir | path join ".." ".." | path expand)
   let rule_source = if $rule_source != "" {
@@ -35,8 +35,8 @@ export def install-excalibur-udev-rules [
   let helper_target = ($HELPER_DIR | path join $HELPER_NAME)
   let rule_target = ($RULE_DIR | path join $RULE_NAME)
 
-  print $"Creating group: ($group)"
-  ^groupadd -f $group
+  print $"Creating group: ($GROUP)"
+  ^groupadd -f $GROUP
 
   print "Installing udev permission helper..."
   ^install -d -m 0755 $HELPER_DIR
@@ -55,7 +55,7 @@ export def install-excalibur-udev-rules [
   do -i { ^$helper_target all }
 
   print "Installed udev rules."
-  print $"Add users with: sudo usermod -aG ($group) <username>"
+  print $"Add users with: sudo usermod -aG ($GROUP) <username>"
   print "Users must log out and back in for group membership to apply."
 }
 

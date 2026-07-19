@@ -2,6 +2,7 @@
 
 const LED_ROOT = "/sys/class/leds"
 const GPU_MODE_PATH = "/sys/module/casper_wmi/parameters/gpu_mode"
+const GROUP = "excalibur"
 
 def apply-file [path: string, group: string] {
   if not ($path | path exists) {
@@ -44,14 +45,12 @@ export def apply-excalibur-udev-permissions [
   mode: string = "all"
   led_name: string = ""
 ] {
-  let group = ($env.EXCALIBUR_GROUP? | default "excalibur")
-
   match $mode {
-    "leds" => { apply-led $led_name $group }
-    "module" => { apply-module $group }
+    "leds" => { apply-led $led_name $GROUP }
+    "module" => { apply-module $GROUP }
     "all" => {
-      apply-all-leds $group
-      apply-module $group
+      apply-all-leds $GROUP
+      apply-module $GROUP
     }
     _ => {
       error make {

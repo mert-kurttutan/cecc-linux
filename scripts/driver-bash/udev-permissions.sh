@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GROUP="${EXCALIBUR_GROUP:-excalibur}"
+GROUP="excalibur"
 LED_ROOT="/sys/class/leds"
 GPU_MODE_PATH="/sys/module/casper_wmi/parameters/gpu_mode"
 
