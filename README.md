@@ -38,13 +38,13 @@ curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scri
 Install only the app binary, without driver or udev setup:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-remote.sh | bash -s -- --skip-driver --skip-udev
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-remote.sh | bash -s -- --skip-driver
 ```
 
 Nushell version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-remote.nu | nu --stdin -c 'nu -c ($in + "\nmain --skip-driver --skip-udev")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-remote.nu | nu --stdin -c 'nu -c ($in + "\nmain --skip-driver")'
 ```
 
 After installation, log out and back in if the installer adds your user to the

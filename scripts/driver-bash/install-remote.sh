@@ -8,7 +8,6 @@ GITHUB_REPO="mert-kurttutan/cecc-linux"
 RELEASE_TAG="latest"
 
 SKIP_DRIVER=0
-SKIP_UDEV=0
 INSTALL_CLI=1
 
 INSTALLER_PATH="scripts/driver-bash/install-full.sh"
@@ -18,7 +17,7 @@ repo_checkout_dir=""
 
 usage() {
   cat <<EOF
-Usage: $0 [--version <tag>] [--tag <tag>] [--no-cli] [--skip-driver] [--skip-udev]
+Usage: $0 [--version <tag>] [--tag <tag>] [--no-cli] [--skip-driver]
 
 Installs Excalibur Control Center from GitHub Releases, then installs the
 casper-wmi driver and udev permissions from a temporary repo checkout.
@@ -27,8 +26,7 @@ Options:
   --version <tag>     Install binaries from a specific GitHub release tag.
   --tag <tag>         Alias for --version.
   --no-cli            Do not install the CLI binary.
-  --skip-driver       Do not install the casper-wmi DKMS driver.
-  --skip-udev         Do not install udev rules and permission helper.
+  --skip-driver       Do not install the casper-wmi DKMS driver or udev rules.
   -h, --help          Show this help.
 
 EOF
@@ -51,10 +49,6 @@ parse_args() {
         ;;
       --skip-driver)
         SKIP_DRIVER=1
-        shift
-        ;;
-      --skip-udev)
-        SKIP_UDEV=1
         shift
         ;;
       -h|--help)
@@ -149,10 +143,6 @@ run_local_installer() {
 
   if [ "$SKIP_DRIVER" = "1" ]; then
     args+=(--skip-driver)
-  fi
-
-  if [ "$SKIP_UDEV" = "1" ]; then
-    args+=(--skip-udev)
   fi
 
   "$installer" "${args[@]}"

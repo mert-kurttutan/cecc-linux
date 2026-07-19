@@ -2,17 +2,15 @@
 set -euo pipefail
 
 SKIP_DRIVER=0
-SKIP_UDEV=0
 
 usage() {
   cat <<EOF
-Usage: $0 [--skip-driver] [--skip-udev]
+Usage: $0 [--skip-driver]
 
 Installs the local casper-wmi DKMS driver and udev permission rules.
 
 Options:
-  --skip-driver       Do not install the casper-wmi DKMS driver.
-  --skip-udev         Do not install udev rules and permission helper.
+  --skip-driver       Do not install the casper-wmi DKMS driver or udev rules.
   -h, --help          Show this help.
 EOF
 }
@@ -22,10 +20,6 @@ parse_args() {
     case "$1" in
       --skip-driver)
         SKIP_DRIVER=1
-        shift
-        ;;
-      --skip-udev)
-        SKIP_UDEV=1
         shift
         ;;
       -h|--help)
@@ -63,15 +57,11 @@ main() {
   script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
   if [ "$SKIP_DRIVER" = "1" ]; then
-    echo "Skipping driver installation."
+    echo "Skipping driver and udev rule installation."
   else
     echo "Installing casper-wmi driver..."
     sudo_cmd "$script_dir/install.sh"
-  fi
 
-  if [ "$SKIP_UDEV" = "1" ]; then
-    echo "Skipping udev rule installation."
-  else
     echo "Installing udev rules and permission helper..."
     sudo_cmd "$script_dir/install-udev-rules.sh"
   fi

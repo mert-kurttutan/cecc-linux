@@ -80,8 +80,7 @@ export def install-casper-driver [] {
     }
   }
 
-  let script_dir = ($env.FILE_PWD? | default (pwd))
-  let repo_root = ($script_dir | path join ".." "..")
+  let repo_root = ($env.FILE_PWD | path join ".." "..")
   let driver_source_dir = ($repo_root | path join "casper-wmi")
   let src_dir = $"/usr/src/($DRIVER_NAME)-($DRIVER_VERSION)"
 

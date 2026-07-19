@@ -17,10 +17,9 @@ export def install-excalibur-udev-rules [] {
     }
   }
 
-  let script_dir = ($env.FILE_PWD? | default (pwd))
-  let repo_root = ($script_dir | path join ".." "..")
+  let repo_root = ($env.FILE_PWD | path join ".." "..")
   let rule_source = ($repo_root | path join "casper-wmi" $RULE_NAME)
-  let helper_source = ($script_dir | path join "udev-permissions.nu")
+  let helper_source = ($env.FILE_PWD | path join "udev-permissions.nu")
   let helper_target = ($HELPER_DIR | path join $HELPER_NAME)
   let rule_target = ($RULE_DIR | path join $RULE_NAME)
 

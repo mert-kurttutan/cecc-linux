@@ -64,15 +64,11 @@ def install-file [source: string, target: string] {
   }
 }
 
-def local-installer-args [--skip-driver --skip-udev] {
+def local-installer-args [--skip-driver] {
   mut args = []
 
   if $skip_driver {
     $args = ($args | append "--skip-driver")
-  }
-
-  if $skip_udev {
-    $args = ($args | append "--skip-udev")
   }
 
   $args
@@ -148,7 +144,6 @@ export def install-excalibur-remote [
   --tag: string = ""
   --no-cli
   --skip-driver
-  --skip-udev
 ] {
   need-command git
 
@@ -191,8 +186,8 @@ export def install-excalibur-remote [
       }
     }
 
-    let args = (local-installer-args --skip-driver=$skip_driver --skip-udev=$skip_udev)
-    let needs_root = not ($skip_driver and $skip_udev)
+    let args = (local-installer-args --skip-driver=$skip_driver)
+    let needs_root = not $skip_driver
     run-local-installer $installer_path $args --needs-root=$needs_root
 
     download-release-binaries $GITHUB_REPO $release_tag $GUI_BIN_NAME $CLI_BIN_NAME $install_cli $download_dir
@@ -216,7 +211,6 @@ def main [
   --tag: string = ""
   --no-cli
   --skip-driver
-  --skip-udev
 ] {
-  install-excalibur-remote --version $version --tag $tag --no-cli=$no_cli --skip-driver=$skip_driver --skip-udev=$skip_udev
+  install-excalibur-remote --version $version --tag $tag --no-cli=$no_cli --skip-driver=$skip_driver
 }
