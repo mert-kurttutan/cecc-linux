@@ -39,11 +39,6 @@ def has-id [os: record, needle: string] {
 }
 
 def install-deps [] {
-  if (($env.CASPER_WMI_SKIP_DEPS? | default "0") == "1") {
-    print "Skipping dependency installation because CASPER_WMI_SKIP_DEPS=1"
-    return
-  }
-
   let os = (parse-os-release)
 
   if ($os | is-empty) {
@@ -73,8 +68,7 @@ def install-deps [] {
     ^zypper --non-interactive install dkms gcc make kmod kernel-devel kernel-default-devel
   } else {
     print $"Unsupported distro: ($pretty_name)"
-    print "Install dkms, build tools, kmod, and matching kernel headers manually,"
-    print "then rerun with CASPER_WMI_SKIP_DEPS=1."
+    print "Install dkms, build tools, kmod, and matching kernel headers manually."
     exit 1
   }
 }
@@ -90,11 +84,7 @@ export def install-casper-driver [
 
   let script_dir = ($env.FILE_PWD? | default (pwd))
   let repo_root = ($script_dir | path join ".." ".." | path expand)
-  let driver_source_dir = if $driver_source_dir != "" {
-    $driver_source_dir
-  } else {
-    ($env.CASPER_WMI_SOURCE_DIR? | default ($repo_root | path join "casper-wmi"))
-  }
+  let driver_source_dir = if $driver_source_dir != "" { $driver_source_dir } else { ($repo_root | path join "casper-wmi") }
   let src_dir = $"/usr/src/($DRIVER_NAME)-($DRIVER_VERSION)"
 
   print $"Installing ($DRIVER_NAME) driver version ($DRIVER_VERSION)..."

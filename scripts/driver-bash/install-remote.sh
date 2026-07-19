@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PREFIX="${PREFIX:-/usr/local}"
-BIN_DIR="${BIN_DIR:-$PREFIX/bin}"
-
+BIN_DIR="/usr/local/bin"
 GUI_BIN_NAME="excalibur-control-center-gui"
 CLI_BIN_NAME="excalibur-control-center-cli"
-GITHUB_REPO="${EXCALIBUR_GITHUB_REPO:-mert-kurttutan/cecc-linux}"
-RELEASE_TAG="${EXCALIBUR_RELEASE_TAG:-latest}"
-GUI_RELEASE_ASSET="${EXCALIBUR_GUI_RELEASE_ASSET:-$GUI_BIN_NAME}"
-CLI_RELEASE_ASSET="${EXCALIBUR_CLI_RELEASE_ASSET:-$CLI_BIN_NAME}"
+GITHUB_REPO="mert-kurttutan/cecc-linux"
+RELEASE_TAG="latest"
 
-SKIP_DRIVER="${EXCALIBUR_SKIP_DRIVER:-0}"
-SKIP_UDEV="${EXCALIBUR_SKIP_UDEV:-0}"
-INSTALL_CLI="${EXCALIBUR_INSTALL_CLI:-1}"
+SKIP_DRIVER=0
+SKIP_UDEV=0
+INSTALL_CLI=1
 
 INSTALLER_PATH="scripts/driver-bash/install-full.sh"
 
@@ -35,14 +31,6 @@ Options:
   --skip-udev         Do not install udev rules and permission helper.
   -h, --help          Show this help.
 
-Environment:
-  EXCALIBUR_RELEASE_TAG=<tag>          Defaults to latest.
-  EXCALIBUR_GITHUB_REPO=owner/repo     Defaults to mert-kurttutan/cecc-linux.
-  EXCALIBUR_REPO_REF=<ref>             Ref to clone for driver/udev files.
-                                      Defaults to release tag, or main for latest.
-  EXCALIBUR_GUI_RELEASE_ASSET=<name>   Defaults to excalibur-control-center-gui.
-  EXCALIBUR_CLI_RELEASE_ASSET=<name>   Defaults to excalibur-control-center-cli.
-  PREFIX=/usr/local                    Installation prefix.
 EOF
 }
 
@@ -123,9 +111,7 @@ release_asset_url() {
 }
 
 clone_ref() {
-  if [ -n "${EXCALIBUR_REPO_REF:-}" ]; then
-    printf '%s\n' "$EXCALIBUR_REPO_REF"
-  elif [ "$RELEASE_TAG" = "latest" ]; then
+  if [ "$RELEASE_TAG" = "latest" ]; then
     printf 'main\n'
   else
     printf '%s\n' "$RELEASE_TAG"
@@ -142,7 +128,7 @@ prepare_repo_checkout() {
 
   echo "Cloning $GITHUB_REPO for local installer files..."
   if ! git clone --depth 1 --branch "$ref" "https://github.com/$GITHUB_REPO.git" "$repo_checkout_dir/cecc-linux"; then
-    if [ -n "${EXCALIBUR_REPO_REF:-}" ] || [ "$RELEASE_TAG" != "latest" ]; then
+    if [ "$RELEASE_TAG" != "latest" ]; then
       echo "Could not clone ref '$ref'. Falling back to main."
       git clone --depth 1 --branch main "https://github.com/$GITHUB_REPO.git" "$repo_checkout_dir/cecc-linux"
     else
@@ -176,7 +162,7 @@ download_release_binaries() {
   download_dir="$(mktemp -d)"
 
   local gui_url
-  gui_url="$(release_asset_url "$GUI_RELEASE_ASSET")"
+  gui_url="$(release_asset_url "$GUI_BIN_NAME")"
 
   echo "Downloading GUI binary from GitHub Releases..."
   echo "$gui_url"
@@ -185,7 +171,7 @@ download_release_binaries() {
 
   if [ "$INSTALL_CLI" = "1" ]; then
     local cli_url
-    cli_url="$(release_asset_url "$CLI_RELEASE_ASSET")"
+    cli_url="$(release_asset_url "$CLI_BIN_NAME")"
 
     echo "Downloading CLI binary from GitHub Releases..."
     echo "$cli_url"

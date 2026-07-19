@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SKIP_DRIVER="${EXCALIBUR_SKIP_DRIVER:-0}"
-SKIP_UDEV="${EXCALIBUR_SKIP_UDEV:-0}"
+SKIP_DRIVER=0
+SKIP_UDEV=0
 
 usage() {
   cat <<EOF

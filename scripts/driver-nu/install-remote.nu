@@ -3,6 +3,8 @@
 const INSTALLER_PATH = "scripts/driver-nu/install-full.nu"
 const GUI_BIN_NAME = "excalibur-control-center-gui"
 const CLI_BIN_NAME = "excalibur-control-center-cli"
+const GITHUB_REPO = "mert-kurttutan/cecc-linux"
+const BIN_DIR = "/usr/local/bin"
 
 def need-command [name: string] {
   if ((which $name) | is-empty) {
@@ -17,11 +19,7 @@ def is-root [] {
 }
 
 def clone-ref [release_tag: string] {
-  let explicit_ref = ($env.EXCALIBUR_REPO_REF? | default "")
-
-  if $explicit_ref != "" {
-    $explicit_ref
-  } else if $release_tag == "latest" {
+  if $release_tag == "latest" {
     "main"
   } else {
     $release_tag
@@ -154,22 +152,16 @@ export def install-excalibur-remote [
 ] {
   need-command git
 
-  let github_repo = ($env.EXCALIBUR_GITHUB_REPO? | default "mert-kurttutan/cecc-linux")
-  let prefix = ($env.PREFIX? | default "/usr/local")
-  let bin_dir = ($env.BIN_DIR? | default ($prefix | path join "bin"))
-  let env_release_tag = ($env.EXCALIBUR_RELEASE_TAG? | default "latest")
   let release_tag = if $version != "" {
     $version
   } else if $tag != "" {
     $tag
   } else {
-    $env_release_tag
+    "latest"
   }
-  let gui_release_asset = ($env.EXCALIBUR_GUI_RELEASE_ASSET? | default $GUI_BIN_NAME)
-  let cli_release_asset = ($env.EXCALIBUR_CLI_RELEASE_ASSET? | default $CLI_BIN_NAME)
-  let install_cli = not ($no_cli or (($env.EXCALIBUR_INSTALL_CLI? | default "1") == "0"))
+  let install_cli = not $no_cli
   let ref = (clone-ref $release_tag)
-  let repo_url = $"https://github.com/($github_repo).git"
+  let repo_url = $"https://github.com/($GITHUB_REPO).git"
   let tmp_dir = (^mktemp -d | str trim)
   let download_dir = (^mktemp -d | str trim)
 
@@ -177,16 +169,16 @@ export def install-excalibur-remote [
     let checkout_dir = ($tmp_dir | path join "cecc-linux")
     let installer_path = ($checkout_dir | path join $INSTALLER_PATH)
 
-    print $"Cloning ($github_repo) for local installer files..."
+    print $"Cloning ($GITHUB_REPO) for local installer files..."
     let clone_result = (^git clone --depth 1 --branch $ref $repo_url $checkout_dir | complete)
 
     if $clone_result.exit_code != 0 {
-      if (($env.EXCALIBUR_REPO_REF? | default "") != "") or ($release_tag != "latest") {
+      if $release_tag != "latest" {
         print $"Could not clone ref '($ref)'. Falling back to main."
         ^git clone --depth 1 --branch main $repo_url $checkout_dir
       } else {
         error make {
-          msg: $"Could not clone ($github_repo)"
+          msg: $"Could not clone ($GITHUB_REPO)"
           help: ($clone_result.stderr | str trim)
         }
       }
@@ -203,11 +195,11 @@ export def install-excalibur-remote [
     let needs_root = not ($skip_driver and $skip_udev)
     run-local-installer $installer_path $args --needs-root=$needs_root
 
-    download-release-binaries $github_repo $release_tag $gui_release_asset $cli_release_asset $install_cli $download_dir
-    install-app-binaries $download_dir $bin_dir $install_cli
+    download-release-binaries $GITHUB_REPO $release_tag $GUI_BIN_NAME $CLI_BIN_NAME $install_cli $download_dir
+    install-app-binaries $download_dir $BIN_DIR $install_cli
 
     print "Installation complete."
-    print $"Run: (($bin_dir | path join $GUI_BIN_NAME))"
+    print $"Run: (($BIN_DIR | path join $GUI_BIN_NAME))"
   } catch {|err|
     ^rm -rf $tmp_dir $download_dir
     error make {

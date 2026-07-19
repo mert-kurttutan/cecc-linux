@@ -11,7 +11,7 @@ DRIVER_VERSION="0.1"
 SRC_DIR="/usr/src/$DRIVER_NAME-$DRIVER_VERSION"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
-DRIVER_SOURCE_DIR="${CASPER_WMI_SOURCE_DIR:-$REPO_ROOT/casper-wmi}"
+DRIVER_SOURCE_DIR="$REPO_ROOT/casper-wmi"
 REQUIRED_FILES=(
   "casper-wmi.c"
   "casper-gpu-mode.c"
@@ -25,11 +25,6 @@ has_id() {
 }
 
 install_deps() {
-  if [ "${CASPER_WMI_SKIP_DEPS:-0}" = "1" ]; then
-    echo "Skipping dependency installation because CASPER_WMI_SKIP_DEPS=1"
-    return
-  fi
-
   if [ -r /etc/os-release ]; then
     # shellcheck disable=SC1091
     . /etc/os-release
@@ -58,8 +53,7 @@ install_deps() {
     zypper --non-interactive install dkms gcc make kmod kernel-devel kernel-default-devel
   else
     echo "Unsupported distro: ${PRETTY_NAME:-unknown}"
-    echo "Install dkms, build tools, kmod, and matching kernel headers manually,"
-    echo "then rerun with CASPER_WMI_SKIP_DEPS=1."
+    echo "Install dkms, build tools, kmod, and matching kernel headers manually."
     exit 1
   fi
 }

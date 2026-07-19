@@ -11,8 +11,6 @@ export def install-excalibur-full [
   --skip-driver
   --skip-udev
 ] {
-  let skip_driver = $skip_driver or (($env.EXCALIBUR_SKIP_DRIVER? | default "0") == "1")
-  let skip_udev = $skip_udev or (($env.EXCALIBUR_SKIP_UDEV? | default "0") == "1")
   let script_dir = ($env.FILE_PWD? | default (pwd))
   let repo_root = ($script_dir | path join ".." ".." | path expand)
   let driver_source_dir = ($repo_root | path join "casper-wmi")
