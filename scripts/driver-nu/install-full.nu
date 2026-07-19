@@ -11,10 +11,6 @@ export def install-excalibur-full [
   --skip-driver
   --skip-udev
 ] {
-  let script_dir = ($env.FILE_PWD? | default (pwd))
-  let repo_root = ($script_dir | path join ".." ".." | path expand)
-  let driver_source_dir = ($repo_root | path join "casper-wmi")
-
   if (not (is-root)) and (not ($skip_driver and $skip_udev)) {
     error make {
       msg: "Please run as root when installing the driver or udev rules."
@@ -26,7 +22,7 @@ export def install-excalibur-full [
     print "Skipping driver installation."
   } else {
     print "Installing casper-wmi driver..."
-    install-casper-driver --driver-source-dir $driver_source_dir
+    install-casper-driver
   }
 
   if $skip_udev {
