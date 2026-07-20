@@ -6,6 +6,15 @@ GUI_BIN_NAME="excalibur-control-center-gui"
 CLI_BIN_NAME="excalibur-control-center-cli"
 GITHUB_REPO="mert-kurttutan/cecc-linux"
 RELEASE_TAG="latest"
+DEPENDENCY_HELP="Install curl, tar, dkms, build tools, kmod, and matching kernel headers manually."
+DEPS_UBUNTU=(curl tar dkms build-essential kmod)
+DEPS_DEBIAN=(curl tar dkms build-essential kmod)
+DEPS_FEDORA=(curl tar dkms gcc make kmod kernel-devel kernel-headers)
+DEPS_RHEL=(curl tar dkms gcc make kmod kernel-devel kernel-headers)
+DEPS_CENTOS=(curl tar dkms gcc make kmod kernel-devel kernel-headers)
+DEPS_ARCH=(curl tar dkms base-devel kmod linux-headers)
+DEPS_OPENSUSE=(curl tar dkms gcc make kmod kernel-devel kernel-default-devel)
+DEPS_SUSE=(curl tar dkms gcc make kmod kernel-devel kernel-default-devel)
 
 SKIP_DRIVER=0
 INSTALL_CLI=1
@@ -13,18 +22,18 @@ INSTALL_CLI=1
 INSTALLER_PATH="scripts/driver-bash/install-driver-stack.sh"
 
 download_dir=""
-repo_checkout_dir=""
+source_dir=""
+source_parent_dir=""
 
 usage() {
   cat <<EOF
-Usage: $0 [--version <tag>] [--tag <tag>] [--no-cli] [--skip-driver]
+Usage: $0 [--version <tag>] [--no-cli] [--skip-driver]
 
 Installs Excalibur Control Center from GitHub Releases, then installs the
 casper-wmi driver and udev permissions from a temporary repo checkout.
 
 Options:
   --version <tag>     Install binaries from a specific GitHub release tag.
-  --tag <tag>         Alias for --version.
   --no-cli            Do not install the CLI binary.
   --skip-driver       Do not install the casper-wmi DKMS driver or udev rules.
   -h, --help          Show this help.
@@ -35,7 +44,7 @@ EOF
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
-      --version|--tag)
+      --version)
         if [ "$#" -lt 2 ]; then
           echo "Missing value for $1"
           exit 1
@@ -80,65 +89,157 @@ sudo_cmd() {
   fi
 }
 
+has_id() {
+  local needle="$1"
+  [ "${ID:-}" = "$needle" ] || [[ " ${ID_LIKE:-} " == *" $needle "* ]]
+}
+
+detect_distro() {
+  if [ -r /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+  else
+    echo "Cannot detect distro: /etc/os-release is missing"
+    echo "$DEPENDENCY_HELP"
+    exit 1
+  fi
+
+  if has_id ubuntu; then
+    printf 'ubuntu\n'
+  elif has_id debian; then
+    printf 'debian\n'
+  elif has_id fedora; then
+    printf 'fedora\n'
+  elif has_id rhel; then
+    printf 'rhel\n'
+  elif has_id centos; then
+    printf 'centos\n'
+  elif has_id arch; then
+    printf 'arch\n'
+  elif has_id opensuse; then
+    printf 'opensuse\n'
+  elif has_id suse; then
+    printf 'suse\n'
+  elif has_id nixos; then
+    printf 'nixos\n'
+  else
+    echo "Unsupported distro: ${PRETTY_NAME:-unknown}"
+    echo "$DEPENDENCY_HELP"
+    exit 1
+  fi
+}
+
+install_deps() {
+  local distro
+  distro="$(detect_distro)"
+
+  echo "Checking/installing dependencies..."
+
+  case "$distro" in
+    ubuntu|debian)
+      sudo_cmd apt-get update
+      if [ "$distro" = "ubuntu" ]; then
+        sudo_cmd apt-get install -y "${DEPS_UBUNTU[@]}" "linux-headers-$(uname -r)"
+      else
+        sudo_cmd apt-get install -y "${DEPS_DEBIAN[@]}" "linux-headers-$(uname -r)"
+      fi
+      ;;
+    fedora)
+      sudo_cmd dnf install -y "${DEPS_FEDORA[@]}"
+      ;;
+    rhel)
+      sudo_cmd dnf install -y "${DEPS_RHEL[@]}"
+      ;;
+    centos)
+      sudo_cmd dnf install -y "${DEPS_CENTOS[@]}"
+      ;;
+    arch)
+      sudo_cmd pacman -S --needed --noconfirm "${DEPS_ARCH[@]}"
+      ;;
+    opensuse)
+      sudo_cmd zypper --non-interactive install "${DEPS_OPENSUSE[@]}"
+      ;;
+    suse)
+      sudo_cmd zypper --non-interactive install "${DEPS_SUSE[@]}"
+      ;;
+    nixos)
+      echo "NixOS is not supported by this installer."
+      echo "Use the repo dev shell for testing or package the module through NixOS."
+      exit 1
+      ;;
+  esac
+}
+
 download_file() {
   local url="$1"
   local output="$2"
 
-  if command -v curl >/dev/null 2>&1; then
-    curl -fL "$url" -o "$output"
-  elif command -v wget >/dev/null 2>&1; then
-    wget -O "$output" "$url"
-  else
-    echo "Missing downloader: install curl or wget"
-    exit 1
-  fi
+  curl -fL "$url" -o "$output"
 }
 
 release_asset_url() {
   local asset="$1"
 
+  printf 'https://github.com/%s/releases/download/%s/%s\n' "$GITHUB_REPO" "$RELEASE_TAG" "$asset"
+}
+
+source_archive_url() {
+  printf 'https://github.com/%s/archive/refs/tags/%s.tar.gz\n' "$GITHUB_REPO" "$RELEASE_TAG"
+}
+
+resolve_latest_tag() {
+  local response tag
+
+  response="$(curl -fsSL "https://api.github.com/repos/$GITHUB_REPO/releases/latest")" || {
+    echo "Could not resolve latest GitHub release tag"
+    exit 1
+  }
+  tag="$(printf '%s\n' "$response" | sed -n 's/^[[:space:]]*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+
+  if [ -z "$tag" ]; then
+    echo "Could not resolve latest GitHub release tag"
+    exit 1
+  fi
+
+  printf '%s\n' "$tag"
+}
+
+resolve_release_tag() {
   if [ "$RELEASE_TAG" = "latest" ]; then
-    printf 'https://github.com/%s/releases/latest/download/%s\n' "$GITHUB_REPO" "$asset"
-  else
-    printf 'https://github.com/%s/releases/download/%s/%s\n' "$GITHUB_REPO" "$RELEASE_TAG" "$asset"
+    echo "Resolving latest GitHub release tag..."
+    RELEASE_TAG="$(resolve_latest_tag)"
   fi
 }
 
-clone_ref() {
-  if [ "$RELEASE_TAG" = "latest" ]; then
-    printf 'main\n'
-  else
-    printf '%s\n' "$RELEASE_TAG"
-  fi
-}
+extract_source_archive() {
+  local output_dir="$1"
+  local archive="$output_dir/source.tar.gz"
+  local archive_url
+  archive_url="$(source_archive_url)"
 
-prepare_repo_checkout() {
-  need_command git
+  echo "Downloading source archive for $RELEASE_TAG..."
+  echo "$archive_url"
+  download_file "$archive_url" "$archive"
 
-  local ref
-  ref="$(clone_ref)"
+  echo "Extracting source archive..."
+  tar -xzf "$archive" -C "$output_dir"
 
-  repo_checkout_dir="$(mktemp -d)"
-
-  echo "Cloning $GITHUB_REPO for local installer files..."
-  if ! git clone --depth 1 --branch "$ref" "https://github.com/$GITHUB_REPO.git" "$repo_checkout_dir/cecc-linux"; then
-    if [ "$RELEASE_TAG" != "latest" ]; then
-      echo "Could not clone ref '$ref'. Falling back to main."
-      git clone --depth 1 --branch main "https://github.com/$GITHUB_REPO.git" "$repo_checkout_dir/cecc-linux"
-    else
-      exit 1
-    fi
+  source_dir="$(find "$output_dir" -mindepth 1 -maxdepth 1 -type d -name 'cecc-linux-*' | head -n 1)"
+  if [ -z "$source_dir" ]; then
+    echo "Could not locate extracted release source directory"
+    echo "Checked: $output_dir"
+    exit 1
   fi
 
-  if [ ! -x "$repo_checkout_dir/cecc-linux/$INSTALLER_PATH" ]; then
-    echo "Could not locate Bash local installer in cloned release source"
-    echo "Checked: $repo_checkout_dir/cecc-linux/$INSTALLER_PATH"
+  if [ ! -x "$source_dir/$INSTALLER_PATH" ]; then
+    echo "Could not locate Bash local installer in release source"
+    echo "Checked: $source_dir/$INSTALLER_PATH"
     exit 1
   fi
 }
 
 run_local_installer() {
-  local installer="$repo_checkout_dir/cecc-linux/$INSTALLER_PATH"
+  local installer="$source_dir/$INSTALLER_PATH"
 
   if [ "$SKIP_DRIVER" = "1" ]; then
     echo "Skipping driver and udev rule installation."
@@ -193,9 +294,13 @@ install_app_binaries() {
 }
 
 main() {
-  trap 'rm -rf "$download_dir" "$repo_checkout_dir"' EXIT
+  trap 'rm -rf "$download_dir" "$source_parent_dir"' EXIT
   parse_args "$@"
-  prepare_repo_checkout
+  install_deps
+  resolve_release_tag
+
+  source_parent_dir="$(mktemp -d)"
+  extract_source_archive "$source_parent_dir"
   run_local_installer
   download_release_binaries
   install_app_binaries

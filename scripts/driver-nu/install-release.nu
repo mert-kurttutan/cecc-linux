@@ -5,52 +5,189 @@ const GUI_BIN_NAME = "excalibur-control-center-gui"
 const CLI_BIN_NAME = "excalibur-control-center-cli"
 const GITHUB_REPO = "mert-kurttutan/cecc-linux"
 const BIN_DIR = "/usr/local/bin"
-
-def need-command [name: string] {
-  if ((which $name) | is-empty) {
-    error make {
-      msg: $"Missing required command: ($name)"
-    }
-  }
+const DEPENDENCIES = {
+  ubuntu: [curl tar dkms build-essential kmod]
+  debian: [curl tar dkms build-essential kmod]
+  fedora: [curl tar dkms gcc make kmod kernel-devel kernel-headers]
+  rhel: [curl tar dkms gcc make kmod kernel-devel kernel-headers]
+  centos: [curl tar dkms gcc make kmod kernel-devel kernel-headers]
+  arch: [curl tar dkms base-devel kmod linux-headers]
+  opensuse: [curl tar dkms gcc make kmod kernel-devel kernel-default-devel]
+  suse: [curl tar dkms gcc make kmod kernel-devel kernel-default-devel]
 }
 
 def is-root [] {
   ((^id -u | str trim) == "0")
 }
 
-def clone-ref [release_tag: string] {
-  if $release_tag == "latest" {
-    "main"
+def run-root [command: list<string>] {
+  if (is-root) {
+    ^($command.0) ...($command | skip 1)
   } else {
-    $release_tag
+    ^sudo ...$command
   }
 }
 
-def release-asset-url [github_repo: string, release_tag: string, asset: string] {
-  if $release_tag == "latest" {
-    $"https://github.com/($github_repo)/releases/latest/download/($asset)"
-  } else {
-    $"https://github.com/($github_repo)/releases/download/($release_tag)/($asset)"
+export def parse-os-release [] {
+  if not ("/etc/os-release" | path exists) {
+    return {}
   }
+
+  open --raw /etc/os-release
+  | lines
+  | where {|line| ($line | str trim) != "" and not ($line | str starts-with "#") }
+  | parse --regex '^(?P<key>[A-Za-z0-9_]+)=(?P<value>.*)$'
+  | update value {|row|
+      $row.value
+      | str trim
+      | str replace --regex '^"' ''
+      | str replace --regex '"$' ''
+    }
+  | reduce --fold {} {|row, acc| $acc | insert $row.key $row.value }
+}
+
+export def detect-distro [
+  os: record
+  manual_help: string = "Install curl and tar manually."
+] {
+  if ($os | is-empty) {
+    error make {
+      msg: "Cannot detect distro: /etc/os-release is missing"
+      help: $manual_help
+    }
+  }
+
+  let id = ($os.ID? | default "")
+  let id_like = ($os.ID_LIKE? | default "")
+  let candidates = [ubuntu debian fedora arch rhel centos opensuse suse nixos]
+
+  for distro in $candidates {
+    if $id == $distro {
+      return $distro
+    }
+  }
+
+  for distro in $candidates {
+    if (($id_like | split row " ") | any {|entry| $entry == $distro }) {
+      return $distro
+    }
+  }
+
+  error make {
+    msg: $"Unsupported distro: (($os.PRETTY_NAME? | default "unknown"))"
+    help: $manual_help
+  }
+}
+
+def install-deps [] {
+  let os = (parse-os-release)
+  let distro = (detect-distro $os)
+  let pretty_name = ($os.PRETTY_NAME? | default "Linux")
+
+  print $"Checking/installing dependencies for ($pretty_name)..."
+
+  match $distro {
+    "ubuntu" | "debian" => {
+      run-root [apt-get update]
+      let packages = (($DEPENDENCIES | get $distro) | append $"linux-headers-(^uname -r | str trim)")
+      run-root ([apt-get install -y] | append $packages)
+    }
+    "fedora" | "rhel" | "centos" => {
+      run-root ([dnf install -y] | append ($DEPENDENCIES | get $distro))
+    }
+    "arch" => {
+      run-root ([pacman -S --needed --noconfirm] | append ($DEPENDENCIES | get $distro))
+    }
+    "opensuse" | "suse" => {
+      run-root ([zypper --non-interactive install] | append ($DEPENDENCIES | get $distro))
+    }
+    "nixos" => {
+      error make {
+        msg: "NixOS is not supported by this installer."
+        help: "Use the repo dev shell for testing or package the module through NixOS."
+      }
+    }
+  }
+}
+
+def release-asset-url [release_tag: string, asset: string] {
+  $"https://github.com/($GITHUB_REPO)/releases/download/($release_tag)/($asset)"
+}
+
+def source-archive-url [release_tag: string] {
+  $"https://github.com/($GITHUB_REPO)/archive/refs/tags/($release_tag).tar.gz"
 }
 
 def download-file [url: string, output: string] {
-  if not ((which curl) | is-empty) {
-    ^curl -fL $url -o $output
-  } else if not ((which wget) | is-empty) {
-    ^wget -O $output $url
-  } else {
+  ^curl -fL $url -o $output
+}
+
+def resolve-latest-tag [] {
+  let url = $"https://api.github.com/repos/($GITHUB_REPO)/releases/latest"
+  let response = (^curl -fsSL $url | complete)
+
+  if $response.exit_code != 0 {
     error make {
-      msg: "Missing downloader: install curl or wget"
+      msg: "Could not resolve latest GitHub release tag"
+      help: ($response.stderr | str trim)
     }
   }
+
+  let release = ($response.stdout | from json)
+  let tag = ($release.tag_name? | default "")
+
+  if $tag == "" {
+    error make {
+      msg: "Could not resolve latest GitHub release tag"
+    }
+  }
+
+  $tag
+}
+
+def resolve-release-tag [version: string] {
+  if $version != "" {
+    return $version
+  }
+
+  print "Resolving latest GitHub release tag..."
+  resolve-latest-tag
+}
+
+def extract-source-archive [
+  release_tag: string
+  output_dir: string
+] {
+  let archive = ($output_dir | path join "source.tar.gz")
+  let archive_url = (source-archive-url $release_tag)
+
+  print $"Downloading source archive for ($release_tag)..."
+  print $archive_url
+  download-file $archive_url $archive
+
+  print "Extracting source archive..."
+  ^tar -xzf $archive -C $output_dir
+
+  let extracted = (
+    ls $output_dir
+    | where {|entry| $entry.type == dir and ($entry.name | path basename | str starts-with "cecc-linux-") }
+    | get name
+  )
+
+  if ($extracted | is-empty) {
+    error make {
+      msg: "Could not locate extracted release source directory"
+      help: $"Checked ($output_dir)"
+    }
+  }
+
+  $extracted.0
 }
 
 def install-dir [bin_dir: string] {
   if (is-root) {
     ^install -d -m 0755 $bin_dir
   } else {
-    need-command sudo
     ^sudo install -d -m 0755 $bin_dir
   }
 }
@@ -59,20 +196,16 @@ def install-file [source: string, target: string] {
   if (is-root) {
     ^install -m 0755 $source $target
   } else {
-    need-command sudo
     ^sudo install -m 0755 $source $target
   }
 }
 
 def download-release-binaries [
-  github_repo: string
   release_tag: string
-  gui_release_asset: string
-  cli_release_asset: string
   install_cli: bool
   download_dir: string
 ] {
-  let gui_url = (release-asset-url $github_repo $release_tag $gui_release_asset)
+  let gui_url = (release-asset-url $release_tag $GUI_BIN_NAME)
   let gui_output = ($download_dir | path join $GUI_BIN_NAME)
 
   print "Downloading GUI binary from GitHub Releases..."
@@ -81,7 +214,7 @@ def download-release-binaries [
   ^chmod 0755 $gui_output
 
   if $install_cli {
-    let cli_url = (release-asset-url $github_repo $release_tag $cli_release_asset)
+    let cli_url = (release-asset-url $release_tag $CLI_BIN_NAME)
     let cli_output = ($download_dir | path join $CLI_BIN_NAME)
 
     print "Downloading CLI binary from GitHub Releases..."
@@ -123,54 +256,27 @@ def run-local-installer [
   if (is-root) or (not $needs_root) {
     ^nu $installer_path
   } else {
-    need-command sudo
     ^sudo nu $installer_path
   }
 }
 
 export def install-excalibur-release [
   --version: string = ""
-  --tag: string = ""
   --no-cli
   --skip-driver
 ] {
-  need-command git
-
-  let release_tag = if $version != "" {
-    $version
-  } else if $tag != "" {
-    $tag
-  } else {
-    "latest"
-  }
+  let release_tag = (resolve-release-tag $version)
   let install_cli = not $no_cli
-  let ref = (clone-ref $release_tag)
-  let repo_url = $"https://github.com/($GITHUB_REPO).git"
   let tmp_dir = (^mktemp -d | str trim)
   let download_dir = (^mktemp -d | str trim)
 
   try {
-    let checkout_dir = ($tmp_dir | path join "cecc-linux")
+    let checkout_dir = (extract-source-archive $release_tag $tmp_dir)
     let installer_path = ($checkout_dir | path join $INSTALLER_PATH)
-
-    print $"Cloning ($GITHUB_REPO) for local installer files..."
-    let clone_result = (^git clone --depth 1 --branch $ref $repo_url $checkout_dir | complete)
-
-    if $clone_result.exit_code != 0 {
-      if $release_tag != "latest" {
-        print $"Could not clone ref '($ref)'. Falling back to main."
-        ^git clone --depth 1 --branch main $repo_url $checkout_dir
-      } else {
-        error make {
-          msg: $"Could not clone ($GITHUB_REPO)"
-          help: ($clone_result.stderr | str trim)
-        }
-      }
-    }
 
     if not ($installer_path | path exists) {
       error make {
-        msg: "Could not locate Nushell local installer in cloned release source"
+        msg: "Could not locate Nushell local installer in release source"
         help: $"Checked ($installer_path)"
       }
     }
@@ -181,7 +287,7 @@ export def install-excalibur-release [
       run-local-installer $installer_path --needs-root
     }
 
-    download-release-binaries $GITHUB_REPO $release_tag $GUI_BIN_NAME $CLI_BIN_NAME $install_cli $download_dir
+    download-release-binaries $release_tag $install_cli $download_dir
     install-app-binaries $download_dir $BIN_DIR $install_cli
 
     print "Installation complete."
@@ -199,9 +305,9 @@ export def install-excalibur-release [
 
 def main [
   --version: string = ""
-  --tag: string = ""
   --no-cli
   --skip-driver
 ] {
-  install-excalibur-release --version $version --tag $tag --no-cli=$no_cli --skip-driver=$skip_driver
+  install-deps
+  install-excalibur-release --version $version --no-cli=$no_cli --skip-driver=$skip_driver
 }
