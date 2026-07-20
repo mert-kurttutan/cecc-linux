@@ -8,28 +8,22 @@ def is-root [] {
 }
 
 export def install-excalibur-driver-stack [
-  --skip-driver
 ] {
-  if (not (is-root)) and (not $skip_driver) {
+  if not (is-root) {
     error make {
       msg: "Please run as root when installing the driver or udev rules."
-      help: "Use sudo nu scripts/driver-nu/install-driver-stack.nu, or pass --skip-driver."
+      help: "Use sudo nu scripts/driver-nu/install-driver-stack.nu."
     }
   }
 
-  if $skip_driver {
-    print "Skipping driver and udev rule installation."
-  } else {
-    print "Installing casper-wmi driver..."
-    install-casper-dkms-driver
+  print "Installing casper-wmi driver..."
+  install-casper-dkms-driver
 
-    print "Installing udev rules and permission helper..."
-    install-excalibur-permission-rules
-  }
+  print "Installing udev rules and permission helper..."
+  install-excalibur-permission-rules
 }
 
 def main [
-  --skip-driver
 ] {
-  install-excalibur-driver-stack --skip-driver=$skip_driver
+  install-excalibur-driver-stack
 }

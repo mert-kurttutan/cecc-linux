@@ -13,41 +13,33 @@ apply_file() {
   chmod g+rw "$path" 2>/dev/null || true
 }
 
-apply_led() {
-  local led_name="$1"
-
-  case "$led_name" in
-    casper:rgb:*) ;;
-    *) return 0 ;;
-  esac
-
-  apply_file "$LED_ROOT/$led_name/brightness"
-  apply_file "$LED_ROOT/$led_name/multi_intensity"
-}
-
 apply_all_leds() {
-  local led_path
+  local led_path led_name
 
   for led_path in "$LED_ROOT"/casper:rgb:*; do
     [ -e "$led_path" ] || continue
-    apply_led "$(basename "$led_path")"
+    led_name="$(basename "$led_path")"
+    apply_file "$LED_ROOT/$led_name/brightness"
+    apply_file "$LED_ROOT/$led_name/multi_intensity"
   done
-}
-
-apply_module() {
-  apply_file "$GPU_MODE_PATH"
 }
 
 case "${1:-all}" in
   leds)
-    apply_led "${2:-}"
+    led_name="${2:-}"
+    case "$led_name" in
+      casper:rgb:*)
+        apply_file "$LED_ROOT/$led_name/brightness"
+        apply_file "$LED_ROOT/$led_name/multi_intensity"
+        ;;
+    esac
     ;;
   module)
-    apply_module
+    apply_file "$GPU_MODE_PATH"
     ;;
   all)
     apply_all_leds
-    apply_module
+    apply_file "$GPU_MODE_PATH"
     ;;
   *)
     echo "usage: $0 [all|leds <name>|module]" >&2

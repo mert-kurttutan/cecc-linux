@@ -43,7 +43,6 @@ export def install-excalibur-permission-rules [] {
   do -i { ^$helper_target all }
 
   print "Installed udev rules."
-  print $"Add users with: sudo usermod -aG ($GROUP) <username>"
   print "Users must log out and back in for group membership to apply."
 }
 

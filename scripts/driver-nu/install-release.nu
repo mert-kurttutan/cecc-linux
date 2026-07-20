@@ -64,16 +64,6 @@ def install-file [source: string, target: string] {
   }
 }
 
-def local-installer-args [--skip-driver] {
-  mut args = []
-
-  if $skip_driver {
-    $args = ($args | append "--skip-driver")
-  }
-
-  $args
-}
-
 def download-release-binaries [
   github_repo: string
   release_tag: string
@@ -128,14 +118,13 @@ def install-app-binaries [download_dir: string, bin_dir: string, install_cli: bo
 
 def run-local-installer [
   installer_path: string
-  args: list<string>
   --needs-root
 ] {
   if (is-root) or (not $needs_root) {
-    ^nu $installer_path ...$args
+    ^nu $installer_path
   } else {
     need-command sudo
-    ^sudo nu $installer_path ...$args
+    ^sudo nu $installer_path
   }
 }
 
@@ -186,9 +175,11 @@ export def install-excalibur-release [
       }
     }
 
-    let args = (local-installer-args --skip-driver=$skip_driver)
-    let needs_root = not $skip_driver
-    run-local-installer $installer_path $args --needs-root=$needs_root
+    if $skip_driver {
+      print "Skipping driver and udev rule installation."
+    } else {
+      run-local-installer $installer_path --needs-root
+    }
 
     download-release-binaries $GITHUB_REPO $release_tag $GUI_BIN_NAME $CLI_BIN_NAME $install_cli $download_dir
     install-app-binaries $download_dir $BIN_DIR $install_cli

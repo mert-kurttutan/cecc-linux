@@ -139,13 +139,12 @@ prepare_repo_checkout() {
 
 run_local_installer() {
   local installer="$repo_checkout_dir/cecc-linux/$INSTALLER_PATH"
-  local args=()
 
   if [ "$SKIP_DRIVER" = "1" ]; then
-    args+=(--skip-driver)
+    echo "Skipping driver and udev rule installation."
+  else
+    sudo_cmd "$installer"
   fi
-
-  "$installer" "${args[@]}"
 }
 
 download_release_binaries() {

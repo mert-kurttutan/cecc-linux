@@ -36,5 +36,4 @@ udevadm trigger --subsystem-match=module --action=change >/dev/null 2>&1 || true
 "$HELPER_DIR/$HELPER_NAME" all || true
 
 echo "Installed udev rules."
-echo "Add users with: sudo usermod -aG $GROUP <username>"
 echo "Users must log out and back in for group membership to apply."

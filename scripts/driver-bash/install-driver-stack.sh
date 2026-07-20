@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SKIP_DRIVER=0
-
 usage() {
   cat <<EOF
-Usage: $0 [--skip-driver]
+Usage: $0
 
 Installs the local casper-wmi DKMS driver and udev permission rules.
 
 Options:
-  --skip-driver       Do not install the casper-wmi DKMS driver or udev rules.
   -h, --help          Show this help.
 EOF
 }
@@ -18,10 +15,6 @@ EOF
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
-      --skip-driver)
-        SKIP_DRIVER=1
-        shift
-        ;;
       -h|--help)
         usage
         exit 0
@@ -42,29 +35,22 @@ need_command() {
   fi
 }
 
-sudo_cmd() {
-  if [ "$EUID" -eq 0 ]; then
-    "$@"
-  else
-    need_command sudo
-    sudo "$@"
-  fi
-}
-
 main() {
   parse_args "$@"
 
+  if [ "$EUID" -ne 0 ]; then
+    echo "Please run as root when installing the driver or udev rules."
+    echo "Use sudo scripts/driver-bash/install-driver-stack.sh."
+    exit 1
+  fi
+
   script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-  if [ "$SKIP_DRIVER" = "1" ]; then
-    echo "Skipping driver and udev rule installation."
-  else
-    echo "Installing casper-wmi driver..."
-    sudo_cmd "$script_dir/install-dkms-driver.sh"
+  echo "Installing casper-wmi driver..."
+  "$script_dir/install-dkms-driver.sh"
 
-    echo "Installing udev rules and permission helper..."
-    sudo_cmd "$script_dir/install-permission-rules.sh"
-  fi
+  echo "Installing udev rules and permission helper..."
+  "$script_dir/install-permission-rules.sh"
 }
 
 main "$@"

@@ -31,45 +31,64 @@ def parse-os-release [] {
   | reduce --fold {} {|row, acc| $acc | insert $row.key $row.value }
 }
 
-def has-id [os: record, needle: string] {
+def detect-distro [os: record] {
+  if ($os | is-empty) {
+    error make {
+      msg: "Cannot detect distro: /etc/os-release is missing"
+      help: "Install dkms, build tools, kmod, and matching kernel headers manually."
+    }
+  }
+
   let id = ($os.ID? | default "")
   let id_like = ($os.ID_LIKE? | default "")
+  let candidates = [ubuntu debian fedora arch rhel centos opensuse suse nixos]
 
-  ($id == $needle) or (($id_like | split row " ") | any {|entry| $entry == $needle })
+  for distro in $candidates {
+    if $id == $distro {
+      return $distro
+    }
+  }
+
+  for distro in $candidates {
+    if (($id_like | split row " ") | any {|entry| $entry == $distro }) {
+      return $distro
+    }
+  }
+
+  error make {
+    msg: $"Unsupported distro: (($os.PRETTY_NAME? | default "unknown"))"
+    help: "Install dkms, build tools, kmod, and matching kernel headers manually."
+  }
 }
 
 def install-deps [] {
   let os = (parse-os-release)
-
-  if ($os | is-empty) {
-    print "Cannot detect distro: /etc/os-release is missing"
-    print "Install dkms, build tools, kmod, and matching kernel headers manually."
-    return
-  }
-
+  let distro = (detect-distro $os)
   let pretty_name = ($os.PRETTY_NAME? | default "Linux")
+
   print $"Checking/installing build dependencies for ($pretty_name)..."
 
-  if (has-id $os "nixos") {
-    print "NixOS is not supported by this installer."
-    print "Use the repo dev shell for testing or package the module through NixOS."
-    exit 1
-  } else if (has-id $os "debian") or (has-id $os "ubuntu") {
-    let kernel = (^uname -r | str trim)
-    ^apt-get update
-    ^apt-get install -y dkms build-essential kmod $"linux-headers-($kernel)"
-  } else if (has-id $os "fedora") {
-    ^dnf install -y dkms gcc make kmod kernel-devel kernel-headers
-  } else if (has-id $os "rhel") or (has-id $os "centos") {
-    ^dnf install -y dkms gcc make kmod kernel-devel kernel-headers
-  } else if (has-id $os "arch") {
-    ^pacman -S --needed --noconfirm dkms base-devel kmod linux-headers
-  } else if (has-id $os "opensuse") or (has-id $os "suse") {
-    ^zypper --non-interactive install dkms gcc make kmod kernel-devel kernel-default-devel
-  } else {
-    print $"Unsupported distro: ($pretty_name)"
-    print "Install dkms, build tools, kmod, and matching kernel headers manually."
-    exit 1
+  match $distro {
+    "ubuntu" | "debian" => {
+      let kernel = (^uname -r | str trim)
+      ^apt-get update
+      ^apt-get install -y dkms build-essential kmod $"linux-headers-($kernel)"
+    }
+    "fedora" | "rhel" | "centos" => {
+      ^dnf install -y dkms gcc make kmod kernel-devel kernel-headers
+    }
+    "arch" => {
+      ^pacman -S --needed --noconfirm dkms base-devel kmod linux-headers
+    }
+    "opensuse" | "suse" => {
+      ^zypper --non-interactive install dkms gcc make kmod kernel-devel kernel-default-devel
+    }
+    "nixos" => {
+      error make {
+        msg: "NixOS is not supported by this installer."
+        help: "Use the repo dev shell for testing or package the module through NixOS."
+      }
+    }
   }
 }
 
