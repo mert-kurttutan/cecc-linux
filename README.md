@@ -14,26 +14,31 @@ Casper WMI driver work is based on and credits:
 For the default installation method use the following in terminal:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | sudo bash
 ```
 
 
 Install a specific release:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | bash -s -- --version v0.0.2
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | sudo bash -s -- --version v0.0.2
 ```
 
 Nushell versions:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-release.nu | nu --stdin -c 'nu -c ($in + "\nmain")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-release.nu | sudo nu --stdin -c 'nu -c ($in + "\nmain")'
 
-curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-release.nu | nu --stdin -c 'nu -c ($in + "\nmain --version v0.0.2")'
+curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-release.nu | sudo nu --stdin -c 'nu -c ($in + "\nmain --version v0.0.2")'
 ```
 
 After installation, log out and back in if the installer adds your user to the
 `excalibur` group.
+
+
+The installer must run with `sudo` because it installs system packages, the
+DKMS driver, udev permission rules, and application binaries under
+`/usr/local/bin`.
 
 ## Development
 
