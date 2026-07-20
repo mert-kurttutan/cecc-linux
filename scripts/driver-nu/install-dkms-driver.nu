@@ -9,17 +9,7 @@ const REQUIRED_FILES = [
   "dkms.conf"
 ]
 
-def is-root [] {
-  ((^id -u | str trim) == "0")
-}
-
 export def install-casper-dkms-driver [] {
-  if not (is-root) {
-    error make {
-      msg: "Please run as root: 'sudo ./install-dkms-driver.nu'"
-    }
-  }
-
   let repo_root = ($env.FILE_PWD | path join ".." "..")
   let driver_source_dir = ($repo_root | path join "casper-wmi")
   let src_dir = $"/usr/src/($DRIVER_NAME)-($DRIVER_VERSION)"

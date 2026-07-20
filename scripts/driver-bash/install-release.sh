@@ -73,22 +73,6 @@ parse_args() {
   done
 }
 
-need_command() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "Missing required command: $1"
-    exit 1
-  fi
-}
-
-sudo_cmd() {
-  if [ "$EUID" -eq 0 ]; then
-    "$@"
-  else
-    need_command sudo
-    sudo "$@"
-  fi
-}
-
 has_id() {
   local needle="$1"
   [ "${ID:-}" = "$needle" ] || [[ " ${ID_LIKE:-} " == *" $needle "* ]]
@@ -137,30 +121,30 @@ install_deps() {
 
   case "$distro" in
     ubuntu|debian)
-      sudo_cmd apt-get update
+      apt-get update
       if [ "$distro" = "ubuntu" ]; then
-        sudo_cmd apt-get install -y "${DEPS_UBUNTU[@]}" "linux-headers-$(uname -r)"
+        apt-get install -y "${DEPS_UBUNTU[@]}" "linux-headers-$(uname -r)"
       else
-        sudo_cmd apt-get install -y "${DEPS_DEBIAN[@]}" "linux-headers-$(uname -r)"
+        apt-get install -y "${DEPS_DEBIAN[@]}" "linux-headers-$(uname -r)"
       fi
       ;;
     fedora)
-      sudo_cmd dnf install -y "${DEPS_FEDORA[@]}"
+      dnf install -y "${DEPS_FEDORA[@]}"
       ;;
     rhel)
-      sudo_cmd dnf install -y "${DEPS_RHEL[@]}"
+      dnf install -y "${DEPS_RHEL[@]}"
       ;;
     centos)
-      sudo_cmd dnf install -y "${DEPS_CENTOS[@]}"
+      dnf install -y "${DEPS_CENTOS[@]}"
       ;;
     arch)
-      sudo_cmd pacman -S --needed --noconfirm "${DEPS_ARCH[@]}"
+      pacman -S --needed --noconfirm "${DEPS_ARCH[@]}"
       ;;
     opensuse)
-      sudo_cmd zypper --non-interactive install "${DEPS_OPENSUSE[@]}"
+      zypper --non-interactive install "${DEPS_OPENSUSE[@]}"
       ;;
     suse)
-      sudo_cmd zypper --non-interactive install "${DEPS_SUSE[@]}"
+      zypper --non-interactive install "${DEPS_SUSE[@]}"
       ;;
     nixos)
       echo "NixOS is not supported by this installer."
@@ -238,16 +222,6 @@ extract_source_archive() {
   fi
 }
 
-run_local_installer() {
-  local installer="$source_dir/$INSTALLER_PATH"
-
-  if [ "$SKIP_DRIVER" = "1" ]; then
-    echo "Skipping driver and udev rule installation."
-  else
-    sudo_cmd "$installer"
-  fi
-}
-
 download_release_binaries() {
   download_dir="$(mktemp -d)"
 
@@ -280,8 +254,8 @@ install_app_binaries() {
   fi
 
   echo "Installing application binaries into $BIN_DIR..."
-  sudo_cmd install -d -m 0755 "$BIN_DIR"
-  sudo_cmd install -m 0755 "$gui_source" "$BIN_DIR/$GUI_BIN_NAME"
+  install -d -m 0755 "$BIN_DIR"
+  install -m 0755 "$gui_source" "$BIN_DIR/$GUI_BIN_NAME"
 
   if [ "$INSTALL_CLI" = "1" ]; then
     if [ ! -x "$cli_source" ]; then
@@ -289,19 +263,31 @@ install_app_binaries() {
       exit 1
     fi
 
-    sudo_cmd install -m 0755 "$cli_source" "$BIN_DIR/$CLI_BIN_NAME"
+    install -m 0755 "$cli_source" "$BIN_DIR/$CLI_BIN_NAME"
   fi
 }
 
 main() {
   trap 'rm -rf "$download_dir" "$source_parent_dir"' EXIT
   parse_args "$@"
+
+  if [ "$EUID" -ne 0 ]; then
+    echo "Please run as root: 'sudo scripts/driver-bash/install-release.sh'"
+    exit 1
+  fi
+
   install_deps
   resolve_release_tag
 
   source_parent_dir="$(mktemp -d)"
   extract_source_archive "$source_parent_dir"
-  run_local_installer
+
+  if [ "$SKIP_DRIVER" = "1" ]; then
+    echo "Skipping driver and udev rule installation."
+  else
+    "$source_dir/$INSTALLER_PATH"
+  fi
+
   download_release_binaries
   install_app_binaries
 

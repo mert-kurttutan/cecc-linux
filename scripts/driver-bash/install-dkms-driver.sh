@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root: 'sudo ./install-dkms-driver.sh'"
-  exit 1
-fi
-
 DRIVER_NAME="casper-wmi"
 DRIVER_VERSION="0.1"
 SRC_DIR="/usr/src/$DRIVER_NAME-$DRIVER_VERSION"

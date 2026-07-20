@@ -20,14 +20,6 @@ def is-root [] {
   ((^id -u | str trim) == "0")
 }
 
-def run-root [command: list<string>] {
-  if (is-root) {
-    ^($command.0) ...($command | skip 1)
-  } else {
-    ^sudo ...$command
-  }
-}
-
 export def parse-os-release [] {
   if not ("/etc/os-release" | path exists) {
     return {}
@@ -88,18 +80,18 @@ def install-deps [] {
 
   match $distro {
     "ubuntu" | "debian" => {
-      run-root [apt-get update]
+      ^apt-get update
       let packages = (($DEPENDENCIES | get $distro) | append $"linux-headers-(^uname -r | str trim)")
-      run-root ([apt-get install -y] | append $packages)
+      ^apt-get install -y ...$packages
     }
     "fedora" | "rhel" | "centos" => {
-      run-root ([dnf install -y] | append ($DEPENDENCIES | get $distro))
+      ^dnf install -y ...($DEPENDENCIES | get $distro)
     }
     "arch" => {
-      run-root ([pacman -S --needed --noconfirm] | append ($DEPENDENCIES | get $distro))
+      ^pacman -S --needed --noconfirm ...($DEPENDENCIES | get $distro)
     }
     "opensuse" | "suse" => {
-      run-root ([zypper --non-interactive install] | append ($DEPENDENCIES | get $distro))
+      ^zypper --non-interactive install ...($DEPENDENCIES | get $distro)
     }
     "nixos" => {
       error make {
@@ -185,19 +177,11 @@ def extract-source-archive [
 }
 
 def install-dir [bin_dir: string] {
-  if (is-root) {
-    ^install -d -m 0755 $bin_dir
-  } else {
-    ^sudo install -d -m 0755 $bin_dir
-  }
+  ^install -d -m 0755 $bin_dir
 }
 
 def install-file [source: string, target: string] {
-  if (is-root) {
-    ^install -m 0755 $source $target
-  } else {
-    ^sudo install -m 0755 $source $target
-  }
+  ^install -m 0755 $source $target
 }
 
 def download-release-binaries [
@@ -249,17 +233,6 @@ def install-app-binaries [download_dir: string, bin_dir: string, install_cli: bo
   }
 }
 
-def run-local-installer [
-  installer_path: string
-  --needs-root
-] {
-  if (is-root) or (not $needs_root) {
-    ^nu $installer_path
-  } else {
-    ^sudo nu $installer_path
-  }
-}
-
 export def install-excalibur-release [
   --version: string = ""
   --no-cli
@@ -284,7 +257,7 @@ export def install-excalibur-release [
     if $skip_driver {
       print "Skipping driver and udev rule installation."
     } else {
-      run-local-installer $installer_path --needs-root
+      ^nu $installer_path
     }
 
     download-release-binaries $release_tag $install_cli $download_dir
@@ -308,6 +281,12 @@ def main [
   --no-cli
   --skip-driver
 ] {
+  if not (is-root) {
+    error make {
+      msg: "Please run as root: 'sudo nu scripts/driver-nu/install-release.nu'"
+    }
+  }
+
   install-deps
   install-excalibur-release --version $version --no-cli=$no_cli --skip-driver=$skip_driver
 }

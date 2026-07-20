@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root: 'sudo ./install-permission-rules.sh'"
-  exit 1
-fi
-
 GROUP="excalibur"
 RULE_NAME="90-excalibur-control-center.rules"
 HELPER_NAME="apply-sysfs-permissions"

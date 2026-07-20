@@ -28,21 +28,8 @@ parse_args() {
   done
 }
 
-need_command() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "Missing required command: $1"
-    exit 1
-  fi
-}
-
 main() {
   parse_args "$@"
-
-  if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root when installing the driver or udev rules."
-    echo "Use sudo scripts/driver-bash/install-driver-stack.sh."
-    exit 1
-  fi
 
   script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
