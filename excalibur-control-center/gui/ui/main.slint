@@ -1,4 +1,4 @@
-import { AboutSlint, Button, HorizontalBox, ListView, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
+import { AboutSlint, Button, CheckBox, HorizontalBox, ListView, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
 
 export enum AppTab { system_mode, display_mode, led_control, about }
 export enum GpuMode { hybrid, discrete, uma }
@@ -746,9 +746,12 @@ component KeyboardTab inherits VerticalBox {
                         clicked => { root.apply_led_settings(); }
                     }
 
-                    Button {
+                    CheckBox {
                         text: "Select all";
-                        clicked => { root.select_zone(KeyboardZoneSelection.all); }
+                        checked: root.active_zone == "all";
+                        toggled => {
+                            root.select_zone(self.checked ? KeyboardZoneSelection.all : KeyboardZoneSelection.left);
+                        }
                     }
                 }
 
