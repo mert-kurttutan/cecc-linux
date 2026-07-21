@@ -1,7 +1,37 @@
 #!/usr/bin/env nu
 
+const LED_ROOT = "/sys/class/leds"
+const GPU_MODE_PATH = "/sys/module/casper_wmi/parameters/gpu_mode"
+
 def is-nixos [] {
   ("/etc/NIXOS" | path exists) or ("/run/current-system/sw/bin/nixos-version" | path exists)
+}
+
+def apply-file-dev-permission [path: string] {
+  if not ($path | path exists) {
+    return
+  }
+
+  do -i { ^sudo chmod a+rw $path }
+}
+
+def apply-reload-dev-permissions [] {
+  apply-file-dev-permission $GPU_MODE_PATH
+
+  if not ($LED_ROOT | path exists) {
+    return
+  }
+
+  let leds = (
+    ls $LED_ROOT
+    | where {|entry| ($entry.name | path basename | str starts-with "casper:rgb:") }
+  )
+
+  for led in $leds {
+    let led_name = ($led.name | path basename)
+    apply-file-dev-permission ($LED_ROOT | path join $led_name "brightness")
+    apply-file-dev-permission ($LED_ROOT | path join $led_name "multi_intensity")
+  }
 }
 
 def nixos-kernel-build-dir [kernel_version: string] {
@@ -37,12 +67,12 @@ def kernel-build-dir [] {
 }
 
 def main [
-  --driver-dir (-d): string = "./casper-wmi"
   --module-file (-f): string = "casper-wmi.ko"
   --module-name (-m): string = "casper_wmi"
 ] {
-  let repo_dir = (pwd)
-  let driver_dir = ($driver_dir | path expand)
+  let script_dir = $env.FILE_PWD
+  let repo_dir = ($script_dir | path join ".." | path expand)
+  let driver_dir = ($repo_dir | path join "casper-wmi")
   let kdir = (kernel-build-dir)
   let output_dir = ($repo_dir | path join ".reload" "casper-wmi")
   let module_path = ($output_dir | path join $module_file)
@@ -85,11 +115,7 @@ def main [
   ^sudo insmod $module_path
 
   print "Applying temporary dev permissions"
-  do -i { ^sudo chmod a+rw /sys/module/casper_wmi/parameters/gpu_mode }
-  do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:kbd_zoned_backlight-*/brightness }
-  do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:kbd_zoned_backlight-*/multi_intensity }
-  do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:biaslight/brightness }
-  do -i { ^sudo chmod a+rw /sys/class/leds/casper:rgb:biaslight/multi_intensity }
+  apply-reload-dev-permissions
 
   print "Recent dmesg"
   let dmesg_output = (^sudo dmesg --color=never --ctime)

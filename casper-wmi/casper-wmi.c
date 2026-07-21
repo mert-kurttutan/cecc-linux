@@ -51,8 +51,6 @@ static const char * const zone_names[CASPER_LED_COUNT] = {
 #define CASPER_LED_GREEN GENMASK(15, 8)
 #define CASPER_LED_BLUE  GENMASK(7, 0)
 
-#define CASPER_DEFAULT_COLOR (CASPER_LED_RED | CASPER_LED_GREEN | \
-			      CASPER_LED_BLUE)
 #define CASPER_FAN_CPU 0
 #define CASPER_FAN_GPU 1
 
@@ -549,15 +547,7 @@ static int casper_multicolor_register(struct casper_drv *drv)
 			return -ENODEV;
 	}
 
-	// Setting leds to the default color
-	ret = casper_set(drv, CASPER_SET_LED, CASPER_ALL_KEYBOARD_LEDS,
-			 CASPER_DEFAULT_COLOR);
-	if (ret)
-		return ret;
-
-	ret = casper_set(drv, CASPER_SET_LED, CASPER_CORNER_LEDS,
-			 CASPER_DEFAULT_COLOR);
-	return ret;
+	return 0;
 }
 
 static int casper_wmi_probe(struct wmi_device *wdev, const void *context)

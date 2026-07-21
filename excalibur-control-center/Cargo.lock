@@ -1231,7 +1231,7 @@ dependencies = [
 
 [[package]]
 name = "excalibur-control-center-backend"
-version = "0.1.2"
+version = "0.1.18"
 dependencies = [
  "libc",
  "nvml-wrapper",
@@ -1240,7 +1240,7 @@ dependencies = [
 
 [[package]]
 name = "excalibur-control-center-cli"
-version = "0.1.2"
+version = "0.1.18"
 dependencies = [
  "clap",
  "excalibur-control-center-backend",
@@ -1248,7 +1248,7 @@ dependencies = [
 
 [[package]]
 name = "excalibur-control-center-gui"
-version = "0.1.2"
+version = "0.1.18"
 dependencies = [
  "excalibur-control-center-backend",
  "slint",
