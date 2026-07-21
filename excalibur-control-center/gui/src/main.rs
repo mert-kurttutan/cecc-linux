@@ -436,65 +436,73 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         let state = state.clone();
         let window_weak = window.as_weak();
-        window.on_apply_brightness(move || {
-            let mut state = state.borrow_mut();
-            let brightness = window_weak
-                .upgrade()
-                .map(|window| window.get_brightness_slider().round() as u8)
-                .unwrap_or(0);
-
-            let result = state
-                .backend
-                .set_keyboard_brightness(state.selected_zone, brightness);
-
-            match result {
-                Ok(zones) => {
-                    state.update_zones(zones);
-                    state.status = format!(
-                        "brightness set to {} for {}",
-                        brightness,
-                        state.selected_zone.as_str()
-                    );
-                }
-                Err(err) => state.status = format!("brightness write failed: {err}"),
-            }
-
-            if let Some(window) = window_weak.upgrade() {
-                sync_window(&window, &state);
-            }
-        });
-    }
-
-    {
-        let state = state.clone();
-        let window_weak = window.as_weak();
-        window.on_apply_color(move || {
+        window.on_apply_led_settings(move || {
             let mut state = state.borrow_mut();
             let Some(window) = window_weak.upgrade() else {
                 return;
             };
 
+            let brightness = window.get_brightness_slider().round() as u8;
             let color = RgbColor::new(
                 window.get_red() as u8,
                 window.get_green() as u8,
                 window.get_blue() as u8,
             );
+            let selected_zone = state.selected_zone;
+            let selected_state = state.selected_zone_state();
+            let color_changed = selected_state
+                .as_ref()
+                .map(|zone| zone.color != color)
+                .unwrap_or(true);
+            let brightness_changed = selected_state
+                .as_ref()
+                .map(|zone| zone.brightness != brightness)
+                .unwrap_or(true);
 
-            let result = state.backend.set_keyboard_color(state.selected_zone, color);
-
-            match result {
-                Ok(zones) => {
-                    state.update_zones(zones);
-                    state.status = format!(
-                        "color set to {},{},{} for {}",
-                        color.red,
-                        color.green,
-                        color.blue,
-                        state.selected_zone.as_str()
-                    );
+            if color_changed {
+                match state.backend.set_keyboard_color(selected_zone, color) {
+                    Ok(zones) => state.update_zones(zones),
+                    Err(err) => {
+                        state.status = format!("color write failed: {err}");
+                        sync_window(&window, &state);
+                        return;
+                    }
                 }
-                Err(err) => state.status = format!("color write failed: {err}"),
             }
+
+            if brightness_changed {
+                match state
+                    .backend
+                    .set_keyboard_brightness(selected_zone, brightness)
+                {
+                    Ok(zones) => state.update_zones(zones),
+                    Err(err) => {
+                        state.status = format!("brightness write failed: {err}");
+                        sync_window(&window, &state);
+                        return;
+                    }
+                }
+            }
+
+            state.status = match (color_changed, brightness_changed) {
+                (true, true) => format!(
+                    "color and brightness set for {}",
+                    selected_zone.as_str()
+                ),
+                (true, false) => format!(
+                    "color set to {},{},{} for {}",
+                    color.red,
+                    color.green,
+                    color.blue,
+                    selected_zone.as_str()
+                ),
+                (false, true) => format!(
+                    "brightness set to {} for {}",
+                    brightness,
+                    selected_zone.as_str()
+                ),
+                (false, false) => "no LED changes to apply".to_string(),
+            };
 
             sync_window(&window, &state);
         });

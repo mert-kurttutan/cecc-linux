@@ -63,7 +63,7 @@ impl KeyboardZoneSelection {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RgbColor {
     pub red: u8,
     pub green: u8,

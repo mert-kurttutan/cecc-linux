@@ -665,6 +665,13 @@ impl SysfsBackend {
         }
     }
 
+    fn keyboard_brightness_target(&self, selection: KeyboardZoneSelection) -> KeyboardZone {
+        match selection {
+            KeyboardZoneSelection::One(zone) => zone,
+            KeyboardZoneSelection::All => KeyboardZone::Left,
+        }
+    }
+
     pub fn read_keyboard_zones(
         &self,
         selection: KeyboardZoneSelection,
@@ -680,11 +687,9 @@ impl SysfsBackend {
         selection: KeyboardZoneSelection,
         brightness: u8,
     ) -> Result<Vec<KeyboardZoneState>, BackendError> {
-        for target in self.keyboard_zones_for_target(selection) {
-            self.write_keyboard_brightness(target, brightness)?;
-        }
+        self.write_keyboard_brightness(self.keyboard_brightness_target(selection), brightness)?;
 
-        self.read_keyboard_zones(selection)
+        self.list_keyboard_zones()
     }
 
     pub fn set_keyboard_color(

@@ -664,11 +664,10 @@ component KeyboardTab inherits VerticalBox {
     callback select_zone(KeyboardZoneSelection);
     callback brightness_edited(int);
     callback brightness_slider_changed(float);
-    callback apply_brightness();
     callback color_hue_changed(float);
     callback color_wheel_changed(float, float);
     callback color_sv_changed(float, float);
-    callback apply_color();
+    callback apply_led_settings();
 
     vertical-stretch: 1;
     horizontal-stretch: 1;
@@ -744,7 +743,7 @@ component KeyboardTab inherits VerticalBox {
 
                     Button {
                         text: "LED on/off";
-                        clicked => { root.apply_color(); }
+                        clicked => { root.apply_led_settings(); }
                     }
 
                     Button {
@@ -760,7 +759,7 @@ component KeyboardTab inherits VerticalBox {
                     VerticalBox {
                         spacing: 8px;
 
-                        Button { text: "Static"; clicked => { root.apply_color(); } }
+                        Button { text: "Static"; clicked => { root.apply_led_settings(); } }
                         Button { text: "Breathing"; }
                         Button { text: "Cycle"; }
                     }
@@ -841,7 +840,7 @@ component KeyboardTab inherits VerticalBox {
                             value <=> root.brightness_slider;
                             changed(value) => { root.brightness_slider_changed(value); }
                         }
-                        Button { text: "Apply"; clicked => { root.apply_color(); root.apply_brightness(); } }
+                        Button { text: "Apply"; clicked => { root.apply_led_settings(); } }
                     }
                 }
             }
@@ -1051,11 +1050,10 @@ export component MainWindow inherits Window {
     callback set_gpu_mode(GpuMode);
     callback brightness_edited(int);
     callback brightness_slider_changed(float);
-    callback apply_brightness();
     callback color_hue_changed(float);
     callback color_wheel_changed(float, float);
     callback color_sv_changed(float, float);
-    callback apply_color();
+    callback apply_led_settings();
     callback start_drag_window();
 
     preferred-width: 1180px;
@@ -1247,11 +1245,10 @@ export component MainWindow inherits Window {
                                 select_zone(zone) => { root.select_zone(zone); }
                                 brightness_edited(value) => { root.brightness_edited(value); }
                                 brightness_slider_changed(value) => { root.brightness_slider_changed(value); }
-                                apply_brightness => { root.apply_brightness(); }
                                 color_hue_changed(value) => { root.color_hue_changed(value); }
                                 color_wheel_changed(x, y) => { root.color_wheel_changed(x, y); }
                                 color_sv_changed(saturation, value) => { root.color_sv_changed(saturation, value); }
-                                apply_color => { root.apply_color(); }
+                                apply_led_settings => { root.apply_led_settings(); }
                             }
 
                             if root.active_tab == AppTab.display_mode : HorizontalBox {
