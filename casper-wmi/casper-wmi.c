@@ -83,6 +83,7 @@ struct casper_drv {
 	struct casper_fourzone_led *leds;
 	struct wmi_device *wdev;
 	struct casper_quirk_entry *quirk_applied;
+	enum led_brightness keyboard_brightness;
 };
 
 struct casper_wmi_args {
@@ -182,14 +183,16 @@ static u32 get_zone_color(struct casper_fourzone_led z)
 static enum led_brightness get_casper_brightness(struct led_classdev *led_cdev)
 {
 	struct casper_drv *drv = dev_get_drvdata(led_cdev->dev->parent);
-	struct casper_wmi_args hardware_alpha = {0};
 
-	if (strcmp(led_cdev->name, zone_names[3]) == 0)
-		return drv->leds[3].mc_led.led_cdev.brightness;
+	for (size_t i = 0; i < CASPER_LED_COUNT; i++)
+		if (strcmp(led_cdev->name, zone_names[i]) == 0) {
+			if (i < 3)
+				return drv->keyboard_brightness;
 
-	casper_query(drv, CASPER_GET_HARDWAREINFO, &hardware_alpha);
+			return drv->leds[i].mc_led.led_cdev.brightness;
+		}
 
-	return hardware_alpha.a6;
+	return 0;
 }
 
 static void set_casper_brightness(struct led_classdev *led_cdev,
@@ -197,26 +200,38 @@ static void set_casper_brightness(struct led_classdev *led_cdev,
 {
 	u32 led_data, led_data_no_alpha;
 	struct casper_drv *drv;
-	u8 zone_to_change;
-	size_t zone;
+	u8 zone_to_change = CASPER_ALL_KEYBOARD_LEDS;
+	size_t zone = CASPER_LED_COUNT;
+	bool brightness_changed;
 
 	drv = dev_get_drvdata(led_cdev->dev->parent);
 
 	for (size_t i = 0; i < CASPER_LED_COUNT; i++)
 		if (strcmp(led_cdev->name, zone_names[i]) == 0)
 			zone = i;
+	if (zone == CASPER_LED_COUNT)
+		return;
+
 	if (zone == 3)
 		zone_to_change = CASPER_CORNER_LEDS;
-	else
-		zone_to_change = zone + CASPER_KEYBOARD_LED_1;
+	else {
+		brightness_changed = brightness != drv->keyboard_brightness;
+		if (!brightness_changed)
+			zone_to_change = zone + CASPER_KEYBOARD_LED_1;
+	}
 
 	led_data_no_alpha = get_zone_color(drv->leds[zone]) & ~CASPER_LED_ALPHA;
 
-	if (brightness == drv->leds[zone].mc_led.led_cdev.brightness)
-		brightness = get_casper_brightness(&drv->leds[zone].mc_led.led_cdev);
-
 	led_data = FIELD_PREP(CASPER_LED_ALPHA, brightness | LED_NORMAL) | led_data_no_alpha;
 	casper_set(drv, CASPER_SET_LED, zone_to_change, led_data);
+
+	if (zone == 3) {
+		drv->leds[zone].mc_led.led_cdev.brightness = brightness;
+	} else if (brightness_changed) {
+		drv->keyboard_brightness = brightness;
+		for (size_t i = 0; i < 3; i++)
+			drv->leds[i].mc_led.led_cdev.brightness = brightness;
+	}
 }
 
 static int casper_platform_profile_probe(void *drvdata, unsigned long *choices)
@@ -520,6 +535,8 @@ static int casper_multicolor_register(struct casper_drv *drv)
 	if (!drv->leds)
 		return -ENOMEM;
 
+	drv->keyboard_brightness = 2;
+
 	for (size_t i = 0; i < CASPER_LED_COUNT; i++) {
 		for (size_t j = 0; j < 3; j++) {
 			drv->leds[i].subleds[j] = (struct mc_subled) {
@@ -531,7 +548,7 @@ static int casper_multicolor_register(struct casper_drv *drv)
 		drv->leds[i].mc_led = (struct led_classdev_mc){
 			.led_cdev = {
 				.name = zone_names[i],
-				.brightness = 0,
+				.brightness = i < 3 ? drv->keyboard_brightness : 0,
 				.max_brightness = 2,
 				.brightness_set = &set_casper_brightness,
 				.brightness_get = &get_casper_brightness,
