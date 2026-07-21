@@ -201,7 +201,7 @@
       },
       "locked": {
         "lastModified": 1784572523,
-        "narHash": "sha256-yCLvmz6M5OmGPQ9O5syoQsSxjgqWycsbGwtA6eHc6MM=",
+        "narHash": "sha256-k8pBG/WdePslRNegBhshqjdQCJ3vxou7AXlpMWTBQvo=",
         "path": "/etc/nixos",
         "type": "path"
       },
