@@ -1116,7 +1116,9 @@ export component MainWindow inherits Window {
     in property <color> app_background_color: #0b0f14;
     in property <color> app_text_color: #cbd5e1;
     in-out property <bool> suppress_led_edit_events: false;
-    in-out property <bool> auto_refresh_enabled: true;
+    in-out property <bool> system_mode_auto_refresh_enabled: true;
+    in-out property <bool> display_mode_auto_refresh_enabled: true;
+    in-out property <bool> led_control_auto_refresh_enabled: true;
 
     callback refresh();
     callback select_tab(AppTab);
@@ -1139,7 +1141,9 @@ export component MainWindow inherits Window {
 
     Timer {
         interval: root.active_tab == AppTab.led_control ? 500ms : 1s;
-        running: root.auto_refresh_enabled && root.active_tab != AppTab.about;
+        running: (root.active_tab == AppTab.system_mode && root.system_mode_auto_refresh_enabled)
+            || (root.active_tab == AppTab.display_mode && root.display_mode_auto_refresh_enabled)
+            || (root.active_tab == AppTab.led_control && root.led_control_auto_refresh_enabled);
         triggered => {
             root.refresh();
         }
@@ -1243,7 +1247,15 @@ export component MainWindow inherits Window {
                         HoverButton { text: "LED Control"; selected: root.active_tab == AppTab.led_control; clicked => { root.select_tab(AppTab.led_control); } }
                         HoverButton { text: "About"; selected: root.active_tab == AppTab.about; clicked => { root.select_tab(AppTab.about); } }
                         Rectangle { vertical-stretch: 1; }
-                        HoverButton { text: "Refresh"; clicked => { root.auto_refresh_enabled = true; root.refresh(); } }
+                        HoverButton {
+                            text: "Refresh";
+                            clicked => {
+                                root.system_mode_auto_refresh_enabled = true;
+                                root.display_mode_auto_refresh_enabled = true;
+                                root.led_control_auto_refresh_enabled = true;
+                                root.refresh();
+                            }
+                        }
                     }
                 }
 
@@ -1311,19 +1323,19 @@ export component MainWindow inherits Window {
                                 select_zone(zone) => { root.select_zone(zone); }
                                 brightness_slider_changed(value) => {
                                     if root.suppress_led_edit_events == false {
-                                        root.auto_refresh_enabled = false;
+                                        root.led_control_auto_refresh_enabled = false;
                                         root.brightness_slider_changed(value);
                                     }
                                 }
                                 color_wheel_changed(x, y) => {
                                     if root.suppress_led_edit_events == false {
-                                        root.auto_refresh_enabled = false;
+                                        root.led_control_auto_refresh_enabled = false;
                                         root.color_wheel_changed(x, y);
                                     }
                                 }
                                 apply_led_settings => {
                                     root.apply_led_settings();
-                                    root.auto_refresh_enabled = true;
+                                    root.led_control_auto_refresh_enabled = true;
                                 }
                             }
 
