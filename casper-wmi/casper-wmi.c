@@ -180,14 +180,39 @@ static u32 get_zone_color(struct casper_fourzone_led z)
 		FIELD_PREP(CASPER_LED_BLUE, z.subleds[2].intensity);
 }
 
+static int casper_read_keyboard_brightness(struct casper_drv *drv)
+{
+	struct casper_wmi_args out = { 0 };
+	int ret;
+
+	ret = casper_query(drv, CASPER_GET_HARDWAREINFO, &out);
+	if (ret)
+		return ret;
+
+	if (out.a6 == 3)
+		return 2;
+	if (out.a6 > 2)
+		return -EINVAL;
+
+	return out.a6;
+}
+
 static enum led_brightness get_casper_brightness(struct led_classdev *led_cdev)
 {
 	struct casper_drv *drv = dev_get_drvdata(led_cdev->dev->parent);
 
 	for (size_t i = 0; i < CASPER_LED_COUNT; i++)
 		if (strcmp(led_cdev->name, zone_names[i]) == 0) {
-			if (i < 3)
+			if (i < 3) {
+				int brightness = casper_read_keyboard_brightness(drv);
+
+				if (brightness >= 0) {
+					drv->keyboard_brightness = brightness;
+					return brightness;
+				}
+
 				return drv->keyboard_brightness;
+			}
 
 			return drv->leds[i].mc_led.led_cdev.brightness;
 		}

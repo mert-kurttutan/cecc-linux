@@ -33,3 +33,14 @@ The known-good model is:
 - a separate bias/trunk brightness value once the correct WMI command/target is
   identified;
 - separate RGB colors for each keyboard zone and the bias/trunk light.
+
+## GUI Sync Behavior
+
+- The Linux driver can now read keyboard brightness changed by `Fn+Space`
+  through the hardware-info WMI query.
+- Applying brightness from the GUI after using `Fn+Space` works correctly.
+- The remaining GUI issue is display-only: when brightness is changed with
+  `Fn+Space` while the GUI is open, the brightness slider does not immediately
+  move to the new hardware value.
+- The GUI should therefore refresh or resync the selected LED brightness from
+  sysfs without fighting user edits in progress.
