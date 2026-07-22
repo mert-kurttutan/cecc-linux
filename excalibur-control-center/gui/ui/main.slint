@@ -758,11 +758,6 @@ component KeyboardTab inherits VerticalBox {
                 HorizontalBox {
                     spacing: 8px;
 
-                    Button {
-                        text: "LED on/off";
-                        clicked => { root.apply_led_settings(); }
-                    }
-
                     CheckBox {
                         text: "Select all";
                         checked: root.active_zone == "all";
