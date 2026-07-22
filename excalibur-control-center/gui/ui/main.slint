@@ -1,4 +1,4 @@
-import { AboutSlint, Button, CheckBox, HorizontalBox, ListView, Slider, SpinBox, VerticalBox } from "std-widgets.slint";
+import { AboutSlint, Button, CheckBox, HorizontalBox, ListView, Slider, VerticalBox } from "std-widgets.slint";
 
 export enum AppTab { system_mode, display_mode, led_control, about }
 export enum GpuMode { hybrid, discrete, uma }
@@ -669,7 +669,6 @@ component SystemModeTab inherits VerticalBox {
 
 component KeyboardTab inherits VerticalBox {
     in property <string> active_zone: "";
-    in property <string> zones_summary: "";
     in-out property <int> brightness: 0;
     in-out property <float> brightness_slider: 0;
     in-out property <int> red: 255;
@@ -677,21 +676,14 @@ component KeyboardTab inherits VerticalBox {
     in-out property <int> blue: 255;
     in-out property <float> color_hue: 0;
     in-out property <float> color_saturation: 1;
-    in-out property <float> color_value: 1;
-    in-out property <color> picker_base_color: #ff0000;
-    in-out property <color> selected_color: #ff0000;
-    in-out property <color> applied_color: #ff0000;
     in property <color> applied_left_color: #000000;
     in property <color> applied_middle_color: #000000;
     in property <color> applied_right_color: #000000;
     in property <color> applied_bias_color: #000000;
 
     callback select_zone(KeyboardZoneSelection);
-    callback brightness_edited(int);
     callback brightness_slider_changed(float);
-    callback color_hue_changed(float);
     callback color_wheel_changed(float, float);
-    callback color_sv_changed(float, float);
     callback apply_led_settings();
 
     vertical-stretch: 1;
@@ -1080,7 +1072,6 @@ component AboutTab inherits VerticalBox {
 export component MainWindow inherits Window {
     in property <string> status: "";
     in property <string> active_zone: "all";
-    in property <string> zones_summary: "";
     in property <string> gpu_mode: "unknown";
     in property <string> display_mode_warning: "";
     in property <string> app_version: "";
@@ -1118,26 +1109,21 @@ export component MainWindow inherits Window {
     in-out property <int> blue: 255;
     in-out property <float> color_hue: 0;
     in-out property <float> color_saturation: 1;
-    in-out property <float> color_value: 1;
-    in-out property <color> picker_base_color: #ff0000;
-    in-out property <color> selected_color: #ff0000;
-    in-out property <color> applied_color: #ff0000;
     in property <color> applied_left_color: #000000;
     in property <color> applied_middle_color: #000000;
     in property <color> applied_right_color: #000000;
     in property <color> applied_bias_color: #000000;
     in property <color> app_background_color: #0b0f14;
     in property <color> app_text_color: #cbd5e1;
+    in-out property <bool> suppress_led_edit_events: false;
+    in-out property <bool> auto_refresh_enabled: true;
 
     callback refresh();
     callback select_tab(AppTab);
     callback select_zone(KeyboardZoneSelection);
     callback set_gpu_mode(GpuMode);
-    callback brightness_edited(int);
     callback brightness_slider_changed(float);
-    callback color_hue_changed(float);
     callback color_wheel_changed(float, float);
-    callback color_sv_changed(float, float);
     callback apply_led_settings();
     callback start_drag_window();
 
@@ -1152,8 +1138,8 @@ export component MainWindow inherits Window {
     background: root.app_background_color;
 
     Timer {
-        interval: 1s;
-        running: root.active_tab == AppTab.system_mode || root.active_tab == AppTab.display_mode;
+        interval: root.active_tab == AppTab.led_control ? 500ms : 1s;
+        running: root.auto_refresh_enabled && root.active_tab != AppTab.about;
         triggered => {
             root.refresh();
         }
@@ -1257,7 +1243,7 @@ export component MainWindow inherits Window {
                         HoverButton { text: "LED Control"; selected: root.active_tab == AppTab.led_control; clicked => { root.select_tab(AppTab.led_control); } }
                         HoverButton { text: "About"; selected: root.active_tab == AppTab.about; clicked => { root.select_tab(AppTab.about); } }
                         Rectangle { vertical-stretch: 1; }
-                        HoverButton { text: "Refresh"; clicked => { root.refresh(); } }
+                        HoverButton { text: "Refresh"; clicked => { root.auto_refresh_enabled = true; root.refresh(); } }
                     }
                 }
 
@@ -1310,7 +1296,6 @@ export component MainWindow inherits Window {
                                 width: parent.width;
                                 height: parent.height;
                                 active_zone: root.active_zone;
-                                zones_summary: root.zones_summary;
                                 brightness <=> root.brightness;
                                 brightness_slider <=> root.brightness_slider;
                                 red <=> root.red;
@@ -1318,22 +1303,28 @@ export component MainWindow inherits Window {
                                 blue <=> root.blue;
                                 color_hue <=> root.color_hue;
                                 color_saturation <=> root.color_saturation;
-                                color_value <=> root.color_value;
-                                picker_base_color <=> root.picker_base_color;
-                                selected_color <=> root.selected_color;
-                                applied_color <=> root.applied_color;
                                 applied_left_color: root.applied_left_color;
                                 applied_middle_color: root.applied_middle_color;
                                 applied_right_color: root.applied_right_color;
                                 applied_bias_color: root.applied_bias_color;
 
                                 select_zone(zone) => { root.select_zone(zone); }
-                                brightness_edited(value) => { root.brightness_edited(value); }
-                                brightness_slider_changed(value) => { root.brightness_slider_changed(value); }
-                                color_hue_changed(value) => { root.color_hue_changed(value); }
-                                color_wheel_changed(x, y) => { root.color_wheel_changed(x, y); }
-                                color_sv_changed(saturation, value) => { root.color_sv_changed(saturation, value); }
-                                apply_led_settings => { root.apply_led_settings(); }
+                                brightness_slider_changed(value) => {
+                                    if root.suppress_led_edit_events == false {
+                                        root.auto_refresh_enabled = false;
+                                        root.brightness_slider_changed(value);
+                                    }
+                                }
+                                color_wheel_changed(x, y) => {
+                                    if root.suppress_led_edit_events == false {
+                                        root.auto_refresh_enabled = false;
+                                        root.color_wheel_changed(x, y);
+                                    }
+                                }
+                                apply_led_settings => {
+                                    root.apply_led_settings();
+                                    root.auto_refresh_enabled = true;
+                                }
                             }
 
                             if root.active_tab == AppTab.display_mode : HorizontalBox {

@@ -57,11 +57,11 @@ impl AppState {
             display_mode_warning: String::new(),
             status: String::new(),
         };
-        state.refresh();
+        state.refresh_initial();
         state
     }
 
-    fn refresh(&mut self) {
+    fn refresh_initial(&mut self) {
         match self.backend.read_state() {
             Ok(state) => {
                 self.zones = state.keyboard_zones;
@@ -77,6 +77,47 @@ impl AppState {
             }
             Err(err) => {
                 self.status = format!("refresh failed: {err}");
+            }
+        }
+    }
+
+    fn refresh_active_tab(&mut self) {
+        match self.active_tab {
+            AppTab::SystemMode => self.refresh_system_mode(),
+            AppTab::DisplayMode => self.refresh_display_mode(),
+            AppTab::LedControl => self.refresh_led_control(),
+            AppTab::About => {}
+        }
+    }
+
+    fn refresh_system_mode(&mut self) {
+        self.fan_speeds = self.backend.read_fan_speeds().unwrap_or_default();
+        self.cpu_frequency = self.backend.read_cpu_frequency().unwrap_or_default();
+        self.cpu_load = self.backend.read_cpu_load().unwrap_or_default();
+        self.gpu_frequency = self.backend.read_gpu_frequency();
+        self.gpu_load = self.backend.read_gpu_load();
+        self.memory_stats = self.backend.read_memory_stats().unwrap_or_default();
+        self.storage_stats = self.backend.read_storage_stats("/").unwrap_or_default();
+    }
+
+    fn refresh_display_mode(&mut self) {
+        match self.backend.read_gpu_mode() {
+            Ok(mode) => {
+                self.gpu_mode = mode;
+            }
+            Err(err) => {
+                self.status = format!("gpu mode read failed: {err}");
+            }
+        }
+
+        self.fan_speeds = self.backend.read_fan_speeds().unwrap_or_default();
+    }
+
+    fn refresh_led_control(&mut self) {
+        match self.backend.list_keyboard_zones() {
+            Ok(zones) => self.update_zones(zones),
+            Err(err) => {
+                self.status = format!("LED sync failed: {err}");
             }
         }
     }
@@ -116,13 +157,14 @@ impl AppState {
                     if active_mode == mode {
                         self.status = format!("gpu mode set to {mode}");
                     } else {
-                        self.status = format!("requested {mode}; firmware still reports {active_mode}");
+                        self.status =
+                            format!("requested {mode}; firmware still reports {active_mode}");
                     }
                 }
                 Err(err) => {
                     self.status = format!("gpu mode readback failed after write: {err}");
                 }
-            }
+            },
             Err(err) => {
                 self.status = format!("gpu mode write failed: {err}");
             }
@@ -135,6 +177,19 @@ impl AppState {
                 self.zones.iter().find(|entry| entry.name == zone).cloned()
             }
             KeyboardZoneSelection::All => None,
+        }
+    }
+
+    fn led_editor_state(&self) -> Option<KeyboardZoneState> {
+        match self.selected_zone {
+            KeyboardZoneSelection::One(zone) => {
+                self.zones.iter().find(|entry| entry.name == zone).cloned()
+            }
+            KeyboardZoneSelection::All => self
+                .zones
+                .iter()
+                .find(|entry| entry.name == KeyboardZone::Left)
+                .cloned(),
         }
     }
 
@@ -155,35 +210,50 @@ impl AppState {
             }
         }
     }
-
-    fn zone_summary(&self) -> String {
-        self.zones
-            .iter()
-            .map(|zone| {
-                format!(
-                    "{}: brightness={} max={} color={},{},{}",
-                    zone.name,
-                    zone.brightness,
-                    zone.max_brightness,
-                    zone.color.red,
-                    zone.color.green,
-                    zone.color.blue
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
 }
 
 fn sync_window(window: &MainWindow, state: &AppState) {
+    sync_window_common(window, state);
+    sync_active_tab(window, state);
+}
+
+fn sync_window_common(window: &MainWindow, state: &AppState) {
     window.set_status(state.status.clone().into());
-    window.set_display_mode_warning(state.display_mode_warning.clone().into());
-    window.set_active_zone(state.selected_zone.as_str().into());
-    window.set_zones_summary(state.zone_summary().into());
     window.set_active_tab(state.active_tab);
+}
+
+fn sync_active_tab(window: &MainWindow, state: &AppState) {
+    match state.active_tab {
+        AppTab::SystemMode => sync_tab_system_mode(window, state),
+        AppTab::DisplayMode => sync_tab_display_mode(window, state),
+        AppTab::LedControl => sync_tab_led_control(window, state),
+        AppTab::About => {}
+    }
+}
+
+fn sync_tab_system_mode(window: &MainWindow, state: &AppState) {
+    sync_fan_speed_fields(window, state);
+    sync_performance_fields(window, state);
+}
+
+fn sync_tab_display_mode(window: &MainWindow, state: &AppState) {
     window.set_gpu_mode(state.gpu_mode.as_str().into());
+    window.set_display_mode_warning(state.display_mode_warning.clone().into());
+    sync_fan_speed_fields(window, state);
+}
+
+fn sync_tab_led_control(window: &MainWindow, state: &AppState) {
+    window.set_active_zone(state.selected_zone.as_str().into());
+    sync_led_preview_fields(window, state);
+    sync_led_brightness_editor_fields(window, state);
+}
+
+fn sync_fan_speed_fields(window: &MainWindow, state: &AppState) {
     window.set_cpu_fan_rpm(format_fan_rpm(state.fan_speeds.cpu_rpm).into());
     window.set_gpu_fan_rpm(format_fan_rpm(state.fan_speeds.gpu_rpm).into());
+}
+
+fn sync_performance_fields(window: &MainWindow, state: &AppState) {
     window.set_cpu_frequency(format_cpu_frequency(state.cpu_frequency.average_ghz).into());
     window.set_cpu_load_percent(format_metric_percent(state.cpu_load.used_percent).into());
     window.set_cpu_load_fill(format_metric_fill(state.cpu_load.used_percent));
@@ -196,34 +266,44 @@ fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_storage_usage(format_storage_usage(&state.storage_stats).into());
     window.set_storage_percent(format_storage_percent(state.storage_stats.used_percent).into());
     window.set_storage_fill(format_storage_fill(state.storage_stats.used_percent));
+}
+
+fn sync_led_preview_fields(window: &MainWindow, state: &AppState) {
     window.set_applied_left_color(zone_color(state, KeyboardZone::Left));
     window.set_applied_middle_color(zone_color(state, KeyboardZone::Middle));
     window.set_applied_right_color(zone_color(state, KeyboardZone::Right));
     window.set_applied_bias_color(zone_color(state, KeyboardZone::Bias));
+}
 
-    if let Some(zone) = state.selected_zone_state() {
-        window.set_brightness(zone.brightness as i32);
-        window.set_brightness_slider(zone.brightness as f32);
+fn sync_led_editor_fields(window: &MainWindow, state: &AppState) {
+    window.set_suppress_led_edit_events(true);
+
+    if let Some(zone) = state.led_editor_state() {
+        sync_led_brightness_editor_values(window, &zone);
         window.set_red(zone.color.red as i32);
         window.set_green(zone.color.green as i32);
         window.set_blue(zone.color.blue as i32);
-        let (h, s, v) = rgb_to_hsv(zone.color);
+        let (h, s, _) = rgb_to_hsv(zone.color);
         window.set_color_hue(h);
         window.set_color_saturation(s);
-        window.set_color_value(v);
-        let base = hsv_to_rgb(h, 1.0, 1.0);
-        window.set_picker_base_color(slint::Color::from_rgb_u8(base.red, base.green, base.blue));
-        window.set_selected_color(slint::Color::from_rgb_u8(
-            zone.color.red,
-            zone.color.green,
-            zone.color.blue,
-        ));
-        window.set_applied_color(slint::Color::from_rgb_u8(
-            zone.color.red,
-            zone.color.green,
-            zone.color.blue,
-        ));
     }
+
+    window.set_suppress_led_edit_events(false);
+}
+
+fn sync_led_brightness_editor_fields(window: &MainWindow, state: &AppState) {
+    window.set_suppress_led_edit_events(true);
+
+    if let Some(zone) = state.led_editor_state() {
+        sync_led_brightness_editor_values(window, &zone);
+    }
+
+    window.set_suppress_led_edit_events(false);
+}
+
+fn sync_led_brightness_editor_values(window: &MainWindow, zone: &KeyboardZoneState) {
+    window.set_brightness(zone.brightness as i32);
+    window.set_brightness_slider(zone.brightness as f32);
 }
 
 fn gpu_mode_transition_warning(current: GpuMode, target: GpuMode) -> &'static str {
@@ -241,9 +321,7 @@ fn gpu_mode_transition_warning(current: GpuMode, target: GpuMode) -> &'static st
 fn zone_color(state: &AppState, zone: KeyboardZone) -> slint::Color {
     state
         .zone_state(zone)
-        .map(|zone| {
-            slint::Color::from_rgb_u8(zone.color.red, zone.color.green, zone.color.blue)
-        })
+        .map(|zone| slint::Color::from_rgb_u8(zone.color.red, zone.color.green, zone.color.blue))
         .unwrap_or_else(|| slint::Color::from_rgb_u8(0, 0, 0))
 }
 
@@ -394,7 +472,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let window_weak = window.as_weak();
         window.on_refresh(move || {
             let mut state = state.borrow_mut();
-            state.refresh();
+            state.refresh_active_tab();
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
             }
@@ -407,8 +485,12 @@ fn main() -> Result<(), slint::PlatformError> {
         window.on_select_tab(move |index| {
             let mut state = state.borrow_mut();
             state.set_active_tab(index);
+            state.refresh_active_tab();
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
+                if state.active_tab == AppTab::LedControl {
+                    sync_led_editor_fields(&window, &state);
+                }
             }
         });
     }
@@ -432,6 +514,7 @@ fn main() -> Result<(), slint::PlatformError> {
             state.set_selected_zone(zone_selection_from_ui(zone));
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
+                sync_led_editor_fields(&window, &state);
             }
         });
     }
@@ -445,19 +528,6 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
             }
-        });
-    }
-
-    {
-        let state = state.clone();
-        let window_weak = window.as_weak();
-        window.on_brightness_edited(move |value| {
-            let mut state = state.borrow_mut();
-            if let Some(window) = window_weak.upgrade() {
-                window.set_brightness(value);
-                window.set_brightness_slider(value as f32);
-            }
-            state.status = format!("brightness adjusted to {}", value);
         });
     }
 
@@ -496,10 +566,6 @@ fn main() -> Result<(), slint::PlatformError> {
                 .as_ref()
                 .map(|zone| zone.color != color)
                 .unwrap_or(true);
-            let brightness_changed = selected_state
-                .as_ref()
-                .map(|zone| zone.brightness != brightness)
-                .unwrap_or(true);
 
             if color_changed {
                 match state.backend.set_keyboard_color(selected_zone, color) {
@@ -512,74 +578,38 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
 
-            if brightness_changed {
-                match state
-                    .backend
-                    .set_keyboard_brightness(selected_zone, brightness)
-                {
-                    Ok(zones) => state.update_zones(zones),
-                    Err(err) => {
-                        state.status = format!("brightness write failed: {err}");
-                        sync_window(&window, &state);
-                        return;
-                    }
+            match state
+                .backend
+                .set_keyboard_brightness(selected_zone, brightness)
+            {
+                Ok(zones) => {
+                    state.update_zones(zones);
+                }
+                Err(err) => {
+                    state.status = format!("brightness write failed: {err}");
+                    sync_window(&window, &state);
+                    return;
                 }
             }
 
-            state.status = match (color_changed, brightness_changed) {
-                (true, true) => format!(
-                    "color and brightness set for {}",
-                    selected_zone.as_str()
-                ),
-                (true, false) => format!(
+            state.status = if color_changed {
+                format!(
                     "color set to {},{},{} for {}",
                     color.red,
                     color.green,
                     color.blue,
-                    selected_zone.as_str()
-                ),
-                (false, true) => format!(
+                    selected_zone.as_str(),
+                )
+            } else {
+                format!(
                     "brightness set to {} for {}",
                     brightness,
-                    selected_zone.as_str()
-                ),
-                (false, false) => "no LED changes to apply".to_string(),
+                    selected_zone.as_str(),
+                )
             };
 
             sync_window(&window, &state);
-        });
-    }
-
-    {
-        let state = state.clone();
-        let window_weak = window.as_weak();
-        window.on_color_hue_changed(move |norm| {
-            let mut state = state.borrow_mut();
-            let hue = clamp01(norm) * 360.0;
-            let sat = state
-                .selected_zone_state()
-                .map(|zone| rgb_to_hsv(zone.color).1)
-                .unwrap_or(1.0);
-            let val = state
-                .selected_zone_state()
-                .map(|zone| rgb_to_hsv(zone.color).2)
-                .unwrap_or(1.0);
-            let rgb = hsv_to_rgb(hue, sat, val);
-            if let Some(window) = window_weak.upgrade() {
-                window.set_color_hue(hue);
-                window.set_color_saturation(sat);
-                window.set_color_value(val);
-                window.set_red(rgb.red as i32);
-                window.set_green(rgb.green as i32);
-                window.set_blue(rgb.blue as i32);
-                window.set_picker_base_color(slint::Color::from_rgb_u8(
-                    hsv_to_rgb(hue, 1.0, 1.0).red,
-                    hsv_to_rgb(hue, 1.0, 1.0).green,
-                    hsv_to_rgb(hue, 1.0, 1.0).blue,
-                ));
-                window.set_selected_color(slint::Color::from_rgb_u8(rgb.red, rgb.green, rgb.blue));
-            }
-            state.status = format!("color hue set to {:.0}°", hue);
+            sync_led_editor_fields(&window, &state);
         });
     }
 
@@ -596,40 +626,9 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(window) = window_weak.upgrade() {
                 window.set_color_hue(hue);
                 window.set_color_saturation(sat);
-                window.set_color_value(val);
                 window.set_red(rgb.red as i32);
                 window.set_green(rgb.green as i32);
                 window.set_blue(rgb.blue as i32);
-                window.set_picker_base_color(slint::Color::from_rgb_u8(
-                    hsv_to_rgb(hue, 1.0, 1.0).red,
-                    hsv_to_rgb(hue, 1.0, 1.0).green,
-                    hsv_to_rgb(hue, 1.0, 1.0).blue,
-                ));
-                window.set_selected_color(slint::Color::from_rgb_u8(rgb.red, rgb.green, rgb.blue));
-            }
-            state.status = format!("color updated to {},{},{}", rgb.red, rgb.green, rgb.blue);
-        });
-    }
-
-    {
-        let state = state.clone();
-        let window_weak = window.as_weak();
-        window.on_color_sv_changed(move |sat_norm, val_norm| {
-            let mut state = state.borrow_mut();
-            let hue = window_weak
-                .upgrade()
-                .map(|window| window.get_color_hue())
-                .unwrap_or(0.0);
-            let sat = clamp01(sat_norm);
-            let val = 1.0 - clamp01(val_norm);
-            let rgb = hsv_to_rgb(hue, sat, val);
-            if let Some(window) = window_weak.upgrade() {
-                window.set_color_saturation(sat);
-                window.set_color_value(val);
-                window.set_red(rgb.red as i32);
-                window.set_green(rgb.green as i32);
-                window.set_blue(rgb.blue as i32);
-                window.set_selected_color(slint::Color::from_rgb_u8(rgb.red, rgb.green, rgb.blue));
             }
             state.status = format!("color updated to {},{},{}", rgb.red, rgb.green, rgb.blue);
         });
