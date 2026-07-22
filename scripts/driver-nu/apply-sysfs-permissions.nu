@@ -26,6 +26,7 @@ def apply-all-leds [] {
   for led in $leds {
     let led_name = ($led.name | path basename)
     apply-file ($LED_ROOT | path join $led_name "brightness")
+    apply-file ($LED_ROOT | path join $led_name "effect")
     apply-file ($LED_ROOT | path join $led_name "multi_intensity")
   }
 }
@@ -38,6 +39,7 @@ export def apply-excalibur-sysfs-permissions [
     "leds" => {
       if ($led_name | str starts-with "casper:rgb:") {
         apply-file ($LED_ROOT | path join $led_name "brightness")
+        apply-file ($LED_ROOT | path join $led_name "effect")
         apply-file ($LED_ROOT | path join $led_name "multi_intensity")
       }
     }

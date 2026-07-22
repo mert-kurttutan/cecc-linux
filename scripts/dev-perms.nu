@@ -14,6 +14,9 @@ for led in $leds {
   sudo chgrp $group ($led | path join "brightness")
   sudo chmod g+w ($led | path join "brightness")
 
+  sudo chgrp $group ($led | path join "effect")
+  sudo chmod g+w ($led | path join "effect")
+
   sudo chgrp $group ($led | path join "multi_intensity")
   sudo chmod g+w ($led | path join "multi_intensity")
 }

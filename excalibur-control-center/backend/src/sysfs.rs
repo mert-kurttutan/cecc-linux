@@ -8,7 +8,8 @@ use nvml_wrapper::enum_wrappers::device::Clock;
 
 use crate::model::{
     ControlCenterState, CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode,
-    KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats,
+    KeyboardLedEffect, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, MemoryStats,
+    RgbColor, StorageStats,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
@@ -161,6 +162,22 @@ impl SysfsBackend {
             "uma" => Ok(GpuMode::Uma),
             other => Err(BackendError::Parse {
                 path: GPU_MODE_PATH.to_string(),
+                value: other.to_string(),
+            }),
+        }
+    }
+
+    fn parse_keyboard_led_effect(value: &str) -> Result<KeyboardLedEffect, BackendError> {
+        match value.trim() {
+            "1" => Ok(KeyboardLedEffect::Static),
+            "2" => Ok(KeyboardLedEffect::Blink),
+            "3" => Ok(KeyboardLedEffect::Breathing),
+            "4" => Ok(KeyboardLedEffect::Heartbeat),
+            "5" => Ok(KeyboardLedEffect::Repeat),
+            "6" => Ok(KeyboardLedEffect::Cycle),
+            "7" => Ok(KeyboardLedEffect::Ambilight),
+            other => Err(BackendError::Parse {
+                path: "effect".to_string(),
                 value: other.to_string(),
             }),
         }
@@ -605,10 +622,13 @@ impl SysfsBackend {
             &self.read_string(Self::zone_rel(zone, "max_brightness"))?,
         )?;
         let color = Self::parse_rgb(&self.read_string(Self::zone_rel(zone, "multi_intensity"))?)?;
+        let effect =
+            Self::parse_keyboard_led_effect(&self.read_string(Self::zone_rel(zone, "effect"))?)?;
 
         Ok(KeyboardZoneState {
             name: zone,
             sysfs_name,
+            effect,
             brightness,
             max_brightness,
             color,
@@ -633,6 +653,17 @@ impl SysfsBackend {
         }
 
         self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
+    }
+
+    pub fn write_keyboard_effect(
+        &self,
+        zone: KeyboardZone,
+        effect: KeyboardLedEffect,
+    ) -> Result<(), BackendError> {
+        self.write_string(
+            Self::zone_rel(zone, "effect"),
+            &effect.mode_id().to_string(),
+        )
     }
 
     pub fn write_keyboard_color(
@@ -702,5 +733,22 @@ impl SysfsBackend {
         }
 
         self.read_keyboard_zones(selection)
+    }
+
+    pub fn set_keyboard_effect(
+        &self,
+        selection: KeyboardZoneSelection,
+        effect: KeyboardLedEffect,
+    ) -> Result<Vec<KeyboardZoneState>, BackendError> {
+        if selection == KeyboardZoneSelection::All && effect == KeyboardLedEffect::Ambilight {
+            self.write_keyboard_effect(KeyboardZone::Left, effect)?;
+            return self.list_keyboard_zones();
+        }
+
+        for target in self.keyboard_zones_for_target(selection) {
+            self.write_keyboard_effect(target, effect)?;
+        }
+
+        self.list_keyboard_zones()
     }
 }

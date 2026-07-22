@@ -78,19 +78,6 @@ struct casper_fourzone_led {
 	struct mc_subled subleds[3];
 };
 
-struct casper_drv {
-	struct mutex mutex;
-	struct casper_fourzone_led *leds;
-	struct wmi_device *wdev;
-	struct casper_quirk_entry *quirk_applied;
-	enum led_brightness keyboard_brightness;
-};
-
-struct casper_wmi_args {
-	u16 a0, a1;
-	u32 a2, a3, a4, a5, a6, a7, a8;
-};
-
 enum casper_led_mode {
 	LED_NORMAL = 0x10,
 	LED_BLINK = 0x20,
@@ -98,6 +85,22 @@ enum casper_led_mode {
 	LED_HEARTBEAT = 0x40,
 	LED_REPEAT = 0x50,
 	LED_RANDOM = 0x60,
+	LED_AMBILIGHT = 0x70,
+};
+
+struct casper_drv {
+	struct mutex mutex;
+	struct casper_fourzone_led *leds;
+	struct wmi_device *wdev;
+	struct casper_quirk_entry *quirk_applied;
+	enum led_brightness keyboard_brightness;
+	enum casper_led_mode keyboard_led_mode;
+	enum casper_led_mode biaslight_led_mode;
+};
+
+struct casper_wmi_args {
+	u16 a0, a1;
+	u32 a2, a3, a4, a5, a6, a7, a8;
 };
 
 static int casper_set(struct casper_drv *drv, u16 a1, u8 led_id, u32 data)
@@ -180,6 +183,174 @@ static u32 get_zone_color(struct casper_fourzone_led z)
 		FIELD_PREP(CASPER_LED_BLUE, z.subleds[2].intensity);
 }
 
+static size_t casper_zone_from_led_cdev(struct led_classdev *led_cdev)
+{
+	for (size_t i = 0; i < CASPER_LED_COUNT; i++)
+		if (strcmp(led_cdev->name, zone_names[i]) == 0)
+			return i;
+
+	return CASPER_LED_COUNT;
+}
+
+static enum casper_led_mode casper_led_mode_for_zone(struct casper_drv *drv,
+						     size_t zone)
+{
+	if (zone < 3)
+		return drv->keyboard_led_mode;
+
+	return drv->biaslight_led_mode;
+}
+
+static int casper_led_effect_value(enum casper_led_mode mode)
+{
+	switch (mode) {
+	case LED_BLINK:
+		return 2;
+	case LED_FADE:
+		return 3;
+	case LED_HEARTBEAT:
+		return 4;
+	case LED_REPEAT:
+		return 5;
+	case LED_RANDOM:
+		return 6;
+	case LED_AMBILIGHT:
+		return 7;
+	case LED_NORMAL:
+	default:
+		return 1;
+	}
+}
+
+static int casper_parse_led_effect(const char *buf, enum casper_led_mode *mode)
+{
+	int value;
+
+	if (kstrtoint(buf, 0, &value))
+		return -EINVAL;
+
+	switch (value) {
+	case 1:
+		*mode = LED_NORMAL;
+		return 0;
+	case 2:
+		*mode = LED_BLINK;
+		return 0;
+	case 3:
+		*mode = LED_FADE;
+		return 0;
+	case 4:
+		*mode = LED_HEARTBEAT;
+		return 0;
+	case 5:
+		*mode = LED_REPEAT;
+		return 0;
+	case 6:
+		*mode = LED_RANDOM;
+		return 0;
+	case 7:
+		*mode = LED_AMBILIGHT;
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+static u32 casper_led_data_for_zone(struct casper_drv *drv, size_t zone)
+{
+	enum led_brightness brightness;
+
+	if (zone < 3)
+		brightness = drv->keyboard_brightness;
+	else
+		brightness = drv->leds[zone].mc_led.led_cdev.brightness;
+
+	return FIELD_PREP(CASPER_LED_ALPHA,
+			  brightness | casper_led_mode_for_zone(drv, zone)) |
+	       get_zone_color(drv->leds[zone]);
+}
+
+static int casper_write_led_zone(struct casper_drv *drv, size_t zone)
+{
+	u8 led_id;
+
+	if (zone >= CASPER_LED_COUNT)
+		return -EINVAL;
+
+	led_id = zone == 3 ? CASPER_CORNER_LEDS : zone + CASPER_KEYBOARD_LED_1;
+
+	return casper_set(drv, CASPER_SET_LED, led_id,
+			  casper_led_data_for_zone(drv, zone));
+}
+
+static ssize_t effect_show(struct device *dev,
+			   struct device_attribute *attr, char *buf)
+{
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct casper_drv *drv = dev_get_drvdata(led_cdev->dev->parent);
+	size_t zone = casper_zone_from_led_cdev(led_cdev);
+
+	if (zone == CASPER_LED_COUNT)
+		return -ENODEV;
+
+	return sysfs_emit(buf, "%d\n",
+			  casper_led_effect_value(casper_led_mode_for_zone(drv, zone)));
+}
+
+static ssize_t effect_store(struct device *dev, struct device_attribute *attr,
+			    const char *buf, size_t count)
+{
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct casper_drv *drv = dev_get_drvdata(led_cdev->dev->parent);
+	enum casper_led_mode mode;
+	size_t zone = casper_zone_from_led_cdev(led_cdev);
+	int ret;
+
+	if (zone == CASPER_LED_COUNT)
+		return -ENODEV;
+
+	ret = casper_parse_led_effect(buf, &mode);
+	if (ret)
+		return ret;
+
+	if (zone < 3) {
+		drv->keyboard_led_mode = mode;
+		for (size_t i = 0; i < 3; i++) {
+			ret = casper_write_led_zone(drv, i);
+			if (ret)
+				return ret;
+		}
+	} else {
+		drv->biaslight_led_mode = mode;
+		ret = casper_write_led_zone(drv, zone);
+		if (ret)
+			return ret;
+	}
+
+	return count;
+}
+static DEVICE_ATTR_RW(effect);
+
+static void casper_remove_led_effect_file(void *data)
+{
+	struct led_classdev *led_cdev = data;
+
+	device_remove_file(led_cdev->dev, &dev_attr_effect);
+}
+
+static int casper_create_led_effect_file(struct device *parent,
+					 struct led_classdev *led_cdev)
+{
+	int ret;
+
+	ret = device_create_file(led_cdev->dev, &dev_attr_effect);
+	if (ret)
+		return ret;
+
+	return devm_add_action_or_reset(parent, casper_remove_led_effect_file,
+					led_cdev);
+}
+
 static int casper_read_keyboard_brightness(struct casper_drv *drv)
 {
 	struct casper_wmi_args out = { 0 };
@@ -231,9 +402,7 @@ static void set_casper_brightness(struct led_classdev *led_cdev,
 
 	drv = dev_get_drvdata(led_cdev->dev->parent);
 
-	for (size_t i = 0; i < CASPER_LED_COUNT; i++)
-		if (strcmp(led_cdev->name, zone_names[i]) == 0)
-			zone = i;
+	zone = casper_zone_from_led_cdev(led_cdev);
 	if (zone == CASPER_LED_COUNT)
 		return;
 
@@ -247,7 +416,9 @@ static void set_casper_brightness(struct led_classdev *led_cdev,
 
 	led_data_no_alpha = get_zone_color(drv->leds[zone]) & ~CASPER_LED_ALPHA;
 
-	led_data = FIELD_PREP(CASPER_LED_ALPHA, brightness | LED_NORMAL) | led_data_no_alpha;
+	led_data = FIELD_PREP(CASPER_LED_ALPHA,
+			      brightness | casper_led_mode_for_zone(drv, zone)) |
+		   led_data_no_alpha;
 	casper_set(drv, CASPER_SET_LED, zone_to_change, led_data);
 
 	if (zone == 3) {
@@ -561,6 +732,8 @@ static int casper_multicolor_register(struct casper_drv *drv)
 		return -ENOMEM;
 
 	drv->keyboard_brightness = 2;
+	drv->keyboard_led_mode = LED_NORMAL;
+	drv->biaslight_led_mode = LED_NORMAL;
 
 	for (size_t i = 0; i < CASPER_LED_COUNT; i++) {
 		for (size_t j = 0; j < 3; j++) {
@@ -587,6 +760,11 @@ static int casper_multicolor_register(struct casper_drv *drv)
 							&drv->leds[i].mc_led);
 		if (ret)
 			return -ENODEV;
+
+		ret = casper_create_led_effect_file(&drv->wdev->dev,
+						    &drv->leds[i].mc_led.led_cdev);
+		if (ret)
+			return ret;
 	}
 
 	return 0;

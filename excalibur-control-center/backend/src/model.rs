@@ -64,6 +64,49 @@ impl KeyboardZoneSelection {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum KeyboardLedEffect {
+    Static,
+    Blink,
+    Breathing,
+    Heartbeat,
+    Repeat,
+    Cycle,
+    Ambilight,
+}
+
+impl KeyboardLedEffect {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Static => "static",
+            Self::Blink => "blink",
+            Self::Breathing => "breathing",
+            Self::Heartbeat => "heartbeat",
+            Self::Repeat => "repeat",
+            Self::Cycle => "cycle",
+            Self::Ambilight => "ambilight",
+        }
+    }
+
+    pub fn mode_id(self) -> u8 {
+        match self {
+            Self::Static => 1,
+            Self::Blink => 2,
+            Self::Breathing => 3,
+            Self::Heartbeat => 4,
+            Self::Repeat => 5,
+            Self::Cycle => 6,
+            Self::Ambilight => 7,
+        }
+    }
+}
+
+impl fmt::Display for KeyboardLedEffect {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RgbColor {
     pub red: u8,
     pub green: u8,
@@ -80,6 +123,7 @@ impl RgbColor {
 pub struct KeyboardZoneState {
     pub name: KeyboardZone,
     pub sysfs_name: String,
+    pub effect: KeyboardLedEffect,
     pub brightness: u8,
     pub max_brightness: u8,
     pub color: RgbColor,

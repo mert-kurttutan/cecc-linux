@@ -2,11 +2,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use excalibur_control_center_backend::{
-    CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode, KeyboardZone,
-    KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats, SysfsBackend,
+    CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode, KeyboardLedEffect,
+    KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats,
+    SysfsBackend,
 };
 use excalibur_control_center_gui::ui::{
-    AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection, MainWindow,
+    AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection,
+    LedEffect as UiLedEffect, MainWindow,
 };
 use slint::ComponentHandle;
 use slint::winit_030::WinitWindowAccessor;
@@ -18,6 +20,27 @@ fn zone_selection_from_ui(zone: UiKeyboardZoneSelection) -> KeyboardZoneSelectio
         UiKeyboardZoneSelection::Middle => KeyboardZoneSelection::One(KeyboardZone::Middle),
         UiKeyboardZoneSelection::Right => KeyboardZoneSelection::One(KeyboardZone::Right),
         UiKeyboardZoneSelection::Bias => KeyboardZoneSelection::One(KeyboardZone::Bias),
+    }
+}
+
+fn led_effect_from_ui(effect: UiLedEffect) -> KeyboardLedEffect {
+    match effect {
+        UiLedEffect::Static => KeyboardLedEffect::Static,
+        UiLedEffect::Breathing => KeyboardLedEffect::Breathing,
+        UiLedEffect::Cycle => KeyboardLedEffect::Cycle,
+        UiLedEffect::Ambilight => KeyboardLedEffect::Ambilight,
+    }
+}
+
+fn led_effect_to_ui(effect: KeyboardLedEffect) -> UiLedEffect {
+    match effect {
+        KeyboardLedEffect::Static => UiLedEffect::Static,
+        KeyboardLedEffect::Breathing => UiLedEffect::Breathing,
+        KeyboardLedEffect::Blink | KeyboardLedEffect::Heartbeat | KeyboardLedEffect::Repeat => {
+            UiLedEffect::Static
+        }
+        KeyboardLedEffect::Cycle => UiLedEffect::Cycle,
+        KeyboardLedEffect::Ambilight => UiLedEffect::Ambilight,
     }
 }
 
@@ -129,6 +152,21 @@ impl AppState {
     fn set_selected_zone(&mut self, zone: KeyboardZoneSelection) {
         self.selected_zone = zone;
         self.status = format!("selected {}", zone.as_str());
+    }
+
+    fn set_led_effect(&mut self, effect: KeyboardLedEffect) {
+        match self.backend.set_keyboard_effect(self.selected_zone, effect) {
+            Ok(zones) => {
+                self.update_zones(zones);
+                self.status = format!(
+                    "LED effect set to {effect} for {}",
+                    self.selected_zone.as_str()
+                );
+            }
+            Err(err) => {
+                self.status = format!("LED effect write failed: {err}");
+            }
+        }
     }
 
     fn set_gpu_mode(&mut self, mode: GpuMode) {
@@ -245,6 +283,7 @@ fn sync_tab_display_mode(window: &MainWindow, state: &AppState) {
 fn sync_tab_led_control(window: &MainWindow, state: &AppState) {
     window.set_active_zone(state.selected_zone.as_str().into());
     sync_led_preview_fields(window, state);
+    sync_led_effect_field(window, state);
     sync_led_brightness_editor_fields(window, state);
 }
 
@@ -279,6 +318,7 @@ fn sync_led_editor_fields(window: &MainWindow, state: &AppState) {
     window.set_suppress_led_edit_events(true);
 
     if let Some(zone) = state.led_editor_state() {
+        window.set_led_effect(led_effect_to_ui(zone.effect));
         sync_led_brightness_editor_values(window, &zone);
         window.set_red(zone.color.red as i32);
         window.set_green(zone.color.green as i32);
@@ -289,6 +329,12 @@ fn sync_led_editor_fields(window: &MainWindow, state: &AppState) {
     }
 
     window.set_suppress_led_edit_events(false);
+}
+
+fn sync_led_effect_field(window: &MainWindow, state: &AppState) {
+    if let Some(zone) = state.led_editor_state() {
+        window.set_led_effect(led_effect_to_ui(zone.effect));
+    }
 }
 
 fn sync_led_brightness_editor_fields(window: &MainWindow, state: &AppState) {
@@ -608,6 +654,21 @@ fn main() -> Result<(), slint::PlatformError> {
                 )
             };
 
+            sync_window(&window, &state);
+            sync_led_editor_fields(&window, &state);
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_set_led_effect(move |effect| {
+            let mut state = state.borrow_mut();
+            let Some(window) = window_weak.upgrade() else {
+                return;
+            };
+
+            state.set_led_effect(led_effect_from_ui(effect));
             sync_window(&window, &state);
             sync_led_editor_fields(&window, &state);
         });

@@ -20,6 +20,7 @@ apply_all_leds() {
     [ -e "$led_path" ] || continue
     led_name="$(basename "$led_path")"
     apply_file "$LED_ROOT/$led_name/brightness"
+    apply_file "$LED_ROOT/$led_name/effect"
     apply_file "$LED_ROOT/$led_name/multi_intensity"
   done
 }
@@ -30,6 +31,7 @@ case "${1:-all}" in
     case "$led_name" in
       casper:rgb:*)
         apply_file "$LED_ROOT/$led_name/brightness"
+        apply_file "$LED_ROOT/$led_name/effect"
         apply_file "$LED_ROOT/$led_name/multi_intensity"
         ;;
     esac

@@ -30,6 +30,7 @@ def apply-reload-dev-permissions [] {
   for led in $leds {
     let led_name = ($led.name | path basename)
     apply-file-dev-permission ($LED_ROOT | path join $led_name "brightness")
+    apply-file-dev-permission ($LED_ROOT | path join $led_name "effect")
     apply-file-dev-permission ($LED_ROOT | path join $led_name "multi_intensity")
   }
 }

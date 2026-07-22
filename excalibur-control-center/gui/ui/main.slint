@@ -3,6 +3,7 @@ import { AboutSlint, Button, CheckBox, HorizontalBox, ListView, Slider, Vertical
 export enum AppTab { system_mode, display_mode, led_control, about }
 export enum GpuMode { hybrid, discrete, uma }
 export enum KeyboardZoneSelection { all, left, middle, right, bias }
+export enum LedEffect { static, breathing, cycle, ambilight }
 enum SystemMode { office, gaming, high_performance }
 export struct CreditItem {
     label: string,
@@ -680,11 +681,13 @@ component KeyboardTab inherits VerticalBox {
     in property <color> applied_middle_color: #000000;
     in property <color> applied_right_color: #000000;
     in property <color> applied_bias_color: #000000;
+    in property <LedEffect> led_effect: LedEffect.static;
 
     callback select_zone(KeyboardZoneSelection);
     callback brightness_slider_changed(float);
     callback color_wheel_changed(float, float);
     callback apply_led_settings();
+    callback set_led_effect(LedEffect);
 
     vertical-stretch: 1;
     horizontal-stretch: 1;
@@ -768,15 +771,32 @@ component KeyboardTab inherits VerticalBox {
                 }
 
                 Rectangle {
-                    height: 116px;
+                    height: 154px;
                     horizontal-stretch: 1;
 
                     VerticalBox {
                         spacing: 8px;
 
-                        Button { text: "Static"; clicked => { root.apply_led_settings(); } }
-                        Button { text: "Breathing"; }
-                        Button { text: "Cycle"; }
+                        HoverButton {
+                            text: "Static";
+                            selected: root.led_effect == LedEffect.static;
+                            clicked => { root.set_led_effect(LedEffect.static); }
+                        }
+                        HoverButton {
+                            text: "Breathing";
+                            selected: root.led_effect == LedEffect.breathing;
+                            clicked => { root.set_led_effect(LedEffect.breathing); }
+                        }
+                        HoverButton {
+                            text: "Cycle";
+                            selected: root.led_effect == LedEffect.cycle;
+                            clicked => { root.set_led_effect(LedEffect.cycle); }
+                        }
+                        HoverButton {
+                            text: "Ambilight";
+                            selected: root.led_effect == LedEffect.ambilight;
+                            clicked => { root.set_led_effect(LedEffect.ambilight); }
+                        }
                     }
                 }
 
@@ -1108,6 +1128,7 @@ export component MainWindow inherits Window {
     in property <color> applied_middle_color: #000000;
     in property <color> applied_right_color: #000000;
     in property <color> applied_bias_color: #000000;
+    in property <LedEffect> led_effect: LedEffect.static;
     in property <color> app_background_color: #0b0f14;
     in property <color> app_text_color: #cbd5e1;
     in-out property <bool> suppress_led_edit_events: false;
@@ -1122,6 +1143,7 @@ export component MainWindow inherits Window {
     callback brightness_slider_changed(float);
     callback color_wheel_changed(float, float);
     callback apply_led_settings();
+    callback set_led_effect(LedEffect);
     callback start_drag_window();
 
     preferred-width: 1180px;
@@ -1314,6 +1336,7 @@ export component MainWindow inherits Window {
                                 applied_middle_color: root.applied_middle_color;
                                 applied_right_color: root.applied_right_color;
                                 applied_bias_color: root.applied_bias_color;
+                                led_effect: root.led_effect;
 
                                 select_zone(zone) => { root.select_zone(zone); }
                                 brightness_slider_changed(value) => {
@@ -1330,6 +1353,11 @@ export component MainWindow inherits Window {
                                 }
                                 apply_led_settings => {
                                     root.apply_led_settings();
+                                    root.led_control_auto_refresh_enabled = true;
+                                }
+                                set_led_effect(effect) => {
+                                    root.led_control_auto_refresh_enabled = false;
+                                    root.set_led_effect(effect);
                                     root.led_control_auto_refresh_enabled = true;
                                 }
                             }
