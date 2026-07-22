@@ -35,6 +35,7 @@ struct AppState {
     storage_stats: StorageStats,
     active_tab: AppTab,
     selected_zone: KeyboardZoneSelection,
+    display_mode_warning: String,
     status: String,
 }
 
@@ -53,6 +54,7 @@ impl AppState {
             storage_stats: StorageStats::default(),
             active_tab: AppTab::SystemMode,
             selected_zone: KeyboardZoneSelection::All,
+            display_mode_warning: String::new(),
             status: String::new(),
         };
         state.refresh();
@@ -89,10 +91,37 @@ impl AppState {
     }
 
     fn set_gpu_mode(&mut self, mode: GpuMode) {
-        match self.backend.write_gpu_mode(mode) {
-            Ok(()) => {
+        let current_mode = match self.backend.read_gpu_mode() {
+            Ok(mode) => {
                 self.gpu_mode = mode;
-                self.status = format!("gpu mode set to {mode}");
+                mode
+            }
+            Err(err) => {
+                self.status = format!("gpu mode read failed: {err}");
+                return;
+            }
+        };
+
+        self.display_mode_warning = gpu_mode_transition_warning(current_mode, mode).to_string();
+
+        if current_mode == mode {
+            self.status = format!("gpu mode is already {mode}");
+            return;
+        }
+
+        match self.backend.write_gpu_mode(mode) {
+            Ok(()) => match self.backend.read_gpu_mode() {
+                Ok(active_mode) => {
+                    self.gpu_mode = active_mode;
+                    if active_mode == mode {
+                        self.status = format!("gpu mode set to {mode}");
+                    } else {
+                        self.status = format!("requested {mode}; firmware still reports {active_mode}");
+                    }
+                }
+                Err(err) => {
+                    self.status = format!("gpu mode readback failed after write: {err}");
+                }
             }
             Err(err) => {
                 self.status = format!("gpu mode write failed: {err}");
@@ -148,6 +177,7 @@ impl AppState {
 
 fn sync_window(window: &MainWindow, state: &AppState) {
     window.set_status(state.status.clone().into());
+    window.set_display_mode_warning(state.display_mode_warning.clone().into());
     window.set_active_zone(state.selected_zone.as_str().into());
     window.set_zones_summary(state.zone_summary().into());
     window.set_active_tab(state.active_tab);
@@ -193,6 +223,18 @@ fn sync_window(window: &MainWindow, state: &AppState) {
             zone.color.green,
             zone.color.blue,
         ));
+    }
+}
+
+fn gpu_mode_transition_warning(current: GpuMode, target: GpuMode) -> &'static str {
+    match (current, target) {
+        (GpuMode::Discrete, GpuMode::Hybrid) | (GpuMode::Discrete, GpuMode::Uma) => {
+            "Switching away from Discrete mode may require a reboot. Hybrid mode routes the display through the integrated GPU and uses NVIDIA through PRIME/On-Demand offload. UMA / Integrated mode uses only the integrated GPU path. Reboot into a matching integrated or hybrid graphics profile."
+        }
+        (GpuMode::Hybrid, GpuMode::Discrete) | (GpuMode::Uma, GpuMode::Discrete) => {
+            "Switching to Discrete mode may require a reboot. Discrete mode routes the display through the NVIDIA GPU. Reboot into an NVIDIA-only / Performance graphics profile."
+        }
+        _ => "",
     }
 }
 

@@ -123,6 +123,31 @@ component WindowControlButton inherits Rectangle {
     }
 }
 
+component PopupCloseButton inherits Rectangle {
+    callback clicked <=> touch.clicked;
+
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    background: touch.has-hover ? #6d2a20 : #2f3540cc;
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 12px;
+        height: 12px;
+        source: @image-url("assets/window-close.svg");
+    }
+
+    touch := TouchArea {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.height;
+        mouse-cursor: pointer;
+    }
+}
+
 component FanSpeedCard inherits Rectangle {
     in property <string> label: "";
     in property <string> speed: "";
@@ -853,6 +878,8 @@ component KeyboardTab inherits VerticalBox {
 
 component GpuTab inherits VerticalBox {
     in property <string> gpu_mode: "unknown";
+    in property <string> display-mode-warning: "";
+    in-out property <string> pending-display-mode-warning: "";
     in property <string> cpu-fan-rpm: "--";
     in property <string> gpu-fan-rpm: "--";
     in property <color> default-text-color: #cbd5e1;
@@ -880,24 +907,78 @@ component GpuTab inherits VerticalBox {
                     icon: @image-url("assets/gpu-discrete-mode.svg");
                     title: "Discrete";
                     active: root.gpu_mode == "discrete";
-                    clicked => { root.set_gpu_mode(GpuMode.discrete); }
+                    clicked => {
+                        if root.gpu_mode == "hybrid" || root.gpu_mode == "uma" {
+                            root.pending-display-mode-warning = "Switching to Discrete mode may require a reboot. Discrete mode routes the display through the NVIDIA GPU. You have to change your OS graphics settings to an NVIDIA-only / Performance graphics profile.";
+                            mode_warning_popup.show();
+                        }
+                        root.set_gpu_mode(GpuMode.discrete);
+                    }
                 }
                 DisplayModeCard {
                     icon: @image-url("assets/gpu-hybrid-mode.svg");
                     title: "Hybrid";
                     active: root.gpu_mode == "hybrid";
-                    clicked => { root.set_gpu_mode(GpuMode.hybrid); }
+                    clicked => {
+                        if root.gpu_mode == "discrete" {
+                            root.pending-display-mode-warning = "Switching away from Discrete mode may require a reboot. Hybrid mode routes the display through the integrated GPU and uses NVIDIA through PRIME/On-Demand offload. You have to change your OS graphics settings to a matching hybrid graphics profile.";
+                            mode_warning_popup.show();
+                        }
+                        root.set_gpu_mode(GpuMode.hybrid);
+                    }
                 }
                 DisplayModeCard {
                     icon: @image-url("assets/gpu-uma-mode.svg");
                     title: "UMA";
                     active: root.gpu_mode == "uma";
-                    clicked => { root.set_gpu_mode(GpuMode.uma); }
+                    clicked => {
+                        if root.gpu_mode == "discrete" {
+                            root.pending-display-mode-warning = "Switching away from Discrete mode may require a reboot. UMA / Integrated mode uses only the integrated GPU path. You have to change your OS graphics settings to a matching integrated graphics profile.";
+                            mode_warning_popup.show();
+                        }
+                        root.set_gpu_mode(GpuMode.uma);
+                    }
                 }
             }
-            Text {
-                text: "GPU mode changes may require reboot and matching OS graphics configuration.";
-                color: root.default-text-color;
+        }
+    }
+
+    mode_warning_popup := PopupWindow {
+        x: (root.width - self.width) / 2;
+        y: 36px;
+        width: min(root.width - 48px, 560px);
+        height: 190px;
+        close-policy: close-on-click-outside;
+
+        Rectangle {
+            width: parent.width;
+            height: parent.height;
+            background: #151b22;
+            border-width: 1px;
+            border-color: #f97316;
+            border-radius: 8px;
+
+            Rectangle {
+                width: parent.width;
+                height: parent.height;
+
+                Text {
+                    x: 28px;
+                    y: 26px;
+                    width: parent.width - 56px;
+                    height: parent.height - 52px;
+                    text: root.pending-display-mode-warning;
+                    color: root.default-text-color;
+                    wrap: word-wrap;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                PopupCloseButton {
+                    x: parent.width - self.width - 8px;
+                    y: 8px;
+                    clicked => { mode_warning_popup.close(); }
+                }
             }
         }
     }
@@ -1001,6 +1082,7 @@ export component MainWindow inherits Window {
     in property <string> active_zone: "all";
     in property <string> zones_summary: "";
     in property <string> gpu_mode: "unknown";
+    in property <string> display_mode_warning: "";
     in property <string> app_version: "";
     in property <string> cpu_fan_rpm: "--";
     in property <string> gpu_fan_rpm: "--";
@@ -1263,6 +1345,7 @@ export component MainWindow inherits Window {
                                     horizontal-stretch: 1;
                                     vertical-stretch: 1;
                                     gpu_mode: root.gpu_mode;
+                                    display-mode-warning: root.display_mode_warning;
                                     cpu-fan-rpm: root.cpu_fan_rpm;
                                     gpu-fan-rpm: root.gpu_fan_rpm;
                                     default-text-color: root.app_text_color;
