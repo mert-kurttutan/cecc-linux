@@ -30,7 +30,7 @@ contents:
     file_info:
       mode: 0755
   - src: casper-wmi/90-excalibur-control-center.rules
-    dst: /etc/udev/rules.d/90-excalibur-control-center.rules
+    dst: /usr/lib/udev/rules.d/90-excalibur-control-center.rules
     file_info:
       mode: 0644
 scripts:

@@ -11,6 +11,34 @@ Casper WMI driver work is based on and credits:
 
 ## Installation
 
+### Debian Package
+
+On Debian-based distributions such as Ubuntu, download the `.deb` from the
+release page and install it with apt:
+
+```sh
+wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.21/excalibur-control-center_0.1.21_amd64.deb
+sudo apt install ./excalibur-control-center_0.1.21_amd64.deb
+```
+
+The `.deb` installs the GUI, CLI, udev permission rules, and the sysfs
+permission helper. It does not install the `casper-wmi` driver yet.
+
+After installation, add your user to the `excalibur` group and log out and back
+in:
+
+```sh
+sudo usermod -aG excalibur "$USER"
+```
+
+Run the GUI:
+
+```sh
+excalibur-control-center-gui
+```
+
+### Full Installer Script
+
 For the default installation method use the following in terminal:
 
 ```sh
@@ -31,10 +59,6 @@ curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scri
 
 curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-nu/install-release.nu | sudo nu --stdin -c 'nu -c ($in + "\nmain --version v0.0.2")'
 ```
-
-After installation, log out and back in if the installer adds your user to the
-`excalibur` group.
-
 
 The installer must run with `sudo` because it installs system packages, the
 DKMS driver, udev permission rules, and application binaries under
