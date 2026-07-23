@@ -29,6 +29,14 @@
             vulkan-loader
             mesa
           ];
+          fontsConf = pkgs.makeFontsConf {
+            fontDirectories = with pkgs; [
+              dejavu_fonts
+              liberation_ttf
+              noto-fonts
+              noto-fonts-color-emoji
+            ];
+          };
           runtimeLibs = guiLibs ++ pkgs.lib.optional (hostConfig.hardware.nvidia.package != null) hostConfig.hardware.nvidia.package;
         in
         {
@@ -47,6 +55,7 @@
               ];
 
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath runtimeLibs;
+            FONTCONFIG_FILE = fontsConf;
 
             shellHook = ''
               export DRIVER_DIR="$PWD/casper-wmi"
