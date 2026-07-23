@@ -16,7 +16,8 @@ jobs:
         working-directory: excalibur-control-center
 
     env:
-      ASSET_DIR: ../release-assets
+      ASSET_DIR: release-assets
+      NFPM_VERSION: 2.47.0
 
     steps:
       - name: Checkout
@@ -88,12 +89,40 @@ jobs:
 
       - name: Prepare release assets
         run: |
-          mkdir -p "$ASSET_DIR"
+          mkdir -p "../$ASSET_DIR"
           install -m 0755 target/release/excalibur-control-center-gui \
-            "$ASSET_DIR/excalibur-control-center-gui"
+            "../$ASSET_DIR/excalibur-control-center-gui"
           install -m 0755 target/release/excalibur-control-center-cli \
-            "$ASSET_DIR/excalibur-control-center-cli"
-          sha256sum "$ASSET_DIR"/excalibur-control-center-* \
+            "../$ASSET_DIR/excalibur-control-center-cli"
+
+      - name: Install nFPM
+        working-directory: .
+        run: |
+          curl -fsSL \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin nfpm
+          nfpm --version
+
+      - name: Build Debian package
+        working-directory: .
+        run: |
+          python3 - <<'PY'
+          import os
+          import pathlib
+
+          source = pathlib.Path("packaging/nfpm.yaml")
+          target = pathlib.Path("packaging/nfpm.release.yaml")
+          target.write_text(source.read_text().replace("__VERSION__", os.environ["RELEASE_VERSION"]))
+          PY
+          nfpm package \
+            --config packaging/nfpm.release.yaml \
+            --packager deb \
+            --target "$ASSET_DIR"
+
+      - name: Generate checksums
+        working-directory: .
+        run: |
+          sha256sum "$ASSET_DIR"/* \
             > "$ASSET_DIR/SHA256SUMS"
 
       - name: Create release

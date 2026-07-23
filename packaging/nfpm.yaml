@@ -1,0 +1,38 @@
+name: excalibur-control-center
+arch: amd64
+platform: linux
+version: "__VERSION__"
+section: utils
+priority: optional
+maintainer: "Mert Kurttutan"
+homepage: "https://github.com/mert-kurttutan/cecc-linux"
+description: "Linux control center for Casper Excalibur laptops."
+vendor: "mert-kurttutan"
+depends:
+  - bash
+  - libc6
+  - libfontconfig1
+  - libgcc-s1
+  - libwayland-client0
+  - libxkbcommon0
+  - udev
+contents:
+  - src: release-assets/excalibur-control-center-gui
+    dst: /usr/bin/excalibur-control-center-gui
+    file_info:
+      mode: 0755
+  - src: release-assets/excalibur-control-center-cli
+    dst: /usr/bin/excalibur-control-center-cli
+    file_info:
+      mode: 0755
+  - src: scripts/driver-bash/apply-sysfs-permissions.sh
+    dst: /usr/local/libexec/excalibur-control-center/apply-sysfs-permissions
+    file_info:
+      mode: 0755
+  - src: casper-wmi/90-excalibur-control-center.rules
+    dst: /etc/udev/rules.d/90-excalibur-control-center.rules
+    file_info:
+      mode: 0644
+scripts:
+  postinstall: packaging/deb/postinstall.sh
+  postremove: packaging/deb/postremove.sh

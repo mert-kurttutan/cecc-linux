@@ -48,6 +48,7 @@
               binutils
               elfutils
               kmod
+              nfpm
               pkg-config
             ] ++ guiLibs
               ++ kernel.moduleBuildDependencies ++ [
