@@ -16,6 +16,7 @@ const DEFAULT_SYSFS_ROOT: &str = "/sys";
 const GPU_MODE_PATH: &str = "module/casper_wmi/parameters/gpu_mode";
 const LED_ROOT: &str = "class/leds";
 const HWMON_ROOT: &str = "class/hwmon";
+const POWER_SUPPLY_ROOT: &str = "class/power_supply";
 const CPUFREQ_POLICY_ROOT: &str = "devices/system/cpu/cpufreq";
 const PROC_CPUINFO_PATH: &str = "/proc/cpuinfo";
 const PROC_MEMINFO_PATH: &str = "/proc/meminfo";
@@ -197,7 +198,44 @@ impl SysfsBackend {
             gpu_load: self.read_gpu_load(),
             memory_stats: self.read_memory_stats().unwrap_or_default(),
             storage_stats: self.read_storage_stats(ROOT_MOUNT_PATH).unwrap_or_default(),
+            ac_power_online: self.read_ac_power_online().unwrap_or(None),
         })
+    }
+
+    pub fn read_ac_power_online(&self) -> Result<Option<bool>, BackendError> {
+        let power_supply_root = self.path(POWER_SUPPLY_ROOT);
+
+        if !power_supply_root.exists() {
+            return Ok(None);
+        }
+
+        let mut found_mains = false;
+
+        for entry in fs::read_dir(power_supply_root)? {
+            let supply_dir = entry?.path();
+            if !supply_dir.is_dir() {
+                continue;
+            }
+
+            let supply_type = fs::read_to_string(supply_dir.join("type"))
+                .unwrap_or_default()
+                .trim()
+                .to_ascii_lowercase();
+            if supply_type != "mains" {
+                continue;
+            }
+
+            found_mains = true;
+            let online = fs::read_to_string(supply_dir.join("online"))
+                .unwrap_or_default()
+                .trim()
+                .to_string();
+            if online == "1" {
+                return Ok(Some(true));
+            }
+        }
+
+        Ok(found_mains.then_some(false))
     }
 
     pub fn read_gpu_mode(&self) -> Result<GpuMode, BackendError> {

@@ -56,6 +56,7 @@ struct AppState {
     gpu_load: GpuLoad,
     memory_stats: MemoryStats,
     storage_stats: StorageStats,
+    ac_power_online: Option<bool>,
     active_tab: AppTab,
     selected_zone: KeyboardZoneSelection,
     display_mode_warning: String,
@@ -75,6 +76,7 @@ impl AppState {
             gpu_load: GpuLoad::default(),
             memory_stats: MemoryStats::default(),
             storage_stats: StorageStats::default(),
+            ac_power_online: None,
             active_tab: AppTab::SystemMode,
             selected_zone: KeyboardZoneSelection::All,
             display_mode_warning: String::new(),
@@ -96,6 +98,7 @@ impl AppState {
                 self.gpu_load = state.gpu_load;
                 self.memory_stats = state.memory_stats;
                 self.storage_stats = state.storage_stats;
+                self.ac_power_online = state.ac_power_online;
                 self.status = "refreshed hardware state".into();
             }
             Err(err) => {
@@ -121,6 +124,7 @@ impl AppState {
         self.gpu_load = self.backend.read_gpu_load();
         self.memory_stats = self.backend.read_memory_stats().unwrap_or_default();
         self.storage_stats = self.backend.read_storage_stats("/").unwrap_or_default();
+        self.ac_power_online = self.backend.read_ac_power_online().unwrap_or(None);
     }
 
     fn refresh_display_mode(&mut self) {
@@ -270,6 +274,7 @@ fn sync_active_tab(window: &MainWindow, state: &AppState) {
 }
 
 fn sync_tab_system_mode(window: &MainWindow, state: &AppState) {
+    window.set_ac_power_online(state.ac_power_online.unwrap_or(true));
     sync_fan_speed_fields(window, state);
     sync_performance_fields(window, state);
 }

@@ -180,4 +180,5 @@ pub struct ControlCenterState {
     pub gpu_load: GpuLoad,
     pub memory_stats: MemoryStats,
     pub storage_stats: StorageStats,
+    pub ac_power_online: Option<bool>,
 }

@@ -14,6 +14,7 @@ export struct CreditItem {
 component ControlButtonBase inherits Rectangle {
     in property <string> text: "";
     in property <bool> selected: false;
+    in property <bool> enabled: true;
     in property <color> default-background: #2f3a46;
     in property <color> hover-background: #37516c;
     in property <color> selected-background: #2f3a46;
@@ -22,15 +23,21 @@ component ControlButtonBase inherits Rectangle {
     in property <color> selected-border-color: #4b6987;
     in property <color> selected-text-color: white;
     in property <color> default-text-color: #a3aab3;
-    callback clicked <=> touch.clicked;
+    callback clicked;
 
-    border-color: root.selected ? root.selected-border-color : (touch.has-hover ? root.hover-border-color : root.default-border-color);
-    background: root.selected ? root.selected-background : (touch.has-hover ? root.hover-background : root.default-background);
+    opacity: root.enabled ? 1 : 0.48;
+    border-color: root.selected ? root.selected-border-color : (root.enabled && touch.has-hover ? root.hover-border-color : root.default-border-color);
+    background: root.selected ? root.selected-background : (root.enabled && touch.has-hover ? root.hover-background : root.default-background);
     animate background { duration: 120ms; }
     animate border-color { duration: 120ms; }
 
     touch := TouchArea {
         mouse-cursor: pointer;
+        clicked => {
+            if root.enabled {
+                root.clicked();
+            }
+        }
     }
 
     Text {
@@ -612,6 +619,13 @@ component SystemModeTab inherits VerticalBox {
     in property <string> cpu-fan-rpm: "--";
     in property <string> gpu-fan-rpm: "--";
     in property <color> default-text-color: #cbd5e1;
+    in property <bool> ac-power-online: true;
+
+    changed ac-power-online => {
+        if !root.ac-power-online {
+            root.selected_mode = SystemMode.office;
+        }
+    }
 
     min-width: 460px;
     min-height: 480px;
@@ -643,16 +657,36 @@ component SystemModeTab inherits VerticalBox {
 
             SystemModeButton {
                 text: "Gaming";
+                enabled: root.ac-power-online;
                 selected: root.selected_mode == SystemMode.gaming;
-                clicked => { root.selected_mode = SystemMode.gaming; }
+                clicked => {
+                    if root.ac-power-online {
+                        root.selected_mode = SystemMode.gaming;
+                    }
+                }
             }
 
             SystemModeButton {
                 text: "High Performance";
+                enabled: root.ac-power-online;
                 selected: root.selected_mode == SystemMode.high_performance;
-                clicked => { root.selected_mode = SystemMode.high_performance; }
+                clicked => {
+                    if root.ac-power-online {
+                        root.selected_mode = SystemMode.high_performance;
+                    }
+                }
             }
         }
+    }
+
+    if !root.ac-power-online : Text {
+        horizontal-stretch: 1;
+        height: 28px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        text: "Gaming and High Performance modes require AC power.";
+        color: root.default-text-color;
+        font-size: 14px;
     }
 
     if root.selected_mode == SystemMode.office : SystemModeDistributionGraph { }
@@ -1092,6 +1126,7 @@ export component MainWindow inherits Window {
     in property <string> app_version: "";
     in property <string> cpu_fan_rpm: "--";
     in property <string> gpu_fan_rpm: "--";
+    in property <bool> ac_power_online: true;
     in property <string> cpu_frequency: "--";
     in property <string> cpu_load_percent: "--";
     in property <float> cpu_load_fill: 0;
@@ -1302,6 +1337,7 @@ export component MainWindow inherits Window {
                                     vertical-stretch: 1;
                                     cpu-fan-rpm: root.cpu_fan_rpm;
                                     gpu-fan-rpm: root.gpu_fan_rpm;
+                                    ac-power-online: root.ac_power_online;
                                     default-text-color: root.app_text_color;
                                 }
 
