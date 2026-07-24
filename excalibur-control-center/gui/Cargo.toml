@@ -1,6 +1,6 @@
 [package]
 name = "excalibur-control-center-gui"
-version = "0.1.27"
+version = "0.1.28"
 edition = "2024"
 build = "build.rs"
 

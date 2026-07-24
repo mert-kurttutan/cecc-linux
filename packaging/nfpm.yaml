@@ -44,7 +44,7 @@ overrides:
       - glibc
       - fontconfig
       - libgcc
-      - wayland-libs
+      - libwayland-client
       - libxkbcommon
       - systemd-udev
 rpm:
