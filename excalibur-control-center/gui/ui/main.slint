@@ -1,4 +1,4 @@
-import { AboutSlint, Button, CheckBox, HorizontalBox, ListView, Slider, VerticalBox } from "std-widgets.slint";
+import { AboutSlint, CheckBox, HorizontalBox, ListView, Slider, VerticalBox } from "std-widgets.slint";
 
 export enum AppTab { system_mode, display_mode, led_control, about }
 export enum GpuMode { hybrid, discrete, uma }
@@ -796,11 +796,17 @@ component KeyboardTab inherits VerticalBox {
                     spacing: 8px;
 
                     CheckBox {
-                        text: "Select all";
+                        text: "";
                         checked: root.active_zone == "all";
                         toggled => {
                             root.select_zone(self.checked ? KeyboardZoneSelection.all : KeyboardZoneSelection.left);
                         }
+                    }
+
+                    Text {
+                        text: "Select all";
+                        color: white;
+                        vertical-alignment: center;
                     }
                 }
 
@@ -909,7 +915,18 @@ component KeyboardTab inherits VerticalBox {
                             value <=> root.brightness_slider;
                             changed(value) => { root.brightness_slider_changed(value); }
                         }
-                        Button { text: "Apply"; clicked => { root.apply_led_settings(); } }
+                        HoverButton {
+                            text: "Apply";
+                            default-background: #1f2933;
+                            hover-background: #1f2933;
+                            selected-background: #1f2933;
+                            default-border-color: #2f3a46;
+                            hover-border-color: #2f3a46;
+                            selected-border-color: #2f3a46;
+                            default-text-color: white;
+                            selected-text-color: white;
+                            clicked => { root.apply_led_settings(); }
+                        }
                     }
                 }
             }
