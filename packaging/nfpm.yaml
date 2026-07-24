@@ -8,14 +8,6 @@ maintainer: "Mert Kurttutan"
 homepage: "https://github.com/mert-kurttutan/cecc-linux"
 description: "Linux control center for Casper Excalibur laptops."
 vendor: "mert-kurttutan"
-depends:
-  - bash
-  - libc6
-  - libfontconfig1
-  - libgcc-s1
-  - libwayland-client0
-  - libxkbcommon0
-  - udev
 contents:
   - src: release-assets/excalibur-control-center-gui
     dst: /usr/bin/excalibur-control-center-gui
@@ -36,3 +28,25 @@ contents:
 scripts:
   postinstall: packaging/deb/postinstall.sh
   postremove: packaging/deb/postremove.sh
+overrides:
+  deb:
+    depends:
+      - bash
+      - libc6
+      - libfontconfig1
+      - libgcc-s1
+      - libwayland-client0
+      - libxkbcommon0
+      - udev
+  rpm:
+    depends:
+      - bash
+      - glibc
+      - fontconfig
+      - libgcc
+      - wayland
+      - libxkbcommon
+      - systemd-udev
+rpm:
+  group: Applications/System
+  summary: Linux control center for Casper Excalibur laptops
