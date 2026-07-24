@@ -209,3 +209,38 @@ jobs:
           sudo apt-get remove -y excalibur-control-center || true
           test ! -e /usr/bin/excalibur-control-center-gui
           test ! -e /usr/bin/excalibur-control-center-cli
+
+  post-release-fedora-smoke:
+    name: Post-release Fedora smoke
+    runs-on: ubuntu-latest
+    needs: linux-x86_64
+    container:
+      image: fedora:latest
+
+    env:
+      RELEASE_VERSION: ${{ needs.linux-x86_64.outputs.release_version }}
+      RELEASE_TAG: ${{ needs.linux-x86_64.outputs.release_tag }}
+
+    steps:
+      - name: Install smoke-test dependencies
+        run: |
+          dnf install -y ca-certificates curl
+
+      - name: Smoke test RPM package
+        run: |
+          package="excalibur-control-center-${RELEASE_VERSION}-1.x86_64.rpm"
+          url="https://github.com/mert-kurttutan/cecc-linux/releases/download/${RELEASE_TAG}/${package}"
+
+          curl -fL "$url" -o "$package"
+          dnf install -y "./$package"
+
+          test -x /usr/bin/excalibur-control-center-gui
+          test -x /usr/bin/excalibur-control-center-cli
+          /usr/bin/excalibur-control-center-cli --help >/dev/null
+
+      - name: Remove RPM package
+        if: always()
+        run: |
+          dnf remove -y excalibur-control-center || true
+          test ! -e /usr/bin/excalibur-control-center-gui
+          test ! -e /usr/bin/excalibur-control-center-cli
