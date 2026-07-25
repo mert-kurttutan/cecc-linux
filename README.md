@@ -6,23 +6,6 @@ Scope:
 - provide cli and gui based version of Control Center Software
 - Aim is to have a version that is featuer complete.
 
-## License
-
-This repository is mixed-license. There is no single license for the whole
-tree.
-
-If you use, copy, or redistribute the whole repository, you must comply with
-the license terms of each part.
-
-The userspace application code in `excalibur-control-center/` is licensed under
-the MIT License.
-
-The kernel driver code in `casper-wmi/` is licensed under GPL-2.0-or-later, as
-marked by the SPDX headers in those source files.
-
-Casper WMI driver work is based on and credits:
-- <https://github.com/Mustafa-eksi/casper-wmi>
-
 ## Installation
 
 ### Debian Package
@@ -144,3 +127,20 @@ Build everything:
 ```sh
 cargo build
 ```
+
+## License
+
+This repository is mixed-license. There is no single license for the whole
+tree.
+
+If you use, copy, or redistribute the whole repository, you must comply with
+the license terms of each part.
+
+The userspace application code in `excalibur-control-center/` is licensed under
+the MIT License.
+
+The kernel driver code in `casper-wmi/` is licensed under GPL-2.0-or-later, as
+marked by the SPDX headers in those source files.
+
+Casper WMI driver work is based on and credits:
+- <https://github.com/Mustafa-eksi/casper-wmi>
