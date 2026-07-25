@@ -6,6 +6,10 @@ Scope:
 - provide cli and gui based version of Control Center Software
 - Aim is to have a version that is featuer complete.
 
+## Demo
+
+![Excalibur Control Center demo](docs/example-demo.gif)
+
 ## Installation
 
 ### Debian Package
