@@ -1,0 +1,13 @@
+Mixed-license notice for this repository.
+
+There is no single license that applies to every file in the repository.
+If you copy, redistribute, or use the whole repository, you must comply with
+the license terms of each part.
+
+Userspace application code in `excalibur-control-center/` is licensed under the
+MIT License. See `LICENSE-MIT`.
+
+Kernel driver code in `casper-wmi/` is licensed under GPL-2.0-or-later, as
+indicated by the SPDX headers in those files.
+
+When using the entire project, you must comply with the GNU General Public License, version 2 or later (GPL-2.0-or-later) for the entire combined distribution

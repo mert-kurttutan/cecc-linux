@@ -3,6 +3,7 @@ name = "excalibur-control-center-gui"
 version = "0.1.29"
 edition = "2024"
 build = "build.rs"
+license = "MIT"
 
 [build-dependencies]
 slint-build = "1"

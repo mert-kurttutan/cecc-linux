@@ -2,6 +2,7 @@
 name = "excalibur-control-center-cli"
 version = "0.1.29"
 edition = "2024"
+license = "MIT"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
