@@ -6,10 +6,6 @@ Scope:
 - provide cli and gui based version of Control Center Software
 - Aim is to have a version that is featuer complete.
 
-## Demo
-
-![Excalibur Control Center demo](docs/example-demo.gif)
-
 ## Installation
 
 ### Debian Package
@@ -77,6 +73,10 @@ curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scri
 The installer must run with `sudo` because it installs system packages, the
 DKMS driver, udev permission rules, and application binaries under
 `/usr/local/bin`.
+
+## Demo
+
+![Excalibur Control Center demo](docs/example-demo.gif)
 
 ## Development
 
