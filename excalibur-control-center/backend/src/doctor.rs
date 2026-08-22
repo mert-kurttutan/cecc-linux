@@ -139,6 +139,154 @@ pub fn collect_doctor_report(app_version: impl Into<String>, include_dmesg: bool
     }
 }
 
+pub fn format_doctor_report(report: &DoctorReport) -> String {
+    let mut output = String::new();
+
+    push_line(&mut output, "# Excalibur Control Center doctor report");
+    push_line(&mut output, "");
+    push_line(&mut output, "## App");
+    push_line(&mut output, &format!("- version: {}", report.app_version));
+    push_line(
+        &mut output,
+        &format!("- kernel: {}", probe_value(&report.kernel_release)),
+    );
+    push_line(&mut output, "");
+
+    push_line(&mut output, "## DMI");
+    push_line(
+        &mut output,
+        &format!("- sys_vendor: {}", probe_value(&report.dmi.sys_vendor)),
+    );
+    push_line(
+        &mut output,
+        &format!("- product_name: {}", probe_value(&report.dmi.product_name)),
+    );
+    push_line(
+        &mut output,
+        &format!(
+            "- product_version: {}",
+            probe_value(&report.dmi.product_version)
+        ),
+    );
+    push_line(
+        &mut output,
+        &format!("- board_name: {}", probe_value(&report.dmi.board_name)),
+    );
+    push_line(
+        &mut output,
+        &format!("- bios_version: {}", probe_value(&report.dmi.bios_version)),
+    );
+    push_line(&mut output, "");
+
+    push_line(&mut output, "## CPU");
+    push_line(
+        &mut output,
+        &format!("- vendor_id: {}", probe_value(&report.cpu.vendor_id)),
+    );
+    push_line(
+        &mut output,
+        &format!("- model_name: {}", probe_value(&report.cpu.model_name)),
+    );
+    push_line(
+        &mut output,
+        &format!("- cpu_family: {}", probe_value(&report.cpu.cpu_family)),
+    );
+    push_line(
+        &mut output,
+        &format!("- model: {}", probe_value(&report.cpu.model)),
+    );
+    push_line(
+        &mut output,
+        &format!("- stepping: {}", probe_value(&report.cpu.stepping)),
+    );
+    push_line(&mut output, "");
+
+    push_line(&mut output, "## WMI");
+    push_line(
+        &mut output,
+        &format!(
+            "- casper_guid_present: {}",
+            yes_no(report.wmi.casper_guid_present)
+        ),
+    );
+    push_line(&mut output, "- devices:");
+    push_string_list(&mut output, &report.wmi.device_names);
+    push_line(&mut output, "");
+
+    push_line(&mut output, "## Driver");
+    push_line(
+        &mut output,
+        &format!(
+            "- casper_wmi_loaded: {}",
+            yes_no(report.driver.module_loaded)
+        ),
+    );
+    push_line(
+        &mut output,
+        &format!("- gpu_mode: {}", probe_value(&report.driver.gpu_mode)),
+    );
+    push_line(&mut output, "- parameters:");
+    push_string_list(&mut output, &report.driver.parameter_names);
+    push_line(&mut output, "");
+
+    push_line(&mut output, "## LED sysfs");
+    push_path_probes(&mut output, &report.sysfs.expected_leds);
+    push_line(&mut output, "");
+
+    push_line(&mut output, "## hwmon");
+    if report.sysfs.hwmon_devices.is_empty() {
+        push_line(&mut output, "- none found or not readable");
+    } else {
+        for hwmon in &report.sysfs.hwmon_devices {
+            push_line(
+                &mut output,
+                &format!("- {} name={}", hwmon.path, probe_value(&hwmon.name)),
+            );
+            for fan in &hwmon.fans {
+                push_line(
+                    &mut output,
+                    &format!(
+                        "  - {} label={} value={}",
+                        fan.input,
+                        probe_value(&fan.label),
+                        probe_value(&fan.value)
+                    ),
+                );
+            }
+        }
+    }
+
+    if let Some(dmesg) = &report.dmesg {
+        push_line(&mut output, "");
+        push_line(&mut output, "## dmesg");
+        push_line(&mut output, &format!("- command: {}", dmesg.command));
+        push_line(
+            &mut output,
+            &format!(
+                "- status: {}",
+                dmesg
+                    .status
+                    .map_or("unknown".to_string(), |status| status.to_string())
+            ),
+        );
+        if let Some(error) = &dmesg.error {
+            push_line(&mut output, &format!("- error: {error}"));
+        }
+        if !dmesg.stderr.is_empty() {
+            push_line(&mut output, &format!("- stderr: {}", dmesg.stderr));
+        }
+        if dmesg.stdout.is_empty() {
+            push_line(&mut output, "- filtered_output: none");
+        } else {
+            push_line(&mut output, "```text");
+            push_line(&mut output, &dmesg.stdout);
+            push_line(&mut output, "```");
+        }
+    }
+
+    output
+}
+
 fn collect_dmi_report() -> DmiReport {
     DmiReport {
         sys_vendor: ProbeValue::from_path(Path::new(DMI_ROOT).join("sys_vendor")),
@@ -351,4 +499,50 @@ fn command_error_summary(probe: &CommandProbe) -> String {
     }
 
     format!("command exited with status {:?}", probe.status)
+}
+
+fn push_line(output: &mut String, line: &str) {
+    output.push_str(line);
+    output.push('\n');
+}
+
+fn push_path_probes(output: &mut String, probes: &[PathProbe]) {
+    for probe in probes {
+        push_line(
+            output,
+            &format!(
+                "- {} exists={} readable={} value={}",
+                probe.path,
+                yes_no(probe.exists),
+                yes_no(probe.readable),
+                probe.value.as_deref().unwrap_or("--")
+            ),
+        );
+        if let Some(error) = &probe.error {
+            push_line(output, &format!("  error={error}"));
+        }
+    }
+}
+
+fn push_string_list(output: &mut String, values: &[String]) {
+    if values.is_empty() {
+        push_line(output, "  - none found or not readable");
+        return;
+    }
+
+    for value in values {
+        push_line(output, &format!("  - {value}"));
+    }
+}
+
+fn probe_value(value: &ProbeValue) -> &str {
+    value
+        .value
+        .as_deref()
+        .or(value.error.as_deref())
+        .unwrap_or("--")
+}
+
+fn yes_no(value: bool) -> &'static str {
+    if value { "yes" } else { "no" }
 }

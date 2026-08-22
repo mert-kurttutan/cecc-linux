@@ -4,7 +4,7 @@ use std::rc::Rc;
 use excalibur_control_center_backend::{
     CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode, KeyboardLedEffect,
     KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats,
-    SysfsBackend,
+    SysfsBackend, collect_doctor_report, format_doctor_report,
 };
 use excalibur_control_center_gui::ui::{
     AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection,
@@ -59,6 +59,7 @@ struct AppState {
     ac_power_online: Option<bool>,
     active_tab: AppTab,
     selected_zone: KeyboardZoneSelection,
+    support_report: String,
     display_mode_warning: String,
     status: String,
 }
@@ -79,6 +80,7 @@ impl AppState {
             ac_power_online: None,
             active_tab: AppTab::SystemMode,
             selected_zone: KeyboardZoneSelection::All,
+            support_report: String::new(),
             display_mode_warning: String::new(),
             status: String::new(),
         };
@@ -112,6 +114,7 @@ impl AppState {
             AppTab::SystemMode => self.refresh_system_mode(),
             AppTab::DisplayMode => self.refresh_display_mode(),
             AppTab::LedControl => self.refresh_led_control(),
+            AppTab::Troubleshooting => {}
             AppTab::About => {}
         }
     }
@@ -151,6 +154,16 @@ impl AppState {
 
     fn set_active_tab(&mut self, tab: AppTab) {
         self.active_tab = tab;
+    }
+
+    fn generate_support_report(&mut self) {
+        let report = collect_doctor_report(env!("CARGO_PKG_VERSION"), true);
+        self.support_report = format_doctor_report(&report);
+        self.status = "doctor report generated".into();
+    }
+
+    fn mark_support_report_copied(&mut self) {
+        self.status = "doctor report copied".into();
     }
 
     fn set_selected_zone(&mut self, zone: KeyboardZoneSelection) {
@@ -262,6 +275,7 @@ fn sync_window(window: &MainWindow, state: &AppState) {
 fn sync_window_common(window: &MainWindow, state: &AppState) {
     window.set_status(state.status.clone().into());
     window.set_active_tab(state.active_tab);
+    window.set_support_report_text(state.support_report.clone().into());
 }
 
 fn sync_active_tab(window: &MainWindow, state: &AppState) {
@@ -269,6 +283,7 @@ fn sync_active_tab(window: &MainWindow, state: &AppState) {
         AppTab::SystemMode => sync_tab_system_mode(window, state),
         AppTab::DisplayMode => sync_tab_display_mode(window, state),
         AppTab::LedControl => sync_tab_led_control(window, state),
+        AppTab::Troubleshooting => {}
         AppTab::About => {}
     }
 }
@@ -697,6 +712,30 @@ fn main() -> Result<(), slint::PlatformError> {
                 window.set_blue(rgb.blue as i32);
             }
             state.status = format!("color updated to {},{},{}", rgb.red, rgb.green, rgb.blue);
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_generate_support_report(move || {
+            let mut state = state.borrow_mut();
+            state.generate_support_report();
+            if let Some(window) = window_weak.upgrade() {
+                sync_window(&window, &state);
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_copy_support_report(move || {
+            let mut state = state.borrow_mut();
+            state.mark_support_report_copied();
+            if let Some(window) = window_weak.upgrade() {
+                sync_window(&window, &state);
+            }
         });
     }
 

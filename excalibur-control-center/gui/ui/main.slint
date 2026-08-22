@@ -1,6 +1,6 @@
-import { AboutSlint, CheckBox, HorizontalBox, ListView, Slider, VerticalBox } from "std-widgets.slint";
+import { AboutSlint, CheckBox, HorizontalBox, ListView, Slider, TextEdit, VerticalBox } from "std-widgets.slint";
 
-export enum AppTab { system_mode, display_mode, led_control, about }
+export enum AppTab { system_mode, display_mode, led_control, troubleshooting, about }
 export enum GpuMode { hybrid, discrete, uma }
 export enum KeyboardZoneSelection { all, left, middle, right, bias }
 export enum LedEffect { static, breathing, cycle, ambilight }
@@ -1135,6 +1135,68 @@ component AboutTab inherits VerticalBox {
     }
 }
 
+component TroubleshootingTab inherits VerticalBox {
+    in-out property <string> report-text: "";
+    in property <color> default-text-color: #cbd5e1;
+
+    callback generate_report();
+    callback copy_report();
+
+    vertical-stretch: 1;
+    spacing: 12px;
+
+    Text {
+        text: "Troubleshooting";
+        color: root.default-text-color;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    Text {
+        text: "Generate your report below, describe your issue, and paste the report at github.com/mert-kurttutan/cecc-linux/issues.";
+        color: root.default-text-color;
+        wrap: word-wrap;
+    }
+
+    HorizontalBox {
+        height: 44px;
+        spacing: 10px;
+        alignment: start;
+
+        HoverButton {
+            text: "Run Doctor";
+            min-width: 132px;
+            preferred-width: 132px;
+            max-width: 132px;
+            clicked => { root.generate_report(); }
+        }
+
+        HoverButton {
+            text: "Copy Report";
+            min-width: 132px;
+            preferred-width: 132px;
+            max-width: 132px;
+            enabled: root.report-text != "";
+            clicked => {
+                report_text.select-all();
+                report_text.copy();
+                root.copy_report();
+            }
+        }
+
+        Rectangle { horizontal-stretch: 1; }
+    }
+
+    report_text := TextEdit {
+        text <=> root.report-text;
+        read-only: true;
+        wrap: no-wrap;
+        font-family: "monospace";
+        font-size: 13px;
+        placeholder-text: "Press Run Doctor to generate a support report.";
+    }
+}
+
 export component MainWindow inherits Window {
     in property <string> status: "";
     in property <string> active_zone: "all";
@@ -1156,6 +1218,7 @@ export component MainWindow inherits Window {
     in property <string> storage_usage: "--";
     in property <string> storage_percent: "--";
     in property <float> storage_fill: 0;
+    in-out property <string> support_report_text: "";
     out property <[string]> main_items: [
         "Linux control center for Casper Excalibur laptops.",
         "Origin: Linux port of Casper Excalibur Control Center behavior.",
@@ -1196,6 +1259,8 @@ export component MainWindow inherits Window {
     callback color_wheel_changed(float, float);
     callback apply_led_settings();
     callback set_led_effect(LedEffect);
+    callback generate_support_report();
+    callback copy_support_report();
     callback start_drag_window();
 
     preferred-width: 1180px;
@@ -1314,6 +1379,7 @@ export component MainWindow inherits Window {
                         HoverButton { text: "System Mode"; selected: root.active_tab == AppTab.system_mode; clicked => { root.select_tab(AppTab.system_mode); } }
                         HoverButton { text: "Display Mode"; selected: root.active_tab == AppTab.display_mode; clicked => { root.select_tab(AppTab.display_mode); } }
                         HoverButton { text: "LED Control"; selected: root.active_tab == AppTab.led_control; clicked => { root.select_tab(AppTab.led_control); } }
+                        HoverButton { text: "Troubleshooting"; selected: root.active_tab == AppTab.troubleshooting; clicked => { root.select_tab(AppTab.troubleshooting); } }
                         HoverButton { text: "About"; selected: root.active_tab == AppTab.about; clicked => { root.select_tab(AppTab.about); } }
                         Rectangle { vertical-stretch: 1; }
                         HoverButton {
@@ -1445,6 +1511,15 @@ export component MainWindow inherits Window {
                                     storage-percent: root.storage_percent;
                                     storage-fill: root.storage_fill;
                                 }
+                            }
+
+                            if root.active_tab == AppTab.troubleshooting : TroubleshootingTab {
+                                width: parent.width;
+                                height: parent.height;
+                                report-text <=> root.support_report_text;
+                                default-text-color: root.app_text_color;
+                                generate_report => { root.generate_support_report(); }
+                                copy_report => { root.copy_support_report(); }
                             }
 
                             if root.active_tab == AppTab.about : AboutTab {

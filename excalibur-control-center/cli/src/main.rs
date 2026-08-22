@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use excalibur_control_center_backend::{
-    ControlCenterState, DoctorReport, GpuMode, KeyboardZone, KeyboardZoneSelection,
-    KeyboardZoneState, PathProbe, ProbeValue, RgbColor, SysfsBackend, collect_doctor_report,
+    ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor,
+    SysfsBackend, collect_doctor_report, format_doctor_report,
 };
 
 #[derive(Debug, Parser)]
@@ -153,7 +153,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Command::Status => print_state(backend.read_state()?),
         Command::Doctor(command) => {
             let report = collect_doctor_report(env!("CARGO_PKG_VERSION"), command.include_dmesg);
-            print_doctor_report(&report);
+            print!("{}", format_doctor_report(&report));
         }
         Command::Gpu(command) => match command.command {
             GpuSubcommand::Get => {
@@ -246,135 +246,4 @@ fn print_zone(zone: &KeyboardZoneState) {
         zone.color.blue,
         zone.sysfs_name
     );
-}
-
-fn print_doctor_report(report: &DoctorReport) {
-    println!("# Excalibur Control Center doctor report");
-    println!();
-    println!("## App");
-    println!("- version: {}", report.app_version);
-    println!("- kernel: {}", probe_value(&report.kernel_release));
-    println!();
-
-    println!("## DMI");
-    println!("- sys_vendor: {}", probe_value(&report.dmi.sys_vendor));
-    println!("- product_name: {}", probe_value(&report.dmi.product_name));
-    println!(
-        "- product_version: {}",
-        probe_value(&report.dmi.product_version)
-    );
-    println!("- board_name: {}", probe_value(&report.dmi.board_name));
-    println!("- bios_version: {}", probe_value(&report.dmi.bios_version));
-    println!();
-
-    println!("## CPU");
-    println!("- vendor_id: {}", probe_value(&report.cpu.vendor_id));
-    println!("- model_name: {}", probe_value(&report.cpu.model_name));
-    println!("- cpu_family: {}", probe_value(&report.cpu.cpu_family));
-    println!("- model: {}", probe_value(&report.cpu.model));
-    println!("- stepping: {}", probe_value(&report.cpu.stepping));
-    println!();
-
-    println!("## WMI");
-    println!(
-        "- casper_guid_present: {}",
-        yes_no(report.wmi.casper_guid_present)
-    );
-    println!("- devices:");
-    print_string_list(&report.wmi.device_names);
-    println!();
-
-    println!("## Driver");
-    println!(
-        "- casper_wmi_loaded: {}",
-        yes_no(report.driver.module_loaded)
-    );
-    println!("- gpu_mode: {}", probe_value(&report.driver.gpu_mode));
-    println!("- parameters:");
-    print_string_list(&report.driver.parameter_names);
-    println!();
-
-    println!("## LED sysfs");
-    print_path_probes(&report.sysfs.expected_leds);
-    println!();
-
-    println!("## hwmon");
-    if report.sysfs.hwmon_devices.is_empty() {
-        println!("- none found or not readable");
-    } else {
-        for hwmon in &report.sysfs.hwmon_devices {
-            println!("- {} name={}", hwmon.path, probe_value(&hwmon.name));
-            for fan in &hwmon.fans {
-                println!(
-                    "  - {} label={} value={}",
-                    fan.input,
-                    probe_value(&fan.label),
-                    probe_value(&fan.value)
-                );
-            }
-        }
-    }
-
-    if let Some(dmesg) = &report.dmesg {
-        println!();
-        println!("## dmesg");
-        println!("- command: {}", dmesg.command);
-        println!(
-            "- status: {}",
-            dmesg
-                .status
-                .map_or("unknown".to_string(), |s| s.to_string())
-        );
-        if let Some(error) = &dmesg.error {
-            println!("- error: {error}");
-        }
-        if !dmesg.stderr.is_empty() {
-            println!("- stderr: {}", dmesg.stderr);
-        }
-        if dmesg.stdout.is_empty() {
-            println!("- filtered_output: none");
-        } else {
-            println!("```text");
-            println!("{}", dmesg.stdout);
-            println!("```");
-        }
-    }
-}
-
-fn print_path_probes(probes: &[PathProbe]) {
-    for probe in probes {
-        println!(
-            "- {} exists={} readable={} value={}",
-            probe.path,
-            yes_no(probe.exists),
-            yes_no(probe.readable),
-            probe.value.as_deref().unwrap_or("--")
-        );
-        if let Some(error) = &probe.error {
-            println!("  error={error}");
-        }
-    }
-}
-
-fn print_string_list(values: &[String]) {
-    if values.is_empty() {
-        println!("  - none found or not readable");
-        return;
-    }
-
-    for value in values {
-        println!("  - {value}");
-    }
-}
-
-fn probe_value(value: &ProbeValue) -> &str {
-    value
-        .value
-        .as_deref()
-        .or(value.error.as_deref())
-        .unwrap_or("--")
-}
-
-fn yes_no(value: bool) -> &'static str {
-    if value { "yes" } else { "no" }
 }
