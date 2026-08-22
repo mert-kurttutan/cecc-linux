@@ -120,6 +120,13 @@ cargo run -p excalibur-control-center-cli -- keyboard list
 cargo run -p excalibur-control-center-cli -- keyboard get all
 ```
 
+Generate a read-only support report for bug reports:
+
+```sh
+cargo run -p excalibur-control-center-cli -- doctor
+cargo run -p excalibur-control-center-cli -- doctor --include-dmesg
+```
+
 Run the GUI:
 
 ```sh
