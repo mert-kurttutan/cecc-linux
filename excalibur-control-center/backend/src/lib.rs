@@ -9,6 +9,6 @@ pub use doctor::{
 pub use model::{
     ControlCenterState, CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode,
     KeyboardLedEffect, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, MemoryStats,
-    RgbColor, StorageStats,
+    RgbColor, StorageStats, SystemMode,
 };
 pub use sysfs::{BackendError, SysfsBackend};

@@ -4,11 +4,11 @@ use std::rc::Rc;
 use excalibur_control_center_backend::{
     CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode, KeyboardLedEffect,
     KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, MemoryStats, RgbColor, StorageStats,
-    SysfsBackend, collect_doctor_report, format_doctor_report,
+    SysfsBackend, SystemMode, collect_doctor_report, format_doctor_report,
 };
 use excalibur_control_center_gui::ui::{
     AppTab, GpuMode as UiGpuMode, KeyboardZoneSelection as UiKeyboardZoneSelection,
-    LedEffect as UiLedEffect, MainWindow,
+    LedEffect as UiLedEffect, MainWindow, SystemMode as UiSystemMode,
 };
 use slint::ComponentHandle;
 use slint::winit_030::WinitWindowAccessor;
@@ -44,6 +44,22 @@ fn led_effect_to_ui(effect: KeyboardLedEffect) -> UiLedEffect {
     }
 }
 
+fn system_mode_from_ui(mode: UiSystemMode) -> SystemMode {
+    match mode {
+        UiSystemMode::Office => SystemMode::Office,
+        UiSystemMode::Gaming => SystemMode::Gaming,
+        UiSystemMode::HighPerformance => SystemMode::HighPerformance,
+    }
+}
+
+fn system_mode_to_ui(mode: SystemMode) -> UiSystemMode {
+    match mode {
+        SystemMode::Office => UiSystemMode::Office,
+        SystemMode::Gaming => UiSystemMode::Gaming,
+        SystemMode::HighPerformance => UiSystemMode::HighPerformance,
+    }
+}
+
 #[derive(Debug)]
 struct AppState {
     backend: SysfsBackend,
@@ -57,6 +73,7 @@ struct AppState {
     memory_stats: MemoryStats,
     storage_stats: StorageStats,
     ac_power_online: Option<bool>,
+    system_mode: SystemMode,
     active_tab: AppTab,
     selected_zone: KeyboardZoneSelection,
     support_report: String,
@@ -78,6 +95,7 @@ impl AppState {
             memory_stats: MemoryStats::default(),
             storage_stats: StorageStats::default(),
             ac_power_online: None,
+            system_mode: SystemMode::Gaming,
             active_tab: AppTab::SystemMode,
             selected_zone: KeyboardZoneSelection::All,
             support_report: String::new(),
@@ -101,6 +119,9 @@ impl AppState {
                 self.memory_stats = state.memory_stats;
                 self.storage_stats = state.storage_stats;
                 self.ac_power_online = state.ac_power_online;
+                if let Some(system_mode) = state.system_mode {
+                    self.system_mode = system_mode;
+                }
                 self.status = "refreshed hardware state".into();
             }
             Err(err) => {
@@ -120,6 +141,13 @@ impl AppState {
     }
 
     fn refresh_system_mode(&mut self) {
+        match self.backend.read_system_mode() {
+            Ok(Some(mode)) => self.system_mode = mode,
+            Ok(None) => {}
+            Err(err) => {
+                self.status = format!("system mode read failed: {err}");
+            }
+        }
         self.fan_speeds = self.backend.read_fan_speeds().unwrap_or_default();
         self.cpu_frequency = self.backend.read_cpu_frequency().unwrap_or_default();
         self.cpu_load = self.backend.read_cpu_load().unwrap_or_default();
@@ -182,6 +210,31 @@ impl AppState {
             }
             Err(err) => {
                 self.status = format!("LED effect write failed: {err}");
+            }
+        }
+    }
+
+    fn set_system_mode(&mut self, mode: SystemMode) {
+        if self.system_mode == mode {
+            return;
+        }
+
+        match self.backend.write_system_mode(mode) {
+            Ok(readback) => {
+                if let Some(active_mode) = SystemMode::from_platform_profile(&readback) {
+                    self.system_mode = active_mode;
+                    if active_mode == mode {
+                        self.status = format!("system mode set to {mode}");
+                    } else {
+                        self.status = format!("requested {mode}; firmware reports {active_mode}");
+                    }
+                } else {
+                    self.status =
+                        format!("requested {mode}; firmware reports platform_profile={readback}");
+                }
+            }
+            Err(err) => {
+                self.status = format!("system mode write failed: {err}");
             }
         }
     }
@@ -275,6 +328,7 @@ fn sync_window(window: &MainWindow, state: &AppState) {
 fn sync_window_common(window: &MainWindow, state: &AppState) {
     window.set_status(state.status.clone().into());
     window.set_active_tab(state.active_tab);
+    window.set_system_mode(system_mode_to_ui(state.system_mode));
     window.set_support_report_text(state.support_report.clone().into());
 }
 
@@ -581,6 +635,18 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(window) = window_weak.upgrade() {
                 sync_window(&window, &state);
                 sync_led_editor_fields(&window, &state);
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
+        let window_weak = window.as_weak();
+        window.on_set_system_mode(move |mode| {
+            let mut state = state.borrow_mut();
+            state.set_system_mode(system_mode_from_ui(mode));
+            if let Some(window) = window_weak.upgrade() {
+                sync_window(&window, &state);
             }
         });
     }

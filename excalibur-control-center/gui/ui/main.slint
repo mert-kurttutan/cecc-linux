@@ -4,7 +4,7 @@ export enum AppTab { system_mode, display_mode, led_control, troubleshooting, ab
 export enum GpuMode { hybrid, discrete, uma }
 export enum KeyboardZoneSelection { all, left, middle, right, bias }
 export enum LedEffect { static, breathing, cycle, ambilight }
-enum SystemMode { office, gaming, high_performance }
+export enum SystemMode { office, gaming, high_performance }
 export struct CreditItem {
     label: string,
     name: string,
@@ -1201,6 +1201,7 @@ export component MainWindow inherits Window {
     in property <string> status: "";
     in property <string> active_zone: "all";
     in property <string> gpu_mode: "unknown";
+    in property <SystemMode> system_mode: SystemMode.gaming;
     in property <string> display_mode_warning: "";
     in property <string> app_version: "";
     in property <string> cpu_fan_rpm: "--";
@@ -1255,6 +1256,7 @@ export component MainWindow inherits Window {
     callback select_tab(AppTab);
     callback select_zone(KeyboardZoneSelection);
     callback set_gpu_mode(GpuMode);
+    callback set_system_mode(SystemMode);
     callback brightness_slider_changed(float);
     callback color_wheel_changed(float, float);
     callback apply_led_settings();
@@ -1418,10 +1420,14 @@ export component MainWindow inherits Window {
                                 SystemModeTab {
                                     horizontal-stretch: 1;
                                     vertical-stretch: 1;
+                                    selected_mode: root.system_mode;
                                     cpu-fan-rpm: root.cpu_fan_rpm;
                                     gpu-fan-rpm: root.gpu_fan_rpm;
                                     ac-power-online: root.ac_power_online;
                                     default-text-color: root.app_text_color;
+                                    changed selected_mode => {
+                                        root.set_system_mode(self.selected_mode);
+                                    }
                                 }
 
                                 HardwareStatsColumn {

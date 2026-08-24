@@ -9,11 +9,13 @@ use nvml_wrapper::enum_wrappers::device::Clock;
 use crate::model::{
     ControlCenterState, CpuFrequency, CpuLoad, FanSpeeds, GpuFrequency, GpuLoad, GpuMode,
     KeyboardLedEffect, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, MemoryStats,
-    RgbColor, StorageStats,
+    RgbColor, StorageStats, SystemMode,
 };
 
 const DEFAULT_SYSFS_ROOT: &str = "/sys";
 const GPU_MODE_PATH: &str = "module/casper_wmi/parameters/gpu_mode";
+const PLATFORM_PROFILE_PATH: &str = "firmware/acpi/platform_profile";
+const PLATFORM_PROFILE_CHOICES_PATH: &str = "firmware/acpi/platform_profile_choices";
 const LED_ROOT: &str = "class/leds";
 const HWMON_ROOT: &str = "class/hwmon";
 const POWER_SUPPLY_ROOT: &str = "class/power_supply";
@@ -33,6 +35,8 @@ pub enum BackendError {
     UnknownZone(String),
     #[error("value out of range: {0}")]
     OutOfRange(String),
+    #[error("unsupported platform profile: {profile}; choices: {choices}")]
+    UnsupportedPlatformProfile { profile: String, choices: String },
 }
 
 #[derive(Debug)]
@@ -188,8 +192,16 @@ impl SysfsBackend {
         [LED_ROOT, Self::zone_sysfs_name(zone), file].join("/")
     }
     pub fn read_state(&self) -> Result<ControlCenterState, BackendError> {
+        let platform_profile = self.read_platform_profile().ok();
+        let platform_profile_choices = self.read_platform_profile_choices().unwrap_or_default();
+
         Ok(ControlCenterState {
             gpu_mode: self.read_gpu_mode()?,
+            system_mode: platform_profile
+                .as_deref()
+                .and_then(SystemMode::from_platform_profile),
+            platform_profile,
+            platform_profile_choices,
             keyboard_zones: self.list_keyboard_zones()?,
             fan_speeds: self.read_fan_speeds().unwrap_or_default(),
             cpu_frequency: self.read_cpu_frequency().unwrap_or_default(),
@@ -252,6 +264,46 @@ impl SysfsBackend {
 
     pub fn write_gpu_mode(&self, mode: GpuMode) -> Result<(), BackendError> {
         self.write_string(GPU_MODE_PATH, &format!("{mode}"))
+    }
+
+    pub fn read_platform_profile(&self) -> Result<String, BackendError> {
+        let value = self.read_string(PLATFORM_PROFILE_PATH)?.trim().to_string();
+        Ok(value)
+    }
+
+    pub fn read_platform_profile_choices(&self) -> Result<Vec<String>, BackendError> {
+        let value = self.read_string(PLATFORM_PROFILE_CHOICES_PATH)?;
+        let choices = value
+            .split_whitespace()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+        Ok(choices)
+    }
+
+    pub fn read_system_mode(&self) -> Result<Option<SystemMode>, BackendError> {
+        Ok(SystemMode::from_platform_profile(
+            &self.read_platform_profile()?,
+        ))
+    }
+
+    pub fn write_system_mode(&self, mode: SystemMode) -> Result<String, BackendError> {
+        self.write_platform_profile(mode.platform_profile())
+    }
+
+    pub fn write_platform_profile(&self, profile: &str) -> Result<String, BackendError> {
+        let profile = profile.trim();
+        let choices = self.read_platform_profile_choices()?;
+
+        if !choices.iter().any(|choice| choice == profile) {
+            return Err(BackendError::UnsupportedPlatformProfile {
+                profile: profile.to_string(),
+                choices: choices.join(", "),
+            });
+        }
+
+        self.write_string(PLATFORM_PROFILE_PATH, profile)?;
+
+        self.read_platform_profile()
     }
 
     pub fn read_fan_speeds(&self) -> Result<FanSpeeds, BackendError> {

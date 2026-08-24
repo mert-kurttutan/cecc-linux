@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use excalibur_control_center_backend::{
     ControlCenterState, GpuMode, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor,
-    SysfsBackend, collect_doctor_report, format_doctor_report,
+    SysfsBackend, SystemMode, collect_doctor_report, format_doctor_report,
 };
 
 #[derive(Debug, Parser)]
@@ -23,6 +23,8 @@ enum Command {
     Doctor(DoctorCommand),
     /// Inspect or change GPU mode.
     Gpu(GpuCommand),
+    /// Inspect or change system performance mode.
+    System(SystemCommand),
     /// Inspect or change keyboard lighting.
     Keyboard(KeyboardCommand),
 }
@@ -48,6 +50,25 @@ enum GpuSubcommand {
     Set {
         #[arg(value_enum)]
         mode: GpuModeArg,
+    },
+}
+
+#[derive(Debug, Args)]
+struct SystemCommand {
+    #[command(subcommand)]
+    command: SystemSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum SystemSubcommand {
+    /// Read the current system mode and platform profile.
+    Get,
+    /// List available app modes and Linux platform profiles.
+    List,
+    /// Write a new system mode.
+    Set {
+        #[arg(value_enum)]
+        mode: SystemModeArg,
     },
 }
 
@@ -125,6 +146,23 @@ impl From<GpuModeArg> for GpuMode {
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
+enum SystemModeArg {
+    Office,
+    Gaming,
+    HighPerformance,
+}
+
+impl From<SystemModeArg> for SystemMode {
+    fn from(value: SystemModeArg) -> Self {
+        match value {
+            SystemModeArg::Office => Self::Office,
+            SystemModeArg::Gaming => Self::Gaming,
+            SystemModeArg::HighPerformance => Self::HighPerformance,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
 enum ZoneArg {
     Left,
     Middle,
@@ -164,6 +202,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mode: GpuMode = mode.into();
                 backend.write_gpu_mode(mode)?;
                 println!("{mode}");
+            }
+        },
+        Command::System(command) => match command.command {
+            SystemSubcommand::Get => {
+                print_system_state(&backend)?;
+            }
+            SystemSubcommand::List => {
+                print_system_mode_mapping();
+                let choices = backend.read_platform_profile_choices()?;
+                println!("platform_profile_choices={}", choices.join(","));
+            }
+            SystemSubcommand::Set { mode } => {
+                let mode: SystemMode = mode.into();
+                let readback = backend.write_system_mode(mode)?;
+                println!(
+                    "requested_mode={} requested_platform_profile={} readback_platform_profile={} readback_mode={}",
+                    mode,
+                    mode.platform_profile(),
+                    readback,
+                    SystemMode::from_platform_profile(&readback)
+                        .map(|mode| mode.to_string())
+                        .unwrap_or_else(|| "unknown".to_string())
+                );
             }
         },
         Command::Keyboard(command) => match command.command {
@@ -232,6 +293,30 @@ fn print_state(state: ControlCenterState) {
     println!("gpu_mode={}", state.gpu_mode.to_string());
     for zone in state.keyboard_zones {
         print_zone(&zone);
+    }
+}
+
+fn print_system_state(backend: &SysfsBackend) -> Result<(), Box<dyn std::error::Error>> {
+    let profile = backend.read_platform_profile()?;
+    let mode = SystemMode::from_platform_profile(&profile)
+        .map(|mode| mode.to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+    let choices = backend.read_platform_profile_choices()?;
+
+    println!("platform_profile={profile}");
+    println!("system_mode={mode}");
+    println!("platform_profile_choices={}", choices.join(","));
+
+    Ok(())
+}
+
+fn print_system_mode_mapping() {
+    for mode in [
+        SystemMode::Office,
+        SystemMode::Gaming,
+        SystemMode::HighPerformance,
+    ] {
+        println!("mode={} platform_profile={}", mode, mode.platform_profile());
     }
 }
 

@@ -24,6 +24,46 @@ impl fmt::Display for GpuMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SystemMode {
+    Office,
+    Gaming,
+    HighPerformance,
+}
+
+impl SystemMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Office => "office",
+            Self::Gaming => "gaming",
+            Self::HighPerformance => "high-performance",
+        }
+    }
+
+    pub fn platform_profile(self) -> &'static str {
+        match self {
+            Self::Office => "low-power",
+            Self::Gaming => "balanced",
+            Self::HighPerformance => "performance",
+        }
+    }
+
+    pub fn from_platform_profile(value: &str) -> Option<Self> {
+        match value.trim() {
+            "low-power" => Some(Self::Office),
+            "balanced" => Some(Self::Gaming),
+            "performance" => Some(Self::HighPerformance),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for SystemMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KeyboardZone {
     Left,
     Middle,
@@ -172,6 +212,9 @@ pub struct StorageStats {
 #[derive(Debug, Clone)]
 pub struct ControlCenterState {
     pub gpu_mode: GpuMode,
+    pub system_mode: Option<SystemMode>,
+    pub platform_profile: Option<String>,
+    pub platform_profile_choices: Vec<String>,
     pub keyboard_zones: Vec<KeyboardZoneState>,
     pub fan_speeds: FanSpeeds,
     pub cpu_frequency: CpuFrequency,
