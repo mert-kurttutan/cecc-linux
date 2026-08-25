@@ -4,6 +4,7 @@ set -euo pipefail
 GROUP="excalibur"
 LED_ROOT="/sys/class/leds"
 GPU_MODE_PATH="/sys/module/casper_wmi/parameters/gpu_mode"
+PLATFORM_PROFILE_PATH="/sys/firmware/acpi/platform_profile"
 
 apply_file() {
   local path="$1"
@@ -39,12 +40,16 @@ case "${1:-all}" in
   module)
     apply_file "$GPU_MODE_PATH"
     ;;
+  platform)
+    apply_file "$PLATFORM_PROFILE_PATH"
+    ;;
   all)
     apply_all_leds
     apply_file "$GPU_MODE_PATH"
+    apply_file "$PLATFORM_PROFILE_PATH"
     ;;
   *)
-    echo "usage: $0 [all|leds <name>|module]" >&2
+    echo "usage: $0 [all|leds <name>|module|platform]" >&2
     exit 2
     ;;
 esac

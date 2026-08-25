@@ -1285,7 +1285,7 @@ dependencies = [
 
 [[package]]
 name = "excalibur-control-center-backend"
-version = "0.1.31"
+version = "0.1.32"
 dependencies = [
  "env_logger",
  "libc",
@@ -1296,7 +1296,7 @@ dependencies = [
 
 [[package]]
 name = "excalibur-control-center-cli"
-version = "0.1.31"
+version = "0.1.32"
 dependencies = [
  "clap",
  "excalibur-control-center-backend",
@@ -1304,7 +1304,7 @@ dependencies = [
 
 [[package]]
 name = "excalibur-control-center-gui"
-version = "0.1.31"
+version = "0.1.32"
 dependencies = [
  "excalibur-control-center-backend",
  "slint",

@@ -2,6 +2,7 @@
 
 const LED_ROOT = "/sys/class/leds"
 const GPU_MODE_PATH = "/sys/module/casper_wmi/parameters/gpu_mode"
+const PLATFORM_PROFILE_PATH = "/sys/firmware/acpi/platform_profile"
 
 def is-nixos [] {
   ("/etc/NIXOS" | path exists) or ("/run/current-system/sw/bin/nixos-version" | path exists)
@@ -17,6 +18,7 @@ def apply-file-dev-permission [path: string] {
 
 def apply-reload-dev-permissions [] {
   apply-file-dev-permission $GPU_MODE_PATH
+  apply-file-dev-permission $PLATFORM_PROFILE_PATH
 
   if not ($LED_ROOT | path exists) {
     return

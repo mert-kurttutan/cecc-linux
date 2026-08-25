@@ -2,6 +2,7 @@
 
 const LED_ROOT = "/sys/class/leds"
 const GPU_MODE_PATH = "/sys/module/casper_wmi/parameters/gpu_mode"
+const PLATFORM_PROFILE_PATH = "/sys/firmware/acpi/platform_profile"
 const GROUP = "excalibur"
 
 def apply-file [path: string] {
@@ -44,13 +45,15 @@ export def apply-excalibur-sysfs-permissions [
       }
     }
     "module" => { apply-file $GPU_MODE_PATH }
+    "platform" => { apply-file $PLATFORM_PROFILE_PATH }
     "all" => {
       apply-all-leds
       apply-file $GPU_MODE_PATH
+      apply-file $PLATFORM_PROFILE_PATH
     }
     _ => {
       error make {
-        msg: "usage: apply-sysfs-permissions.nu [all|leds <name>|module]"
+        msg: "usage: apply-sysfs-permissions.nu [all|leds <name>|module|platform]"
       }
     }
   }

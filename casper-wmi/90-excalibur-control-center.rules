@@ -6,3 +6,4 @@
 
 ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="casper:rgb:*", RUN+="/usr/local/libexec/excalibur-control-center/apply-sysfs-permissions leds %k"
 ACTION=="add|change", SUBSYSTEM=="module", KERNEL=="casper_wmi", RUN+="/usr/local/libexec/excalibur-control-center/apply-sysfs-permissions module"
+ACTION=="add|change", SUBSYSTEM=="module", KERNEL=="casper_wmi", RUN+="/usr/local/libexec/excalibur-control-center/apply-sysfs-permissions platform"
