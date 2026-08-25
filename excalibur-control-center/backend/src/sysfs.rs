@@ -2,7 +2,9 @@ use std::cell::RefCell;
 use std::ffi::CString;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Once;
 
+use log::LevelFilter;
 use nvml_wrapper::Nvml;
 use nvml_wrapper::enum_wrappers::device::Clock;
 
@@ -24,6 +26,9 @@ const PROC_CPUINFO_PATH: &str = "/proc/cpuinfo";
 const PROC_MEMINFO_PATH: &str = "/proc/meminfo";
 const PROC_STAT_PATH: &str = "/proc/stat";
 const ROOT_MOUNT_PATH: &str = "/";
+const LOG_ENV: &str = "EXCALIBUR_LOG";
+
+static LOGGER_INIT: Once = Once::new();
 
 #[derive(Debug, thiserror::Error)]
 pub enum BackendError {
@@ -67,6 +72,8 @@ impl Default for SysfsBackend {
 
 impl SysfsBackend {
     pub fn new(root: impl Into<PathBuf>) -> Self {
+        Self::init_logger();
+
         let root = root.into();
         let cpu_freq_detection = Self::detect_cpu_freq_method(&root);
 
@@ -76,6 +83,29 @@ impl SysfsBackend {
             previous_cpu_time: RefCell::new(None),
             nvml: Nvml::init().ok(),
         }
+    }
+
+    fn init_logger() {
+        LOGGER_INIT.call_once(|| {
+            if Self::log_enabled() {
+                let _ = env_logger::Builder::new()
+                    .filter_module("excalibur_control_center_backend", LevelFilter::Debug)
+                    .try_init();
+            }
+        });
+    }
+
+    fn log_enabled() -> bool {
+        std::env::var(LOG_ENV)
+            .map(|value| {
+                let value = value.trim().to_ascii_lowercase();
+                matches!(value.as_str(), "1" | "true" | "yes" | "on" | "debug")
+            })
+            .unwrap_or(false)
+    }
+
+    fn debug_logging_enabled() -> bool {
+        log::log_enabled!(log::Level::Debug)
     }
 
     fn path(&self, rel: impl AsRef<Path>) -> PathBuf {
@@ -263,7 +293,48 @@ impl SysfsBackend {
     }
 
     pub fn write_gpu_mode(&self, mode: GpuMode) -> Result<(), BackendError> {
-        self.write_string(GPU_MODE_PATH, &format!("{mode}"))
+        let debug_logs = Self::debug_logging_enabled();
+        if debug_logs {
+            log::debug!(
+                "gpu_mode write path={} target={:?}",
+                self.path(GPU_MODE_PATH).display(),
+                mode.as_str()
+            );
+        }
+
+        if let Err(err) = self.write_string(GPU_MODE_PATH, &format!("{mode}")) {
+            if debug_logs {
+                log::debug!(
+                    "gpu_mode write failed target={:?} error={}",
+                    mode.as_str(),
+                    err
+                );
+            }
+            return Err(err);
+        }
+
+        if !debug_logs {
+            return Ok(());
+        }
+
+        match self.read_gpu_mode() {
+            Ok(readback) => {
+                log::debug!(
+                    "gpu_mode write readback target={:?} after={:?}",
+                    mode.as_str(),
+                    readback.as_str()
+                );
+            }
+            Err(err) => {
+                log::debug!(
+                    "gpu_mode readback failed target={:?} error={}",
+                    mode.as_str(),
+                    err
+                );
+            }
+        }
+
+        Ok(())
     }
 
     pub fn read_platform_profile(&self) -> Result<String, BackendError> {
@@ -293,6 +364,17 @@ impl SysfsBackend {
     pub fn write_platform_profile(&self, profile: &str) -> Result<String, BackendError> {
         let profile = profile.trim();
         let choices = self.read_platform_profile_choices()?;
+        let debug_logs = Self::debug_logging_enabled();
+
+        if debug_logs {
+            let before = self.read_platform_profile()?;
+            log::debug!(
+                "platform_profile write request before={:?} target={:?} choices={:?}",
+                before,
+                profile,
+                choices
+            );
+        }
 
         if !choices.iter().any(|choice| choice == profile) {
             return Err(BackendError::UnsupportedPlatformProfile {
@@ -301,9 +383,29 @@ impl SysfsBackend {
             });
         }
 
-        self.write_string(PLATFORM_PROFILE_PATH, profile)?;
+        if let Err(err) = self.write_string(PLATFORM_PROFILE_PATH, profile) {
+            if debug_logs {
+                log::debug!(
+                    "platform_profile write failed target={:?} error={}",
+                    profile,
+                    err
+                );
+            }
+            return Err(err);
+        }
 
-        self.read_platform_profile()
+        if !debug_logs {
+            return self.read_platform_profile();
+        }
+
+        let after = self.read_platform_profile()?;
+        log::debug!(
+            "platform_profile write readback target={:?} after={:?}",
+            profile,
+            after
+        );
+
+        Ok(after)
     }
 
     pub fn read_fan_speeds(&self) -> Result<FanSpeeds, BackendError> {
@@ -742,7 +844,55 @@ impl SysfsBackend {
             )));
         }
 
-        self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
+        let debug_logs = Self::debug_logging_enabled();
+        if debug_logs {
+            log::debug!(
+                "keyboard brightness write zone={} path={} target={} max={}",
+                zone,
+                self.zone_brightness_path(zone).display(),
+                brightness,
+                max_brightness
+            );
+        }
+
+        if let Err(err) =
+            self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
+        {
+            if debug_logs {
+                log::debug!(
+                    "keyboard brightness write failed zone={} target={} error={}",
+                    zone,
+                    brightness,
+                    err
+                );
+            }
+            return Err(err);
+        }
+
+        if !debug_logs {
+            return Ok(());
+        }
+
+        match self.read_keyboard_zone(zone) {
+            Ok(readback) => {
+                log::debug!(
+                    "keyboard brightness write readback zone={} target={} after={}",
+                    zone,
+                    brightness,
+                    readback.brightness
+                );
+            }
+            Err(err) => {
+                log::debug!(
+                    "keyboard brightness readback failed zone={} target={} error={}",
+                    zone,
+                    brightness,
+                    err
+                );
+            }
+        }
+
+        Ok(())
     }
 
     pub fn write_keyboard_effect(
@@ -750,10 +900,55 @@ impl SysfsBackend {
         zone: KeyboardZone,
         effect: KeyboardLedEffect,
     ) -> Result<(), BackendError> {
-        self.write_string(
-            Self::zone_rel(zone, "effect"),
-            &effect.mode_id().to_string(),
-        )
+        let rel = Self::zone_rel(zone, "effect");
+        let debug_logs = Self::debug_logging_enabled();
+        if debug_logs {
+            log::debug!(
+                "keyboard effect write zone={} path={} target={} target_id={}",
+                zone,
+                self.path(&rel).display(),
+                effect,
+                effect.mode_id()
+            );
+        }
+
+        if let Err(err) = self.write_string(&rel, &effect.mode_id().to_string()) {
+            if debug_logs {
+                log::debug!(
+                    "keyboard effect write failed zone={} target={} target_id={} error={}",
+                    zone,
+                    effect,
+                    effect.mode_id(),
+                    err
+                );
+            }
+            return Err(err);
+        }
+
+        if !debug_logs {
+            return Ok(());
+        }
+
+        match self.read_keyboard_zone(zone) {
+            Ok(readback) => {
+                log::debug!(
+                    "keyboard effect write readback zone={} target={} after={}",
+                    zone,
+                    effect,
+                    readback.effect
+                );
+            }
+            Err(err) => {
+                log::debug!(
+                    "keyboard effect readback failed zone={} target={} error={}",
+                    zone,
+                    effect,
+                    err
+                );
+            }
+        }
+
+        Ok(())
     }
 
     pub fn write_keyboard_color(
@@ -766,12 +961,85 @@ impl SysfsBackend {
             &self.read_string(Self::zone_rel(zone, "brightness"))?,
         )?;
 
-        self.write_string(
-            Self::zone_rel(zone, "multi_intensity"),
-            &format!("{} {} {}", color.red, color.green, color.blue),
-        )?;
+        let color_rel = Self::zone_rel(zone, "multi_intensity");
+        let brightness_rel = Self::zone_rel(zone, "brightness");
+        let color_value = format!("{} {} {}", color.red, color.green, color.blue);
+        let debug_logs = Self::debug_logging_enabled();
 
-        self.write_string(Self::zone_rel(zone, "brightness"), &brightness.to_string())
+        if debug_logs {
+            log::debug!(
+                "keyboard color write zone={} path={} target={} preserve_brightness={}",
+                zone,
+                self.path(&color_rel).display(),
+                color_value,
+                brightness
+            );
+        }
+
+        if let Err(err) = self.write_string(&color_rel, &color_value) {
+            if debug_logs {
+                log::debug!(
+                    "keyboard color write failed zone={} target={} error={}",
+                    zone,
+                    color_value,
+                    err
+                );
+            }
+            return Err(err);
+        }
+
+        if debug_logs {
+            log::debug!(
+                "keyboard color brightness restore zone={} path={} target={}",
+                zone,
+                self.path(&brightness_rel).display(),
+                brightness
+            );
+        }
+
+        if let Err(err) = self.write_string(&brightness_rel, &brightness.to_string()) {
+            if debug_logs {
+                log::debug!(
+                    "keyboard color brightness restore failed zone={} target={} error={}",
+                    zone,
+                    brightness,
+                    err
+                );
+            }
+            return Err(err);
+        }
+
+        if !debug_logs {
+            return Ok(());
+        }
+
+        match self.read_keyboard_zone(zone) {
+            Ok(readback) => {
+                log::debug!(
+                    "keyboard color write readback zone={} target={},{},{} after={},{},{} brightness={}",
+                    zone,
+                    color.red,
+                    color.green,
+                    color.blue,
+                    readback.color.red,
+                    readback.color.green,
+                    readback.color.blue,
+                    readback.brightness
+                );
+            }
+            Err(err) => {
+                log::debug!(
+                    "keyboard color readback failed zone={} target={},{},{} error={}",
+                    zone,
+                    color.red,
+                    color.green,
+                    color.blue,
+                    err
+                );
+            }
+        }
+
+        Ok(())
     }
 
     fn keyboard_zones_for_target(&self, selection: KeyboardZoneSelection) -> Vec<KeyboardZone> {
