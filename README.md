@@ -1,5 +1,7 @@
 # cecc-linux
 
+For the website, please see: <https://cecc.mert-kurttutan.com>
+
 Linux port of Casper Excalibur Control Center software.
 
 Scope:
