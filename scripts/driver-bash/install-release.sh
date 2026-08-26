@@ -2,8 +2,12 @@
 set -euo pipefail
 
 BIN_DIR="/usr/local/bin"
+DESKTOP_DIR="/usr/local/share/applications"
+ICON_DIR="/usr/local/share/icons/hicolor/scalable/apps"
 GUI_BIN_NAME="excalibur-control-center-gui"
 CLI_BIN_NAME="excalibur-control-center-cli"
+DESKTOP_FILE_NAME="excalibur-control-center.desktop"
+ICON_FILE_NAME="excalibur-control-center.svg"
 GITHUB_REPO="mert-kurttutan/cecc-linux"
 RELEASE_TAG="latest"
 DEPENDENCY_HELP="Install curl, tar, dkms, build tools, kmod, and matching kernel headers manually."
@@ -20,6 +24,8 @@ SKIP_DRIVER=0
 INSTALL_CLI=1
 
 INSTALLER_PATH="scripts/driver-bash/install-driver-stack.sh"
+DESKTOP_SOURCE_PATH="packaging/$DESKTOP_FILE_NAME"
+ICON_SOURCE_PATH="packaging/$ICON_FILE_NAME"
 
 download_dir=""
 source_dir=""
@@ -267,6 +273,35 @@ install_app_binaries() {
   fi
 }
 
+install_desktop_integration() {
+  local desktop_source="$source_dir/$DESKTOP_SOURCE_PATH"
+  local icon_source="$source_dir/$ICON_SOURCE_PATH"
+
+  if [ ! -r "$desktop_source" ]; then
+    echo "Skipping desktop integration: desktop file not found in $RELEASE_TAG."
+    return 0
+  fi
+  if [ ! -r "$icon_source" ]; then
+    echo "Skipping desktop integration: application icon not found in $RELEASE_TAG."
+    return 0
+  fi
+
+  echo "Installing desktop integration..."
+  install -d -m 0755 "$DESKTOP_DIR"
+  install -m 0644 "$desktop_source" "$DESKTOP_DIR/$DESKTOP_FILE_NAME"
+
+  install -d -m 0755 "$ICON_DIR"
+  install -m 0644 "$icon_source" "$ICON_DIR/$ICON_FILE_NAME"
+
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "$DESKTOP_DIR" >/dev/null 2>&1 || true
+  fi
+
+  if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q /usr/local/share/icons/hicolor >/dev/null 2>&1 || true
+  fi
+}
+
 main() {
   trap 'rm -rf "$download_dir" "$source_parent_dir"' EXIT
   parse_args "$@"
@@ -290,6 +325,7 @@ main() {
 
   download_release_binaries
   install_app_binaries
+  install_desktop_integration
 
   echo "Installation complete."
   echo "Run: $BIN_DIR/$GUI_BIN_NAME"

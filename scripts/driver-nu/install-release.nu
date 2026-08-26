@@ -3,8 +3,14 @@
 const INSTALLER_PATH = "scripts/driver-nu/install-driver-stack.nu"
 const GUI_BIN_NAME = "excalibur-control-center-gui"
 const CLI_BIN_NAME = "excalibur-control-center-cli"
+const DESKTOP_FILE_NAME = "excalibur-control-center.desktop"
+const ICON_FILE_NAME = "excalibur-control-center.svg"
 const GITHUB_REPO = "mert-kurttutan/cecc-linux"
 const BIN_DIR = "/usr/local/bin"
+const DESKTOP_DIR = "/usr/local/share/applications"
+const ICON_DIR = "/usr/local/share/icons/hicolor/scalable/apps"
+const DESKTOP_SOURCE_PATH = "packaging/excalibur-control-center.desktop"
+const ICON_SOURCE_PATH = "packaging/excalibur-control-center.svg"
 const DEPENDENCIES = {
   ubuntu: [curl tar dkms build-essential kmod]
   debian: [curl tar dkms build-essential kmod]
@@ -184,6 +190,10 @@ def install-file [source: string, target: string] {
   ^install -m 0755 $source $target
 }
 
+def install-data-file [source: string, target: string] {
+  ^install -m 0644 $source $target
+}
+
 def download-release-binaries [
   release_tag: string
   install_cli: bool
@@ -233,6 +243,35 @@ def install-app-binaries [download_dir: string, bin_dir: string, install_cli: bo
   }
 }
 
+def install-desktop-integration [checkout_dir: string, release_tag: string] {
+  let desktop_source = ($checkout_dir | path join $DESKTOP_SOURCE_PATH)
+  let icon_source = ($checkout_dir | path join $ICON_SOURCE_PATH)
+
+  if not ($desktop_source | path exists) {
+    print $"Skipping desktop integration: desktop file not found in ($release_tag)."
+    return
+  }
+  if not ($icon_source | path exists) {
+    print $"Skipping desktop integration: application icon not found in ($release_tag)."
+    return
+  }
+
+  print "Installing desktop integration..."
+  install-dir $DESKTOP_DIR
+  install-data-file $desktop_source ($DESKTOP_DIR | path join $DESKTOP_FILE_NAME)
+
+  install-dir $ICON_DIR
+  install-data-file $icon_source ($ICON_DIR | path join $ICON_FILE_NAME)
+
+  if not (which update-desktop-database | is-empty) {
+    do -i { ^update-desktop-database $DESKTOP_DIR }
+  }
+
+  if not (which gtk-update-icon-cache | is-empty) {
+    do -i { ^gtk-update-icon-cache -q /usr/local/share/icons/hicolor }
+  }
+}
+
 export def install-excalibur-release [
   --version: string = ""
   --no-cli
@@ -262,6 +301,7 @@ export def install-excalibur-release [
 
     download-release-binaries $release_tag $install_cli $download_dir
     install-app-binaries $download_dir $BIN_DIR $install_cli
+    install-desktop-integration $checkout_dir $release_tag
 
     print "Installation complete."
     print $"Run: (($BIN_DIR | path join $GUI_BIN_NAME))"
