@@ -8,4 +8,4 @@ Icon=excalibur-control-center
 Terminal=false
 Categories=Settings;HardwareSettings;System;
 Keywords=excalibur;casper;keyboard;rgb;fan;gpu;performance;
-StartupNotify=true
+StartupNotify=false
