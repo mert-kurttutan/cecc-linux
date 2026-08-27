@@ -401,6 +401,37 @@ p {
   gap: 0.7rem;
 }
 
+.inline-command-card {
+  text-align: left;
+}
+
+.command-block {
+  position: relative;
+}
+
+.command-block pre {
+  padding-right: 5.25rem;
+}
+
+.copy-button {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  min-height: 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-soft);
+  padding: 0.25rem 0.58rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  border-color: var(--muted);
+}
+
 .command-card p,
 .area-card p,
 .doc-card p {

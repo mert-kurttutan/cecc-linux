@@ -1,5 +1,6 @@
 <script lang="ts">
   import { devCommands } from '../content'
+  import CommandCard from '../lib/CommandCard.svelte'
 </script>
 
 <section class="hero page-hero">
@@ -13,10 +14,9 @@
 
   <div class="command-grid page-stack">
     {#each devCommands as group}
-      <article class="command-card">
-        <h3>{group.title}</h3>
-        <pre><code>{group.command}</code></pre>
-      </article>
+      {#if group.command}
+        <CommandCard title={group.title} command={group.command} />
+      {/if}
     {/each}
   </div>
 </section>

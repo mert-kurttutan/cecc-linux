@@ -1,5 +1,6 @@
 <script lang="ts">
   import { installOptions } from '../content'
+  import CommandCard from '../lib/CommandCard.svelte'
 </script>
 
 <section class="hero page-hero">
@@ -14,13 +15,9 @@
 
   <div class="command-grid install-grid">
     {#each installOptions as option}
-      <article class="command-card">
-        <div>
-          <h3>{option.title}</h3>
-          <p>{option.body}</p>
-        </div>
-        <pre><code>{option.command}</code></pre>
-      </article>
+      {#if option.command}
+        <CommandCard title={option.title} body={option.body} command={option.command} />
+      {/if}
     {/each}
   </div>
 </section>

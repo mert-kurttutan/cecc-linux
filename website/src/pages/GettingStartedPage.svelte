@@ -1,5 +1,6 @@
 <script lang="ts">
   import { firstRunSteps } from '../content'
+  import CommandCard from '../lib/CommandCard.svelte'
 </script>
 
 <section class="hero page-hero">
@@ -18,7 +19,9 @@
         <div>
           <h3>{step.title}</h3>
           <p>{step.body}</p>
-          <pre><code>{step.command}</code></pre>
+          {#if step.command}
+            <CommandCard command={step.command} className="inline-command-card" />
+          {/if}
         </div>
       </article>
     {/each}

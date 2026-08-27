@@ -1,8 +1,12 @@
 <script lang="ts">
   import heroImage from '../assets/hero.png'
   import { docLinks, projectLinks, valueSections } from '../content'
+  import CommandCard from '../lib/CommandCard.svelte'
 
   let { navigate }: { navigate: (event: MouseEvent, href: string) => void } = $props()
+
+  const cliExample =
+    'excalibur-control-center-cli status\nexcalibur-control-center-cli gpu get\nexcalibur-control-center-cli keyboard get all\nexcalibur-control-center-cli doctor'
 </script>
 
 <section class="hero product-hero">
@@ -42,10 +46,7 @@
     </p>
   </div>
 
-  <pre><code>excalibur-control-center-cli status
-excalibur-control-center-cli gpu get
-excalibur-control-center-cli keyboard get all
-excalibur-control-center-cli doctor</code></pre>
+  <CommandCard command={cliExample} className="inline-command-card" />
 </section>
 
 <section class="section status-strip" aria-label="Project scope">

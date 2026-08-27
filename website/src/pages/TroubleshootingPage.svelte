@@ -1,5 +1,9 @@
 <script lang="ts">
   import { troubleshootingItems } from '../content'
+  import CommandCard from '../lib/CommandCard.svelte'
+
+  const doctorCommand =
+    'excalibur-control-center-cli doctor\nexcalibur-control-center-cli doctor --include-dmesg'
 </script>
 
 <section class="hero page-hero">
@@ -12,8 +16,7 @@
   </div>
 
   <div class="check-panel page-stack">
-    <pre><code>excalibur-control-center-cli doctor
-excalibur-control-center-cli doctor --include-dmesg</code></pre>
+    <CommandCard command={doctorCommand} className="inline-command-card" />
     <ul>
       {#each troubleshootingItems as item}
         <li>{item}</li>
