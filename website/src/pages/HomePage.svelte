@@ -14,8 +14,8 @@
     <p class="mb-3 text-xs font-extrabold tracking-wider text-amber-700 uppercase dark:text-amber-400">Linux controls for Casper Excalibur laptops</p>
     <h1 class="mx-auto mb-4 max-w-[900px] text-[clamp(2.25rem,5vw,4.7rem)] leading-none font-bold text-slate-950 dark:text-slate-50">Excalibur Control Center for Linux.</h1>
     <p class="mx-auto max-w-3xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-      cecc-linux provides a Rust CLI, a Slint GUI, packaging scripts, and the casper-wmi driver work
-      needed for display mode, system profile, keyboard RGB, fan, and telemetry controls.
+      cecc-linux ports Excalibur Control Center behavior to Linux with a GUI, CLI, packages, and
+      driver support.
     </p>
 
     <div class="mt-6 flex flex-wrap gap-3 max-sm:[&>a]:w-full" aria-label="Primary actions">
@@ -39,10 +39,9 @@
 <section class="grid grid-cols-1 items-start gap-6 pt-16 text-center lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1fr)]">
   <div>
     <p class="mb-3 text-xs font-extrabold tracking-wider text-amber-700 uppercase dark:text-amber-400">Works from the terminal too</p>
-    <h2 class="mb-3 text-[clamp(1.6rem,3vw,2.25rem)] leading-tight font-bold text-slate-950 dark:text-slate-50">Use structured commands for quick checks and scripts.</h2>
+    <h2 class="mb-3 text-[clamp(1.6rem,3vw,2.25rem)] leading-tight font-bold text-slate-950 dark:text-slate-50">Scriptable controls.</h2>
     <p class="leading-relaxed text-slate-600 dark:text-slate-400">
-      The CLI mirrors the useful parts of the GUI, so status checks and bug reports are easy to
-      repeat.
+      Use the CLI for status checks, lighting reads, GPU mode, and support reports.
     </p>
   </div>
 
@@ -51,16 +50,16 @@
 
 <section class="mt-16 grid grid-cols-1 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 lg:grid-cols-3 [&>div]:p-4" aria-label="Project scope">
   <div>
-    <span class="mb-1 block text-xs font-extrabold text-slate-500 uppercase dark:text-slate-400">Userspace</span>
-    <strong class="block leading-snug text-slate-800 dark:text-slate-200">Rust CLI and Slint GUI</strong>
+    <span class="mb-1 block text-xs font-extrabold text-slate-500 uppercase dark:text-slate-400">Port</span>
+    <strong class="block leading-snug text-slate-800 dark:text-slate-200">Control Center behavior on Linux</strong>
   </div>
   <div class="border-t border-slate-200 dark:border-slate-700 lg:border-t-0 lg:border-l">
-    <span class="mb-1 block text-xs font-extrabold text-slate-500 uppercase dark:text-slate-400">Kernel</span>
-    <strong class="block leading-snug text-slate-800 dark:text-slate-200">GPL casper-wmi driver</strong>
+    <span class="mb-1 block text-xs font-extrabold text-slate-500 uppercase dark:text-slate-400">Controls</span>
+    <strong class="block leading-snug text-slate-800 dark:text-slate-200">Profiles, display, RGB, telemetry</strong>
   </div>
   <div class="border-t border-slate-200 dark:border-slate-700 lg:border-t-0 lg:border-l">
-    <span class="mb-1 block text-xs font-extrabold text-slate-500 uppercase dark:text-slate-400">Delivery</span>
-    <strong class="block leading-snug text-slate-800 dark:text-slate-200">Installer, DEB, and RPM paths</strong>
+    <span class="mb-1 block text-xs font-extrabold text-slate-500 uppercase dark:text-slate-400">Install</span>
+    <strong class="block leading-snug text-slate-800 dark:text-slate-200">Packages or driver stack</strong>
   </div>
 </section>
 

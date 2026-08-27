@@ -64,16 +64,16 @@ export const installOptions: CardItem[] = [
 
 export const valueSections: CardItem[] = [
   {
-    title: 'Laptop controls',
-    body: 'Change display mode, system profile, and keyboard RGB from Linux without booting the vendor app.',
+    title: 'Linux port',
+    body: 'Excalibur Control Center behavior for Linux.',
   },
   {
-    title: 'Linux interfaces',
-    body: 'The casper-wmi driver exposes fan telemetry, LEDs, sysfs controls, hwmon, and platform profiles.',
+    title: 'Controls',
+    body: 'Profiles, display mode, RGB, and telemetry.',
   },
   {
-    title: 'Useful diagnostics',
-    body: 'The CLI can generate read-only support reports for driver, WMI, LED, hwmon, and permission issues.',
+    title: 'Packages',
+    body: 'Install the app, or use the full driver stack.',
   },
 ]
 
