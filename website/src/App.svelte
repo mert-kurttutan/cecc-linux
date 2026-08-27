@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte'
   import { navItems, type Page } from './content'
+  import AboutPage from './pages/AboutPage.svelte'
   import DevelopmentPage from './pages/DevelopmentPage.svelte'
   import DriverPage from './pages/DriverPage.svelte'
   import GettingStartedPage from './pages/GettingStartedPage.svelte'
@@ -21,6 +22,8 @@
         return 'driver'
       case '/troubleshooting':
         return 'troubleshooting'
+      case '/about':
+        return 'about'
       case '/development':
         return 'development'
       default:
@@ -66,7 +69,7 @@
 
 <main class="min-h-screen lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
   <aside
-    class="border-b border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-0 lg:h-screen lg:border-r lg:border-b-0"
+    class="flex flex-col border-b border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-0 lg:h-screen lg:border-r lg:border-b-0"
     aria-label="Documentation sections"
   >
     <a
@@ -102,6 +105,15 @@
         </a>
       {/each}
     </nav>
+
+    <div class="mt-5 border-t border-slate-200 pt-5 dark:border-slate-700 lg:mt-auto">
+      <a
+        class="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-amber-600 bg-amber-600 px-4 py-2 text-sm font-extrabold text-white no-underline hover:border-amber-700 hover:bg-amber-700 dark:border-amber-400 dark:bg-amber-400 dark:text-slate-950 dark:hover:border-amber-300 dark:hover:bg-amber-300"
+        href="https://github.com/sponsors/mert-kurttutan"
+      >
+        Sponsor development
+      </a>
+    </div>
   </aside>
 
   <div class="mx-auto w-full max-w-[1180px] px-5 py-8 sm:px-8 lg:px-16 lg:py-12">
@@ -117,6 +129,8 @@
       <DriverPage />
     {:else if currentPage === 'troubleshooting'}
       <TroubleshootingPage />
+    {:else if currentPage === 'about'}
+      <AboutPage />
     {:else if currentPage === 'development'}
       <DevelopmentPage />
     {/if}

@@ -5,6 +5,7 @@ export type Page =
   | 'gui-cli'
   | 'driver'
   | 'troubleshooting'
+  | 'about'
   | 'development'
 
 export type NavItem = {
@@ -36,6 +37,7 @@ export const navItems: NavItem[] = [
   { label: 'GUI & CLI', href: '/gui-cli', page: 'gui-cli' },
   { label: 'Driver', href: '/driver', page: 'driver' },
   { label: 'Troubleshooting', href: '/troubleshooting', page: 'troubleshooting' },
+  { label: 'About', href: '/about', page: 'about' },
   { label: 'Development', href: '/development', page: 'development' },
 ]
 
@@ -164,6 +166,11 @@ export const docLinks: DocLink[] = [
     href: '/troubleshooting',
   },
   {
+    title: 'About',
+    body: 'Project scope, credits, source, and license notes.',
+    href: '/about',
+  },
+  {
     title: 'Development',
     body: 'Rust, driver reload, and website workflow.',
     href: '/development',
@@ -174,6 +181,19 @@ export const projectLinks: LinkItem[] = [
   { label: 'GitHub repository', href: 'https://github.com/mert-kurttutan/cecc-linux' },
   { label: 'Releases', href: 'https://github.com/mert-kurttutan/cecc-linux/releases' },
   { label: 'Report an issue', href: 'https://github.com/mert-kurttutan/cecc-linux/issues' },
+]
+
+export const aboutItems = [
+  'Linux control center for Casper Excalibur laptops.',
+  'Origin: Linux port of Casper Excalibur Control Center behavior.',
+  'Features: keyboard RGB zones, brightness control, GPU mode control, and driver-backed hardware state.',
+  "Driver: casper-wmi, based on Mustafa Eksi's Casper WMI work.",
+]
+
+export const creditItems: LinkItem[] = [
+  { label: 'App author: Mert Kurttutan', href: 'https://github.com/mert-kurttutan' },
+  { label: 'Author for original driver code: Mustafa Eksi', href: 'https://github.com/Mustafa-eksi' },
+  { label: 'Source code: cecc-linux', href: 'https://github.com/mert-kurttutan/cecc-linux' },
 ]
 
 export const devCommands: CardItem[] = [
