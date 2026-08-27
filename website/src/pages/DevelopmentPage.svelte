@@ -3,16 +3,16 @@
   import CommandCard from '../lib/CommandCard.svelte'
 </script>
 
-<section class="hero page-hero">
-  <div class="section-heading">
-    <h1>Development</h1>
-    <p class="intro">
+<section class="py-2 text-center">
+  <div class="mx-auto mb-6 max-w-3xl text-center">
+    <h1 class="mx-auto mb-4 text-[clamp(2rem,4vw,3.6rem)] leading-none font-bold text-amber-700 dark:text-amber-400">Development</h1>
+    <p class="mx-auto max-w-3xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
       Workflow commands for app, driver, and website changes. Use these when working on the Rust
       workspace, reloading the local driver, or changing this documentation site.
     </p>
   </div>
 
-  <div class="command-grid page-stack">
+  <div class="mx-auto grid max-w-[900px] grid-cols-1 gap-4">
     {#each devCommands as group}
       {#if group.command}
         <CommandCard title={group.title} command={group.command} />
