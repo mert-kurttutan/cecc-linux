@@ -11,7 +11,6 @@ export default {
     adapter: adapter({
       pages: 'dist',
       assets: 'dist',
-      fallback: '200.html',
     }),
   },
 }
