@@ -5,10 +5,13 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 export default {
   preprocess: vitePreprocess(),
   kit: {
+    files: {
+      assets: 'public',
+    },
     adapter: adapter({
       pages: 'dist',
       assets: 'dist',
-      fallback: 'index.html',
+      fallback: '200.html',
     }),
   },
 }

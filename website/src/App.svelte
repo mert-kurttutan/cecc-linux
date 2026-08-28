@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { tick } from 'svelte'
+  import { goto } from '$app/navigation'
+  import { page } from '$app/state'
   import { localizePath, siteContent, stripLocalePath, type Locale, type Page, type SiteContent } from './content'
   import AboutPage from './pages/AboutPage.svelte'
   import DevelopmentPage from './pages/DevelopmentPage.svelte'
@@ -52,8 +53,8 @@
     }
   }
 
-  let currentPath = $state(window.location.pathname)
-  let currentHash = $state(window.location.hash)
+  const currentPath = $derived(page.url.pathname)
+  const currentHash = $derived(page.url.hash)
   const currentRoute = $derived(stripLocalePath(currentPath))
   const currentLocale = $derived(currentRoute.locale)
   const currentContent = $derived(siteContent[currentLocale])
@@ -77,45 +78,19 @@
       return
     }
 
-    window.history.replaceState(null, '', `${canonicalHref}${currentHash}`)
-    currentPath = canonicalHref
+    goto(`${canonicalHref}${currentHash}`, {
+      replaceState: true,
+      noScroll: true,
+      keepFocus: true,
+    })
   })
 
-  $effect(() => {
-    const syncPath = () => {
-      currentPath = window.location.pathname
-      currentHash = window.location.hash
-    }
-
-    window.addEventListener('popstate', syncPath)
-
-    return () => {
-      window.removeEventListener('popstate', syncPath)
-    }
-  })
-
-  async function navigate(event: MouseEvent, href: string) {
-    const url = new URL(href, window.location.origin)
-
-    event.preventDefault()
-    window.history.pushState(null, '', `${url.pathname}${url.hash}`)
-    currentPath = url.pathname
-    currentHash = url.hash
-
-    await tick()
-
-    if (currentHash) {
-      document.querySelector(currentHash)?.scrollIntoView()
-      return
-    }
-
-    window.scrollTo({ top: 0 })
-  }
 </script>
 
 <svelte:head>
   <title>{currentPageTitle} | cecc-linux</title>
   <meta name="description" content={currentDescription} />
+  <link rel="canonical" href={canonicalHref} />
   <link rel="alternate" hreflang="en" href={localizePath('en', currentRoute.path)} />
   <link rel="alternate" hreflang="tr" href={localizePath('tr', currentRoute.path)} />
 </svelte:head>
@@ -129,7 +104,6 @@
       class="mb-8 flex items-center gap-3 no-underline"
       href={localizePath(currentLocale, '/')}
       aria-label="CECC Linux documentation home"
-      onclick={(event) => navigate(event, localizePath(currentLocale, '/'))}
     >
       <span
         class="grid h-10 w-10 place-items-center rounded-lg bg-slate-800 font-extrabold text-white dark:bg-slate-100 dark:text-slate-900"
@@ -153,7 +127,6 @@
             item.page === currentPage && 'bg-slate-800 text-white hover:bg-slate-800 hover:text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-100 dark:hover:text-slate-900',
           ]}
           href={href}
-          onclick={(event) => navigate(event, href)}
         >
           {item.label}
         </a>
@@ -165,7 +138,6 @@
         class="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-extrabold text-slate-800 no-underline hover:border-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-400"
         href={alternateHref}
         hreflang={alternateLocale}
-        onclick={(event) => navigate(event, alternateHref)}
       >
         {currentContent.languageSwitchLabel}
       </a>
@@ -180,7 +152,7 @@
 
   <div class="mx-auto w-full max-w-[1180px] px-5 py-8 sm:px-8 lg:px-16 lg:py-12">
     {#if currentPage === 'home'}
-      <HomePage content={currentContent} locale={currentLocale} {localizePath} {navigate} />
+      <HomePage content={currentContent} locale={currentLocale} {localizePath} />
     {:else if currentPage === 'install'}
       <InstallPage content={currentContent} />
     {:else if currentPage === 'getting-started'}

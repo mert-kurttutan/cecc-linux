@@ -156,6 +156,8 @@ export const routePaths = {
   },
 } satisfies Record<Locale, Record<Page, string>>
 
+export const prerenderPaths = Object.values(routePaths).flatMap((paths) => Object.values(paths))
+
 const terminalCommand =
   'excalibur-control-center-cli status\nexcalibur-control-center-cli gpu get\nexcalibur-control-center-cli keyboard get all\nexcalibur-control-center-cli doctor'
 

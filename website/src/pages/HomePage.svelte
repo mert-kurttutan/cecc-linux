@@ -7,12 +7,10 @@
     content,
     locale,
     localizePath,
-    navigate,
   }: {
     content: SiteContent
     locale: Locale
     localizePath: (locale: Locale, path: string) => string
-    navigate: (event: MouseEvent, href: string) => void
   } = $props()
 
   const installHref = $derived(localizePath(locale, '/install'))
@@ -28,8 +26,8 @@
     </p>
 
     <div class="mt-6 flex flex-wrap gap-3 max-sm:[&>a]:w-full" aria-label="Primary actions">
-      <a class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-800 px-4 py-2 font-bold text-white no-underline dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900" href={installHref} onclick={(event) => navigate(event, installHref)}>{content.home.primaryCta}</a>
-      <a class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 font-bold text-slate-800 no-underline hover:border-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-400" href={gettingStartedHref} onclick={(event) => navigate(event, gettingStartedHref)}>{content.home.secondaryCta}</a>
+      <a class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-800 px-4 py-2 font-bold text-white no-underline dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900" href={installHref}>{content.home.primaryCta}</a>
+      <a class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 font-bold text-slate-800 no-underline hover:border-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-400" href={gettingStartedHref}>{content.home.secondaryCta}</a>
     </div>
   </div>
 
@@ -87,7 +85,7 @@
       <article class="flex min-h-44 flex-col rounded-lg border border-slate-200 bg-white p-4 text-left dark:border-slate-700 dark:bg-slate-900">
         <h3 class="mb-2 text-base font-semibold text-slate-950 dark:text-slate-50">{item.title}</h3>
         <p class="mb-4 leading-relaxed text-slate-600 dark:text-slate-400">{item.body}</p>
-        <a class="mt-auto font-extrabold text-slate-950 no-underline hover:text-amber-700 dark:text-slate-50 dark:hover:text-amber-400" href={href} onclick={(event) => navigate(event, href)}>{content.home.openLabel}</a>
+        <a class="mt-auto font-extrabold text-slate-950 no-underline hover:text-amber-700 dark:text-slate-50 dark:hover:text-amber-400" href={href}>{content.home.openLabel}</a>
       </article>
     {/each}
   </div>
