@@ -1,6 +1,6 @@
 # cecc-linux website
 
-Static Svelte/Vite documentation site for `cecc-linux`, covering installation, CLI/GUI usage, driver notes, troubleshooting, and development workflow.
+Static SvelteKit/Vite documentation site for `cecc-linux`, covering installation, CLI/GUI usage, driver notes, troubleshooting, and development workflow.
 
 ## Development
 
