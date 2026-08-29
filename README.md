@@ -1,4 +1,4 @@
-# cecc-linux
+# Casper Excalibur Control Center for Linux (CECC Linux)
 
 For the website, please see: <https://cecc.mert-kurttutan.com>
 
