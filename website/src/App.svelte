@@ -62,7 +62,11 @@
   const alternateLocale = $derived<Locale>(currentLocale === 'en' ? 'tr' : 'en')
   const alternateHref = $derived(localizePath(alternateLocale, currentRoute.path))
   const canonicalHref = $derived(localizePath(currentLocale, currentRoute.path))
-  const currentPageTitle = $derived(currentContent.navItems.find((item) => item.page === currentPage)?.label ?? 'cecc-linux')
+  const currentPageTitle = $derived(
+    currentPage === 'home'
+      ? 'Casper Excalibur Control Center for Linux | CECC Linux'
+      : `${currentContent.navItems.find((item) => item.page === currentPage)?.label ?? 'cecc-linux'} | cecc-linux`,
+  )
   const currentDescription = $derived(descriptionForPage(currentPage, currentContent))
 
   $effect(() => {
@@ -88,7 +92,7 @@
 </script>
 
 <svelte:head>
-  <title>{currentPageTitle} | cecc-linux</title>
+  <title>{currentPageTitle}</title>
   <meta name="description" content={currentDescription} />
   <link rel="canonical" href={canonicalHref} />
   <link rel="alternate" hreflang="en" href={localizePath('en', currentRoute.path)} />
