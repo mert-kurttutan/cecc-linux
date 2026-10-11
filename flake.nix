@@ -18,7 +18,7 @@
       devShells = forAllSystems (system:
         let
           pkgs = import nixpkgs { inherit system; };
-          hostConfig = host-nixos.nixosConfigurations.nixos.config;
+          hostConfig = host-nixos.nixosConfigurations.excalibur.config;
           kernel = hostConfig.boot.kernelPackages.kernel;
           kdir = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build";
           guiLibs = with pkgs; [
