@@ -1,6 +1,35 @@
 #!/usr/bin/env nu
 
-use ./tests/utils.nu *
+const SYSTEM_MODES = [
+  [mode, windows_id, platform_profile];
+  [office, 2, low-power],
+  [gaming, 1, balanced],
+  [high-performance, 0, performance],
+]
+const PLATFORM_PROFILE_PATH = "/sys/firmware/acpi/platform_profile"
+const PLATFORM_PROFILE_CHOICES_PATH = "/sys/firmware/acpi/platform_profile_choices"
+
+def read-optional-file [path: string] {
+  if ($path | path exists) {
+    open --raw $path | str trim
+  } else {
+    null
+  }
+}
+
+def read-file-trimmed [path: string] {
+  open $path | str trim
+}
+
+def read-platform-profile [] {
+  read-file-trimmed $PLATFORM_PROFILE_PATH
+}
+
+def read-platform-profile-choices [] {
+  read-file-trimmed $PLATFORM_PROFILE_CHOICES_PATH
+  | split row --regex '\s+'
+  | where {|choice| $choice != "" }
+}
 
 def read-file [path: string] {
   read-optional-file $path
@@ -24,7 +53,16 @@ def read-choices [] {
 }
 
 def write-profile [profile: string] {
-  write-platform-profile $profile --sudo
+  let choices = (read-platform-profile-choices)
+  if ($choices | any {|choice| $choice == $profile }) == false {
+    error make {
+      msg: $"Unsupported platform profile: ($profile)"
+      help: $"Available choices: ($choices | str join ', ')"
+    }
+  }
+
+  $profile | ^sudo tee $PLATFORM_PROFILE_PATH | ignore
+  read-platform-profile
 }
 
 def read-power-supplies [] {
