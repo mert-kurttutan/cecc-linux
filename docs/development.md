@@ -1,5 +1,17 @@
 # Development Environment
 
+## Release package smoke tests
+
+After publishing a release, the [Release workflow](https://github.com/mert-kurttutan/cecc-linux/actions/runs/38302422453)
+installs the Debian package on Ubuntu and the RPM in a Fedora container. It
+checks that the GUI and CLI binaries are installed, runs the CLI help command,
+checks that the `casper-wmi` DKMS source is installed and registered, then
+removes each package and verifies that the DKMS registration is cleaned up.
+
+These checks verify package installation and removal. They do not build the
+module for a running kernel or load it on laptop hardware. The backend hardware
+tests below require the supported Excalibur laptop and exercise real devices.
+
 ## Running backend hardware tests
 
 The backend integration tests exercise the laptop's real hardware through

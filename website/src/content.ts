@@ -285,7 +285,7 @@ export const siteContent: Record<Locale, SiteContent> = {
         },
         {
           title: 'Fedora / RPM',
-          body: 'GUI, CLI, udev rules, permission helper, and casper-wmi DKMS driver.',
+          body: 'App, permissions, and casper-wmi DKMS driver in one package.',
           command: installCommands.fedora,
         },
       ],
@@ -491,7 +491,7 @@ export const siteContent: Record<Locale, SiteContent> = {
         },
         {
           title: 'Fedora / RPM',
-          body: 'GUI, CLI, udev kuralları, izin yardımcısı ve casper-wmi DKMS sürücüsü.',
+          body: 'Uygulama, izinler ve casper-wmi DKMS sürücüsü tek pakettedir.',
           command: installCommands.fedora,
         },
       ],
