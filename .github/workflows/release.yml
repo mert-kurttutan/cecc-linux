@@ -206,7 +206,7 @@ jobs:
 
           curl -fL "$url" -o "$app_package"
           sudo apt-get update
-          sudo apt-get install -y "./$app_package"
+          sudo apt-get install --no-install-recommends -y "./$app_package"
 
           test -x /usr/bin/excalibur-control-center-gui
           test -x /usr/bin/excalibur-control-center-cli

@@ -39,29 +39,37 @@ if ! dkms status -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION" 2>/dev/null | grep -q 
   dkms add -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION"
 fi
 
-mapfile -t REGISTERED_VERSIONS < <(
-  dkms status -m "$PACKAGE_NAME" 2>/dev/null \
-    | awk -F/ -v name="$PACKAGE_NAME" '$1 == name { split($2, v, /[, :]/); print v[1] }' \
-    | sort -u
-)
-for registered_version in "${REGISTERED_VERSIONS[@]}"; do
-  if [ "$registered_version" != "$PACKAGE_VERSION" ]; then
-    dkms remove "$PACKAGE_NAME/$registered_version" --all >/dev/null 2>&1 || true
-  fi
-done
-
 kernel_version="$(uname -r)"
 if [ -d "/lib/modules/$kernel_version/build" ]; then
+  dkms_ready=0
   current_status="$(dkms status -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION" -k "$kernel_version" 2>/dev/null || true)"
-  if [[ "$current_status" != *": installed"* ]]; then
-    if [[ "$current_status" == *": built"* ]]; then
-      dkms install -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION" -k "$kernel_version"
-    else
-      dkms build -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION" -k "$kernel_version"
-      dkms install -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION" -k "$kernel_version"
+  if [[ "$current_status" == *": installed"* ]]; then
+    dkms_ready=1
+  elif [[ "$current_status" == *": built"* ]]; then
+    if dkms install -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION" -k "$kernel_version"; then
+      dkms_ready=1
     fi
+  elif dkms build -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION" -k "$kernel_version" \
+    && dkms install -m "$PACKAGE_NAME" -v "$PACKAGE_VERSION" -k "$kernel_version"; then
+    dkms_ready=1
   fi
-  modprobe "$PACKAGE_NAME" || echo "Could not load $PACKAGE_NAME; check dmesg for details." >&2
+
+  if [ "$dkms_ready" -eq 1 ]; then
+    mapfile -t REGISTERED_VERSIONS < <(
+      dkms status -m "$PACKAGE_NAME" 2>/dev/null \
+        | awk -F/ -v name="$PACKAGE_NAME" '$1 == name { split($2, v, /[, :]/); print v[1] }' \
+        | sort -u
+    )
+    for registered_version in "${REGISTERED_VERSIONS[@]}"; do
+      if [ "$registered_version" != "$PACKAGE_VERSION" ]; then
+        dkms remove "$PACKAGE_NAME/$registered_version" --all >/dev/null 2>&1 || true
+      fi
+    done
+    modprobe "$PACKAGE_NAME" || echo "Could not load $PACKAGE_NAME; check dmesg for details." >&2
+  else
+    echo "Could not build or install $PACKAGE_NAME for $kernel_version; keeping the package and DKMS registration installed." >&2
+    echo "Check /var/lib/dkms/$PACKAGE_NAME/$PACKAGE_VERSION/build/make.log, then retry with: sudo dkms autoinstall" >&2
+  fi
 else
   echo "Registered $PACKAGE_NAME with DKMS, but headers for $kernel_version are missing."
   echo "Install matching kernel headers, then run: sudo dkms autoinstall"

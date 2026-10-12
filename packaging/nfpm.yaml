@@ -68,8 +68,6 @@ overrides:
       - udev
       - dkms
       - build-essential
-    recommends:
-      - linux-headers-amd64 | linux-headers-generic
     scripts:
       postinstall: packaging/deb/postinstall.sh
       preremove: packaging/deb/preremove.sh
