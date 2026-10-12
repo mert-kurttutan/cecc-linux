@@ -9,6 +9,7 @@
   import GuiCliPage from './pages/GuiCliPage.svelte'
   import HomePage from './pages/HomePage.svelte'
   import InstallPage from './pages/InstallPage.svelte'
+  import ModelsPage from './pages/ModelsPage.svelte'
   import TroubleshootingPage from './pages/TroubleshootingPage.svelte'
 
   function pageFromPath(path: string): Page {
@@ -21,6 +22,9 @@
         return 'gui-cli'
       case '/driver':
         return 'driver'
+      case '/supported-models':
+      case '/desteklenen-modeller':
+        return 'models'
       case '/troubleshooting':
         return 'troubleshooting'
       case '/about':
@@ -42,6 +46,8 @@
         return content.guiCli.intro
       case 'driver':
         return content.driver.intro
+      case 'models':
+        return content.models.intro
       case 'troubleshooting':
         return content.troubleshooting.intro
       case 'about':
@@ -165,6 +171,8 @@
       <GuiCliPage content={currentContent} />
     {:else if currentPage === 'driver'}
       <DriverPage content={currentContent} />
+    {:else if currentPage === 'models'}
+      <ModelsPage content={currentContent} />
     {:else if currentPage === 'troubleshooting'}
       <TroubleshootingPage content={currentContent} />
     {:else if currentPage === 'about'}

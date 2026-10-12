@@ -1,9 +1,22 @@
+import excaliburModelsCsv from '../../docs/excalibur-models.csv?raw'
+
+function parseExcaliburModels(csv: string) {
+  const [, ...rows] = csv.trim().split(/\r?\n/)
+  return rows.map((row) => {
+    const [model, supported, dmiProductName] = row.split(',')
+    return { model, supported: supported === 'true', dmiProductName }
+  })
+}
+
+const excaliburModels = parseExcaliburModels(excaliburModelsCsv)
+
 export type Page =
   | 'home'
   | 'install'
   | 'getting-started'
   | 'gui-cli'
   | 'driver'
+  | 'models'
   | 'troubleshooting'
   | 'about'
   | 'development'
@@ -85,6 +98,16 @@ export type SiteContent = {
     intro: string
     cards: CardItem[]
   }
+  models: {
+    title: string
+    intro: string
+    modelColumn: string
+    dmiColumn: string
+    supportColumn: string
+    supportedYes: string
+    supportedNo: string
+    items: typeof excaliburModels
+  }
   troubleshooting: {
     title: string
     intro: string
@@ -117,6 +140,7 @@ const pagePaths: Record<Locale, Record<Page, string>> = {
     'getting-started': '/getting-started',
     'gui-cli': '/gui-cli',
     driver: '/driver',
+    models: '/supported-models',
     troubleshooting: '/troubleshooting',
     about: '/about',
     development: '/development',
@@ -127,6 +151,7 @@ const pagePaths: Record<Locale, Record<Page, string>> = {
     'getting-started': '/baslangic',
     'gui-cli': '/gui-cli',
     driver: '/surucu',
+    models: '/desteklenen-modeller',
     troubleshooting: '/sorun-giderme',
     about: '/hakkinda',
     development: '/gelistirme',
@@ -140,6 +165,7 @@ export const routePaths = {
     'getting-started': '/en/getting-started',
     'gui-cli': '/en/gui-cli',
     driver: '/en/driver',
+    models: '/en/supported-models',
     troubleshooting: '/en/troubleshooting',
     about: '/en/about',
     development: '/en/development',
@@ -150,6 +176,7 @@ export const routePaths = {
     'getting-started': '/tr/baslangic',
     'gui-cli': '/tr/gui-cli',
     driver: '/tr/surucu',
+    models: '/tr/desteklenen-modeller',
     troubleshooting: '/tr/sorun-giderme',
     about: '/tr/hakkinda',
     development: '/tr/gelistirme',
@@ -208,15 +235,16 @@ export const siteContent: Record<Locale, SiteContent> = {
       { label: 'Getting Started', href: '/getting-started', page: 'getting-started' },
       { label: 'GUI & CLI', href: '/gui-cli', page: 'gui-cli' },
       { label: 'Driver', href: '/driver', page: 'driver' },
+      { label: 'Supported Models', href: '/supported-models', page: 'models' },
       { label: 'Troubleshooting', href: '/troubleshooting', page: 'troubleshooting' },
       { label: 'About', href: '/about', page: 'about' },
       { label: 'Development', href: '/development', page: 'development' },
     ],
     home: {
       eyebrow: 'Linux controls for Casper Excalibur laptops',
-      title: 'Excalibur Control Center for Linux.',
+      title: 'Casper Excalibur Control Center for Linux',
       intro:
-        'cecc-linux ports Excalibur Control Center behavior to Linux with a GUI, CLI, packages, and driver support.',
+        'CECC Linux is an open-source Linux port with feature parity for the Windows-only Casper Excalibur Control Center.',
       primaryCta: 'Install',
       secondaryCta: 'Get started',
       heroAlt: 'Excalibur Control Center interface preview',
@@ -327,6 +355,16 @@ export const siteContent: Record<Locale, SiteContent> = {
         },
       ],
     },
+    models: {
+      title: 'Supported Casper Excalibur Models',
+      intro: 'Casper Excalibur model identifiers and CECC Linux support status.',
+      modelColumn: 'Model',
+      dmiColumn: 'DMI product name',
+      supportColumn: 'Support',
+      supportedYes: 'Yes',
+      supportedNo: 'No',
+      items: excaliburModels,
+    },
     troubleshooting: {
       title: 'Troubleshooting',
       intro:
@@ -374,6 +412,7 @@ export const siteContent: Record<Locale, SiteContent> = {
       { title: 'Getting Started', body: 'First-run checks after installation.', href: '/getting-started' },
       { title: 'GUI & CLI', body: 'Daily controls and repeatable terminal commands.', href: '/gui-cli' },
       { title: 'Driver', body: 'casper-wmi and Linux interface notes.', href: '/driver' },
+      { title: 'Supported Models', body: 'Casper Excalibur model identifiers listed by casper-wmi.', href: '/supported-models' },
       { title: 'Troubleshooting', body: 'Support report commands and first checks.', href: '/troubleshooting' },
       { title: 'About', body: 'Project scope, credits, source, and license notes.', href: '/about' },
       { title: 'Development', body: 'Rust, driver reload, and website workflow.', href: '/development' },
@@ -402,15 +441,16 @@ export const siteContent: Record<Locale, SiteContent> = {
       { label: 'Başlangıç', href: '/getting-started', page: 'getting-started' },
       { label: 'GUI ve CLI', href: '/gui-cli', page: 'gui-cli' },
       { label: 'Sürücü', href: '/driver', page: 'driver' },
+      { label: 'Desteklenen Modeller', href: '/desteklenen-modeller', page: 'models' },
       { label: 'Sorun Giderme', href: '/troubleshooting', page: 'troubleshooting' },
       { label: 'Hakkında', href: '/about', page: 'about' },
       { label: 'Geliştirme', href: '/development', page: 'development' },
     ],
     home: {
       eyebrow: 'Casper Excalibur dizüstüler için Linux kontrolleri',
-      title: 'Linux için Excalibur Control Center.',
+      title: 'Linux için Casper Excalibur Kontrol Merkezi',
       intro:
-        'cecc-linux, Excalibur Control Center davranışını GUI, CLI, paketler ve sürücü desteğiyle Linux’a taşır.',
+        'CECC Linux, yalnızca Windows’ta sunulan Casper Excalibur Control Center ile aynı özelliklere sahip olan açık kaynaklı bir Linux portudur.',
       primaryCta: 'Kur',
       secondaryCta: 'Başla',
       heroAlt: 'Excalibur Control Center arayüz önizlemesi',
@@ -521,6 +561,16 @@ export const siteContent: Record<Locale, SiteContent> = {
         },
       ],
     },
+    models: {
+      title: 'Desteklenen Casper Excalibur Modelleri',
+      intro: 'Casper Excalibur model tanımları ve CECC Linux destek durumu.',
+      modelColumn: 'Model',
+      dmiColumn: 'DMI ürün adı',
+      supportColumn: 'Destek',
+      supportedYes: 'Evet',
+      supportedNo: 'Hayır',
+      items: excaliburModels,
+    },
     troubleshooting: {
       title: 'Sorun Giderme',
       intro:
@@ -568,6 +618,7 @@ export const siteContent: Record<Locale, SiteContent> = {
       { title: 'Başlangıç', body: 'Kurulumdan sonraki ilk kontroller.', href: '/getting-started' },
       { title: 'GUI ve CLI', body: 'Günlük kontroller ve tekrarlanabilir terminal komutları.', href: '/gui-cli' },
       { title: 'Sürücü', body: 'casper-wmi ve Linux arayüz notları.', href: '/driver' },
+      { title: 'Desteklenen Modeller', body: 'casper-wmi tarafından listelenen Casper Excalibur model tanımları.', href: '/desteklenen-modeller' },
       { title: 'Sorun Giderme', body: 'Destek raporu komutları ve ilk kontroller.', href: '/troubleshooting' },
       { title: 'Hakkında', body: 'Proje kapsamı, katkılar, kaynak ve lisans notları.', href: '/about' },
       { title: 'Geliştirme', body: 'Rust, sürücü yeniden yükleme ve web sitesi iş akışı.', href: '/development' },

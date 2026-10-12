@@ -1,0 +1,20 @@
+model_number,supported_by_cecc_linux,dmi_product_name
+G500,false,
+G600,false,
+G650,true,EXCALIBUR G650
+G660,false,
+G670,true,EXCALIBUR G670
+G700,false,
+G750,true,EXCALIBUR G750
+G770,true,EXCALIBUR G770
+G780,true,EXCALIBUR G780
+G800,false,
+G805,false,
+G850,false,
+G860,false,
+G870,true,EXCALIBUR G870
+G880,false,
+G900,true,EXCALIBUR G900
+G911,true,EXCALIBUR G911
+G915,false,
+G920,false,
