@@ -4,7 +4,8 @@ use std::thread;
 use std::time::Duration;
 
 use excalibur_control_center_backend::{
-    KeyboardLedEffect, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, SysfsBackend,
+    KeyboardLedEffect, KeyboardZone, KeyboardZoneSelection, KeyboardZoneState, RgbColor,
+    SysfsBackend,
 };
 
 const KEYBOARD_ZONES: [KeyboardZone; 3] = [
@@ -16,6 +17,21 @@ const BRIGHTNESS_LEVELS: [u8; 3] = [0, 1, 2];
 const SETTLE_DELAY: Duration = Duration::from_millis(300);
 const BIASLIGHT_SETTLE_DELAY: Duration = Duration::from_millis(500);
 const BIASLIGHT_ZONE: KeyboardZone = KeyboardZone::Bias;
+const MODE_OBSERVATION_DELAY: Duration = Duration::from_secs(5);
+const MODE_TEST_COLOR: RgbColor = RgbColor {
+    red: 255,
+    green: 0,
+    blue: 0,
+};
+const KEYBOARD_LED_EFFECTS: [KeyboardLedEffect; 7] = [
+    KeyboardLedEffect::Static,
+    KeyboardLedEffect::Blink,
+    KeyboardLedEffect::Breathing,
+    KeyboardLedEffect::Heartbeat,
+    KeyboardLedEffect::Repeat,
+    KeyboardLedEffect::Cycle,
+    KeyboardLedEffect::Ambilight,
+];
 static HARDWARE_LOCK: Mutex<()> = Mutex::new(());
 
 struct BrightnessRestore<'a> {
@@ -79,6 +95,12 @@ impl Drop for LedStateRestore<'_> {
                 .write_keyboard_brightness(zone.name, zone.brightness)
             {
                 eprintln!("Failed to restore {} brightness: {error}", zone.name);
+            }
+        }
+
+        for zone in &self.initial_zones {
+            if let Err(error) = self.backend.write_keyboard_color(zone.name, zone.color) {
+                eprintln!("Failed to restore {} color: {error}", zone.name);
             }
         }
     }
@@ -178,6 +200,43 @@ fn changing_one_keyboard_effect_preserves_brightness() -> Result<(), Box<dyn Err
         brightness_after_delay, brightness_before,
         "changing one LED effect changed keyboard brightness after delay"
     );
+
+    Ok(())
+}
+
+#[test]
+fn keyboard_led_modes_accept_supported_effects() -> Result<(), Box<dyn Error>> {
+    let _lock = HARDWARE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let backend = SysfsBackend::default();
+    let initial_zones = backend.read_keyboard_zones(KeyboardZoneSelection::All)?;
+    let _restore = LedStateRestore {
+        backend: &backend,
+        initial_zones,
+    };
+
+    println!("Cycling LED effects on the left keyboard zone.");
+    println!("Each mode stays active for five seconds for visual inspection.");
+
+    for effect in KEYBOARD_LED_EFFECTS {
+        println!("Set effect={effect} (mode {})", effect.mode_id());
+        backend.write_keyboard_effect(KeyboardZone::Left, effect)?;
+        backend.write_keyboard_color(KeyboardZone::Left, MODE_TEST_COLOR)?;
+        backend.write_keyboard_brightness(KeyboardZone::Left, 2)?;
+        thread::sleep(MODE_OBSERVATION_DELAY);
+
+        let state = backend.read_keyboard_zone(KeyboardZone::Left)?;
+        assert_eq!(
+            state.effect, effect,
+            "driver did not retain effect {effect}"
+        );
+        assert_eq!(
+            state.color, MODE_TEST_COLOR,
+            "driver did not retain test color"
+        );
+        assert_eq!(state.brightness, 2, "driver did not retain test brightness");
+    }
 
     Ok(())
 }
