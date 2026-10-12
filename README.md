@@ -117,6 +117,7 @@ Run common CLI commands:
 
 ```sh
 cargo run -p excalibur-control-center-cli -- status
+cargo run -p excalibur-control-center-cli -- cpu frequency
 cargo run -p excalibur-control-center-cli -- gpu get
 cargo run -p excalibur-control-center-cli -- keyboard list
 cargo run -p excalibur-control-center-cli -- keyboard get all

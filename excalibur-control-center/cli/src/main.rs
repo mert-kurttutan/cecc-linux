@@ -23,10 +23,24 @@ enum Command {
     Doctor(DoctorCommand),
     /// Inspect or change GPU mode.
     Gpu(GpuCommand),
+    /// Read CPU information.
+    Cpu(CpuCommand),
     /// Inspect or change system performance mode.
     System(SystemCommand),
     /// Inspect or change keyboard lighting.
     Keyboard(KeyboardCommand),
+}
+
+#[derive(Debug, Args)]
+struct CpuCommand {
+    #[command(subcommand)]
+    command: CpuSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum CpuSubcommand {
+    /// Read the average CPU frequency in GHz.
+    Frequency,
 }
 
 #[derive(Debug, Args)]
@@ -204,6 +218,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{mode}");
             }
         },
+        Command::Cpu(command) => match command.command {
+            CpuSubcommand::Frequency => {
+                let frequency = backend.read_cpu_frequency()?;
+                print_cpu_frequency(frequency.average_ghz);
+            }
+        },
         Command::System(command) => match command.command {
             SystemSubcommand::Get => {
                 print_system_state(&backend)?;
@@ -291,8 +311,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn print_state(state: ControlCenterState) {
     println!("gpu_mode={}", state.gpu_mode.to_string());
+    print_cpu_frequency(state.cpu_frequency.average_ghz);
     for zone in state.keyboard_zones {
         print_zone(&zone);
+    }
+}
+
+fn print_cpu_frequency(frequency_ghz: Option<f32>) {
+    match frequency_ghz {
+        Some(value) => println!("cpu_frequency_ghz={value:.3}"),
+        None => println!("cpu_frequency_ghz=--"),
     }
 }
 
