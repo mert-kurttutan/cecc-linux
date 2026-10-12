@@ -16,6 +16,7 @@ const KEYBOARD_ZONES: [KeyboardZone; 3] = [
 const BRIGHTNESS_LEVELS: [u8; 3] = [0, 1, 2];
 const SETTLE_DELAY: Duration = Duration::from_millis(300);
 const BIASLIGHT_SETTLE_DELAY: Duration = Duration::from_millis(500);
+const COLOR_OBSERVATION_DELAY: Duration = Duration::from_secs(2);
 const BIASLIGHT_ZONE: KeyboardZone = KeyboardZone::Bias;
 const MODE_OBSERVATION_DELAY: Duration = Duration::from_secs(5);
 const MODE_TEST_COLOR: RgbColor = RgbColor {
@@ -23,6 +24,11 @@ const MODE_TEST_COLOR: RgbColor = RgbColor {
     green: 0,
     blue: 0,
 };
+const KEYBOARD_ZONE_TEST_COLORS: [RgbColor; 3] = [
+    RgbColor::new(255, 0, 0),
+    RgbColor::new(0, 255, 0),
+    RgbColor::new(0, 0, 255),
+];
 const KEYBOARD_LED_EFFECTS: [KeyboardLedEffect; 7] = [
     KeyboardLedEffect::Static,
     KeyboardLedEffect::Blink,
@@ -90,18 +96,48 @@ impl Drop for LedStateRestore<'_> {
         }
 
         for zone in &self.initial_zones {
-            if let Err(error) = self
-                .backend
-                .write_keyboard_brightness(zone.name, zone.brightness)
-            {
-                eprintln!("Failed to restore {} brightness: {error}", zone.name);
-            }
-        }
-
-        for zone in &self.initial_zones {
             if let Err(error) = self.backend.write_keyboard_color(zone.name, zone.color) {
                 eprintln!("Failed to restore {} color: {error}", zone.name);
             }
+        }
+
+        let biaslight_brightness = self
+            .initial_zones
+            .iter()
+            .find(|zone| zone.name == BIASLIGHT_ZONE)
+            .map(|zone| zone.brightness);
+        if let Some(brightness) = biaslight_brightness {
+            if let Err(error) = self
+                .backend
+                .write_keyboard_brightness(BIASLIGHT_ZONE, brightness)
+            {
+                eprintln!("Failed to restore biaslight brightness: {error}");
+            }
+        }
+
+        thread::sleep(BIASLIGHT_SETTLE_DELAY);
+        if let Some(keyboard_brightness) = self
+            .initial_zones
+            .iter()
+            .find(|zone| zone.name == KeyboardZone::Left)
+            .map(|zone| zone.brightness)
+        {
+            let transition_brightness = if keyboard_brightness == 0 { 1 } else { 0 };
+            if let Err(error) = self
+                .backend
+                .write_keyboard_brightness(KeyboardZone::Left, transition_brightness)
+            {
+                eprintln!("Failed to reset keyboard brightness before restoration: {error}");
+            }
+
+            thread::sleep(BIASLIGHT_SETTLE_DELAY);
+            if let Err(error) = self
+                .backend
+                .write_keyboard_brightness(KeyboardZone::Left, keyboard_brightness)
+            {
+                eprintln!("Failed to restore keyboard brightness: {error}");
+            }
+            thread::sleep(BIASLIGHT_SETTLE_DELAY);
         }
     }
 }
@@ -200,6 +236,61 @@ fn changing_one_keyboard_effect_preserves_brightness() -> Result<(), Box<dyn Err
         brightness_after_delay, brightness_before,
         "changing one LED effect changed keyboard brightness after delay"
     );
+
+    Ok(())
+}
+
+#[test]
+fn keyboard_zone_colors_are_independent() -> Result<(), Box<dyn Error>> {
+    let _lock = HARDWARE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let backend = SysfsBackend::default();
+    let initial_zones = backend.read_keyboard_zones(KeyboardZoneSelection::All)?;
+    let mut expected_colors = initial_zones
+        .iter()
+        .map(|zone| (zone.name, zone.color))
+        .collect::<Vec<_>>();
+    let _restore = LedStateRestore {
+        backend: &backend,
+        initial_zones,
+    };
+
+    for (target_zone, target_color) in KEYBOARD_ZONES.into_iter().zip(KEYBOARD_ZONE_TEST_COLORS) {
+        println!("Set keyboard brightness to 2 for color observation.");
+        backend.write_keyboard_brightness(target_zone, 2)?;
+        thread::sleep(SETTLE_DELAY);
+
+        println!("Set {target_zone} to color {target_color:?}.");
+        backend.write_keyboard_color(target_zone, target_color)?;
+        thread::sleep(SETTLE_DELAY);
+
+        for zone in KEYBOARD_ZONES {
+            let state = backend.read_keyboard_zone(zone)?;
+            let expected = if zone == target_zone {
+                target_color
+            } else {
+                expected_colors
+                    .iter()
+                    .find(|(expected_zone, _)| *expected_zone == zone)
+                    .map(|(_, color)| *color)
+                    .expect("keyboard zone has an expected color")
+            };
+
+            assert_eq!(
+                state.color, expected,
+                "writing {target_zone} color changed {zone} color"
+            );
+        }
+
+        expected_colors
+            .iter_mut()
+            .find(|(zone, _)| *zone == target_zone)
+            .expect("keyboard zone has an expected color")
+            .1 = target_color;
+        println!("Observe {target_zone} for two seconds.");
+        thread::sleep(COLOR_OBSERVATION_DELAY);
+    }
 
     Ok(())
 }
