@@ -28,15 +28,6 @@ body:
       required: true
 
   - type: textarea
-    id: expected-controls
-    attributes:
-      label: Controls you expect to work
-      description: For example keyboard lighting, fan readings, GPU mode, or platform profiles.
-      placeholder: Which controls are unavailable or behave differently?
-    validations:
-      required: true
-
-  - type: textarea
     id: doctor-report
     attributes:
       label: Doctor report
