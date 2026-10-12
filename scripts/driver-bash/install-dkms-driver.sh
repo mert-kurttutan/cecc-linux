@@ -2,11 +2,16 @@
 set -euo pipefail
 
 DRIVER_NAME="casper-wmi"
-DRIVER_VERSION="0.1"
-SRC_DIR="/usr/src/$DRIVER_NAME-$DRIVER_VERSION"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 DRIVER_SOURCE_DIR="$REPO_ROOT/casper-wmi"
+mapfile -t DRIVER_VERSIONS < <(sed -n 's/^PACKAGE_VERSION="\([^"]\+\)"$/\1/p' "$DRIVER_SOURCE_DIR/dkms.conf")
+if [ "${#DRIVER_VERSIONS[@]}" -ne 1 ]; then
+  echo "Expected one PACKAGE_VERSION in $DRIVER_SOURCE_DIR/dkms.conf" >&2
+  exit 1
+fi
+DRIVER_VERSION="${DRIVER_VERSIONS[0]}"
+SRC_DIR="/usr/src/$DRIVER_NAME-$DRIVER_VERSION"
 REQUIRED_FILES=(
   "casper-wmi.c"
   "casper-gpu-mode.c"

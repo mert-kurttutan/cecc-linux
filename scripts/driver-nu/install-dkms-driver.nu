@@ -1,7 +1,6 @@
 #!/usr/bin/env nu
 
 const DRIVER_NAME = "casper-wmi"
-const DRIVER_VERSION = "0.1"
 const REQUIRED_FILES = [
   "casper-wmi.c"
   "casper-gpu-mode.c"
@@ -12,11 +11,20 @@ const REQUIRED_FILES = [
 export def install-casper-dkms-driver [] {
   let repo_root = ($env.FILE_PWD | path join ".." "..")
   let driver_source_dir = ($repo_root | path join "casper-wmi")
-  let src_dir = $"/usr/src/($DRIVER_NAME)-($DRIVER_VERSION)"
+  let dkms_conf = ($driver_source_dir | path join "dkms.conf")
+  let version_line = (open --raw $dkms_conf | lines | where ($it | str starts-with 'PACKAGE_VERSION='))
+  if ($version_line | length) != 1 {
+    error make { msg: $"Expected one PACKAGE_VERSION in ($dkms_conf)" }
+  }
+  let driver_version = ($version_line | first | parse 'PACKAGE_VERSION="{version}"' | get version | first)
+  if ($driver_version | is-empty) {
+    error make { msg: $"PACKAGE_VERSION is empty in ($dkms_conf)" }
+  }
+  let src_dir = $"/usr/src/($DRIVER_NAME)-($driver_version)"
 
-  print $"Installing ($DRIVER_NAME) driver version ($DRIVER_VERSION)..."
+  print $"Installing ($DRIVER_NAME) driver version ($driver_version)..."
 
-  do -i { ^dkms remove $"($DRIVER_NAME)/($DRIVER_VERSION)" --all }
+  do -i { ^dkms remove $"($DRIVER_NAME)/($driver_version)" --all }
   ^rm -rf $src_dir
 
   mkdir $src_dir
@@ -26,13 +34,13 @@ export def install-casper-dkms-driver [] {
   }
 
   print "Adding to DKMS..."
-  ^dkms add -m $DRIVER_NAME -v $DRIVER_VERSION
+  ^dkms add -m $DRIVER_NAME -v $driver_version
 
   print "Building module..."
-  ^dkms build -m $DRIVER_NAME -v $DRIVER_VERSION
+  ^dkms build -m $DRIVER_NAME -v $driver_version
 
   print "Installing module..."
-  ^dkms install -m $DRIVER_NAME -v $DRIVER_VERSION
+  ^dkms install -m $DRIVER_NAME -v $driver_version
 
   print "Loading module..."
   ^modprobe $DRIVER_NAME

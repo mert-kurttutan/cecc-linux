@@ -4,7 +4,6 @@ const GUI_BIN_NAME = "excalibur-control-center-gui"
 const CLI_BIN_NAME = "excalibur-control-center-cli"
 const BIN_DIR = "/usr/local/bin"
 const DRIVER_NAME = "casper-wmi"
-const DRIVER_VERSION = "0.1"
 const RULE_NAME = "90-excalibur-control-center.rules"
 const HELPER_NAME = "apply-sysfs-permissions"
 const HELPER_DIR = "/usr/local/libexec/excalibur-control-center"
@@ -23,15 +22,25 @@ def remove-file-if-present [path: string] {
 }
 
 def uninstall-casper-dkms-driver [] {
-  let src_dir = $"/usr/src/($DRIVER_NAME)-($DRIVER_VERSION)"
-
   print $"Unloading ($DRIVER_NAME) module if loaded..."
   do -i { ^modprobe -r $DRIVER_NAME }
 
-  print $"Removing ($DRIVER_NAME) DKMS module version ($DRIVER_VERSION)..."
-  do -i { ^dkms remove $"($DRIVER_NAME)/($DRIVER_VERSION)" --all }
-
-  if ($src_dir | path exists) {
+  let dkms_configs = (glob $"/usr/src/($DRIVER_NAME)-*/dkms.conf")
+  if ($dkms_configs | is-empty) {
+    print $"No ($DRIVER_NAME) DKMS source installation found."
+  }
+  for dkms_conf in $dkms_configs {
+    let version_line = (open --raw $dkms_conf | lines | where ($it | str starts-with 'PACKAGE_VERSION='))
+    if ($version_line | length) != 1 {
+      error make { msg: $"Expected one PACKAGE_VERSION in ($dkms_conf)" }
+    }
+    let driver_version = ($version_line | first | parse 'PACKAGE_VERSION="{version}"' | get version | first)
+    if ($driver_version | is-empty) {
+      error make { msg: $"PACKAGE_VERSION is empty in ($dkms_conf)" }
+    }
+    let src_dir = ($dkms_conf | path dirname)
+    print $"Removing ($DRIVER_NAME) DKMS module version ($driver_version)..."
+    do -i { ^dkms remove $"($DRIVER_NAME)/($driver_version)" --all }
     print $"Removing DKMS source tree: ($src_dir)"
     ^rm -rf $src_dir
   }

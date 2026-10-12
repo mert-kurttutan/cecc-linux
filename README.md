@@ -16,12 +16,14 @@ On Debian-based distributions such as Ubuntu, download the `.deb` from the
 release page and install it with apt:
 
 ```sh
-wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.33/excalibur-control-center_0.1.33_amd64.deb
-sudo apt install ./excalibur-control-center_0.1.33_amd64.deb
+wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.35/excalibur-control-center_0.1.35_amd64.deb
+sudo apt install ./excalibur-control-center_0.1.35_amd64.deb
 ```
 
-The `.deb` installs the GUI, CLI, udev permission rules, and the sysfs
-permission helper. It does not install the `casper-wmi` driver yet.
+The Debian package installs the GUI, CLI, permissions, and `casper-wmi` through
+DKMS. It needs matching kernel headers to build the driver for the running
+kernel. If those headers are unavailable, install them and run
+`sudo dkms autoinstall` after installation.
 
 ### RPM Package
 
@@ -29,15 +31,16 @@ On RPM-based distributions such as Fedora, download the `.rpm` from the release
 page and install it with dnf:
 
 ```sh
-wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.33/excalibur-control-center-0.1.33-1.x86_64.rpm
-sudo dnf install ./excalibur-control-center-0.1.33-1.x86_64.rpm
+wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.35/excalibur-control-center-0.1.35-1.x86_64.rpm
+sudo dnf install ./excalibur-control-center-0.1.35-1.x86_64.rpm
 ```
 
 The `.rpm` installs the GUI, CLI, udev permission rules, and the sysfs
-permission helper. It does not install the `casper-wmi` driver yet.
+permission helper. It does not install `casper-wmi`; use the full installer
+script if you want the driver installed on Fedora.
 
-After installation, add your user to the `excalibur` group and log out and back
-in:
+After installing either package, add your user to the `excalibur` group and log
+out and back in:
 
 ```sh
 sudo usermod -aG excalibur "$USER"

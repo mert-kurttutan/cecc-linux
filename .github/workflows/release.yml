@@ -65,18 +65,6 @@ jobs:
               print(f"release_tag={release_tag}", file=output)
           PY
 
-      - name: Check existing release
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists. Refusing to overwrite assets."
-            echo "Bump the Cargo package version before creating a new release."
-            exit 1
-          fi
-          echo "Release $RELEASE_TAG will be created."
-
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -118,13 +106,34 @@ jobs:
       - name: Build Linux packages
         working-directory: .
         run: |
+          mkdir -p "$ASSET_DIR"
           python3 - <<'PY'
           import os
           import pathlib
+          import re
+          import shutil
 
           source = pathlib.Path("packaging/nfpm.yaml")
           target = pathlib.Path("packaging/nfpm.release.yaml")
-          target.write_text(source.read_text().replace("__VERSION__", os.environ["RELEASE_VERSION"]))
+          config = source.read_text()
+          config = config.replace("__VERSION__", os.environ["RELEASE_VERSION"])
+          target.write_text(config)
+
+          driver_source = pathlib.Path("casper-wmi")
+          driver_stage = pathlib.Path("packaging/build/casper-wmi")
+          shutil.rmtree(driver_stage, ignore_errors=True)
+          driver_stage.mkdir(parents=True)
+          dkms_conf = (driver_source / "dkms.conf").read_text()
+          dkms_conf, replacements = re.subn(
+              r'^PACKAGE_VERSION="[^"]+"$',
+              f'PACKAGE_VERSION="{os.environ["RELEASE_VERSION"]}"',
+              dkms_conf,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if replacements != 1:
+              raise SystemExit("Expected exactly one PACKAGE_VERSION in casper-wmi/dkms.conf")
+          (driver_stage / "dkms.conf").write_text(dkms_conf)
           PY
           nfpm package \
             --config packaging/nfpm.release.yaml \
@@ -192,16 +201,19 @@ jobs:
 
       - name: Smoke test Debian package
         run: |
-          package="excalibur-control-center_${RELEASE_VERSION}_amd64.deb"
-          url="https://github.com/mert-kurttutan/cecc-linux/releases/download/${RELEASE_TAG}/${package}"
+          app_package="excalibur-control-center_${RELEASE_VERSION}_amd64.deb"
+          url="https://github.com/mert-kurttutan/cecc-linux/releases/download/${RELEASE_TAG}/${app_package}"
 
-          curl -fL "$url" -o "$package"
+          curl -fL "$url" -o "$app_package"
           sudo apt-get update
-          sudo apt-get install -y "./$package"
+          sudo apt-get install -y "./$app_package"
 
           test -x /usr/bin/excalibur-control-center-gui
           test -x /usr/bin/excalibur-control-center-cli
           /usr/bin/excalibur-control-center-cli --help >/dev/null
+          test -f "/usr/src/casper-wmi-${RELEASE_VERSION}/dkms.conf"
+          sudo dkms status -m casper-wmi -v "$RELEASE_VERSION" \
+            | grep -F "casper-wmi/$RELEASE_VERSION"
 
       - name: Remove Debian package
         if: always()
@@ -209,6 +221,11 @@ jobs:
           sudo apt-get remove -y excalibur-control-center || true
           test ! -e /usr/bin/excalibur-control-center-gui
           test ! -e /usr/bin/excalibur-control-center-cli
+          if sudo dkms status -m casper-wmi -v "$RELEASE_VERSION" 2>/dev/null \
+            | grep -q "casper-wmi/$RELEASE_VERSION"; then
+            echo "casper-wmi remained registered after package removal" >&2
+            exit 1
+          fi
 
   post-release-fedora-smoke:
     name: Post-release Fedora smoke

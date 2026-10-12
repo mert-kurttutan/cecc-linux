@@ -5,7 +5,6 @@ GUI_BIN_NAME="excalibur-control-center-gui"
 CLI_BIN_NAME="excalibur-control-center-cli"
 BIN_DIR="/usr/local/bin"
 DRIVER_NAME="casper-wmi"
-DRIVER_VERSION="0.1"
 RULE_NAME="90-excalibur-control-center.rules"
 HELPER_NAME="apply-sysfs-permissions"
 HELPER_DIR="/usr/local/libexec/excalibur-control-center"
@@ -69,17 +68,31 @@ remove_file_if_present() {
 }
 
 uninstall_casper_dkms_driver() {
-  local src_dir="/usr/src/$DRIVER_NAME-$DRIVER_VERSION"
+  local dkms_conf src_dir driver_version
+  local -a driver_versions
+  local found_source=0
 
   echo "Unloading $DRIVER_NAME module if loaded..."
   modprobe -r "$DRIVER_NAME" >/dev/null 2>&1 || true
 
-  echo "Removing $DRIVER_NAME DKMS module version $DRIVER_VERSION..."
-  dkms remove "$DRIVER_NAME/$DRIVER_VERSION" --all >/dev/null 2>&1 || true
-
-  if [ -e "$src_dir" ]; then
+  for dkms_conf in /usr/src/"$DRIVER_NAME"-*/dkms.conf; do
+    [ -f "$dkms_conf" ] || continue
+    found_source=1
+    mapfile -t driver_versions < <(sed -n 's/^PACKAGE_VERSION="\([^"]\+\)"$/\1/p' "$dkms_conf")
+    if [ "${#driver_versions[@]}" -ne 1 ]; then
+      echo "Expected one PACKAGE_VERSION in $dkms_conf" >&2
+      return 1
+    fi
+    driver_version="${driver_versions[0]}"
+    src_dir="$(dirname -- "$dkms_conf")"
+    echo "Removing $DRIVER_NAME DKMS module version $driver_version..."
+    dkms remove "$DRIVER_NAME/$driver_version" --all >/dev/null 2>&1 || true
     echo "Removing DKMS source tree: $src_dir"
     rm -rf "$src_dir"
+  done
+
+  if [ "$found_source" -eq 0 ]; then
+    echo "No $DRIVER_NAME DKMS source installation found."
   fi
 
   echo "Driver uninstall step complete."
