@@ -254,6 +254,9 @@ jobs:
           test -x /usr/bin/excalibur-control-center-gui
           test -x /usr/bin/excalibur-control-center-cli
           /usr/bin/excalibur-control-center-cli --help >/dev/null
+          test -f "/usr/src/casper-wmi-${RELEASE_VERSION}/dkms.conf"
+          dkms status -m casper-wmi -v "$RELEASE_VERSION" \
+            | grep -F "casper-wmi/$RELEASE_VERSION"
 
       - name: Remove RPM package
         if: always()
@@ -261,3 +264,8 @@ jobs:
           dnf remove -y excalibur-control-center || true
           test ! -e /usr/bin/excalibur-control-center-gui
           test ! -e /usr/bin/excalibur-control-center-cli
+          if dkms status -m casper-wmi -v "$RELEASE_VERSION" 2>/dev/null \
+            | grep -q "casper-wmi/$RELEASE_VERSION"; then
+            echo "casper-wmi remained registered after RPM removal" >&2
+            exit 1
+          fi

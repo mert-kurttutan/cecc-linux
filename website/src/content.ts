@@ -192,9 +192,9 @@ const installCommands = {
   fullStack:
     'curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | sudo bash',
   debian:
-    'wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.36/excalibur-control-center_0.1.36_amd64.deb\nsudo apt install ./excalibur-control-center_0.1.36_amd64.deb',
+    'wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.37/excalibur-control-center_0.1.37_amd64.deb\nsudo apt install ./excalibur-control-center_0.1.37_amd64.deb',
   fedora:
-    'wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.36/excalibur-control-center-0.1.36-1.x86_64.rpm\nsudo dnf install ./excalibur-control-center-0.1.36-1.x86_64.rpm',
+    'wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.37/excalibur-control-center-0.1.37-1.x86_64.rpm\nsudo dnf install ./excalibur-control-center-0.1.37-1.x86_64.rpm',
 }
 
 const workflowCommands = {
@@ -271,7 +271,7 @@ export const siteContent: Record<Locale, SiteContent> = {
     install: {
       title: 'Install',
       intro:
-        'The Debian package includes the casper-wmi DKMS driver. The Fedora RPM installs the app and permissions only; use the full-stack installer to install the driver there.',
+        'The Debian and Fedora packages include the casper-wmi DKMS driver. Install matching kernel headers to build the driver for your running kernel.',
       options: [
         {
           title: 'Full stack',
@@ -285,7 +285,7 @@ export const siteContent: Record<Locale, SiteContent> = {
         },
         {
           title: 'Fedora / RPM',
-          body: 'GUI, CLI, udev rules, and permission helper. Use the full-stack installer for casper-wmi.',
+          body: 'GUI, CLI, udev rules, permission helper, and casper-wmi DKMS driver.',
           command: installCommands.fedora,
         },
       ],
@@ -477,7 +477,7 @@ export const siteContent: Record<Locale, SiteContent> = {
     install: {
       title: 'Kurulum',
       intro:
-        'Debian paketi casper-wmi DKMS sürücüsünü içerir. Fedora RPM yalnızca uygulama ve izinleri kurar; sürücüyü de kurmak için tam yığın kurulum betiğini kullanın.',
+        'Debian ve Fedora paketleri casper-wmi DKMS sürücüsünü içerir. Sürücüyü çalışan çekirdeğiniz için derlemek üzere eşleşen çekirdek başlıklarını kurun.',
       options: [
         {
           title: 'Tam yığın',
@@ -491,7 +491,7 @@ export const siteContent: Record<Locale, SiteContent> = {
         },
         {
           title: 'Fedora / RPM',
-          body: 'GUI, CLI, udev kuralları ve izin yardımcısı. casper-wmi için tam yığın kurulum betiğini kullanın.',
+          body: 'GUI, CLI, udev kuralları, izin yardımcısı ve casper-wmi DKMS sürücüsü.',
           command: installCommands.fedora,
         },
       ],

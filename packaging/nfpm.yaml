@@ -27,22 +27,18 @@ contents:
       mode: 0644
   - src: casper-wmi/casper-wmi.c
     dst: /usr/src/casper-wmi-__VERSION__/casper-wmi.c
-    packager: deb
     file_info:
       mode: 0644
   - src: casper-wmi/casper-gpu-mode.c
     dst: /usr/src/casper-wmi-__VERSION__/casper-gpu-mode.c
-    packager: deb
     file_info:
       mode: 0644
   - src: casper-wmi/Makefile
     dst: /usr/src/casper-wmi-__VERSION__/Makefile
-    packager: deb
     file_info:
       mode: 0644
   - src: packaging/build/casper-wmi/dkms.conf
     dst: /usr/src/casper-wmi-__VERSION__/dkms.conf
-    packager: deb
     file_info:
       mode: 0644
   - src: packaging/excalibur-control-center.desktop
@@ -54,8 +50,8 @@ contents:
     file_info:
       mode: 0644
 scripts:
-  postinstall: packaging/rpm/postinstall.sh
-  postremove: packaging/deb/postremove.sh
+  postinstall: packaging/postinstall.sh
+  postremove: packaging/postremove.sh
 overrides:
   deb:
     depends:
@@ -69,9 +65,9 @@ overrides:
       - dkms
       - build-essential
     scripts:
-      postinstall: packaging/deb/postinstall.sh
+      postinstall: packaging/postinstall.sh
       preremove: packaging/deb/preremove.sh
-      postremove: packaging/deb/postremove.sh
+      postremove: packaging/postremove.sh
   rpm:
     depends:
       - bash
@@ -81,6 +77,11 @@ overrides:
       - libwayland-client
       - libxkbcommon
       - systemd-udev
+      - dkms
+      - gcc
+      - make
+    scripts:
+      preremove: packaging/rpm/preremove.sh
 rpm:
   group: Applications/System
   summary: Linux control center for Casper Excalibur laptops
