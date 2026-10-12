@@ -1,0 +1,55 @@
+name: Request support for another model
+description: Request Casper WMI support for a Casper Excalibur model.
+title: "[Model support]: "
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        To help us identify your laptop and investigate driver support, follow
+        the [English support information guide](https://github.com/mert-kurttutan/cecc-linux/blob/main/docs/SUPPORT_INFO.md)
+        or [Turkish guide](https://github.com/mert-kurttutan/cecc-linux/blob/main/docs/SUPPORT_INFO.tr.md).
+        Run `excalibur-control-center-cli doctor` and include its complete output below.
+
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model
+      description: Model printed on the laptop label or shown in its product listing.
+      placeholder: Excalibur G...
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Linux distribution and version
+      placeholder: Fedora 43, NixOS 26.05, Ubuntu 26.04...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-controls
+    attributes:
+      label: Controls you expect to work
+      description: For example keyboard lighting, fan readings, GPU mode, or platform profiles.
+      placeholder: Which controls are unavailable or behave differently?
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor-report
+    attributes:
+      label: Doctor report
+      description: Run excalibur-control-center-cli doctor and paste the complete output. Review it before posting.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: kernel-messages
+    attributes:
+      label: Filtered kernel messages (optional)
+      description: If the driver is missing or failed to load, run sudo excalibur-control-center-cli doctor --include-dmesg and paste the output. Remove details you do not want to share.
+      render: text
+    validations:
+      required: false
