@@ -192,9 +192,9 @@ const installCommands = {
   fullStack:
     'curl -fsSL https://raw.githubusercontent.com/mert-kurttutan/cecc-linux/main/scripts/driver-bash/install-release.sh | sudo bash',
   debian:
-    'wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.35/excalibur-control-center_0.1.35_amd64.deb\nsudo apt install ./excalibur-control-center_0.1.35_amd64.deb',
+    'wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.36/excalibur-control-center_0.1.36_amd64.deb\nsudo apt install ./excalibur-control-center_0.1.36_amd64.deb',
   fedora:
-    'wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.35/excalibur-control-center-0.1.35-1.x86_64.rpm\nsudo dnf install ./excalibur-control-center-0.1.35-1.x86_64.rpm',
+    'wget https://github.com/mert-kurttutan/cecc-linux/releases/download/v0.1.36/excalibur-control-center-0.1.36-1.x86_64.rpm\nsudo dnf install ./excalibur-control-center-0.1.36-1.x86_64.rpm',
 }
 
 const workflowCommands = {
