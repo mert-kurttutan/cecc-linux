@@ -79,10 +79,9 @@ enum SystemSubcommand {
     Get,
     /// List available app modes and Linux platform profiles.
     List,
-    /// Write a new system mode.
+    /// Set an app mode or any platform profile supported by the kernel.
     Set {
-        #[arg(value_enum)]
-        mode: SystemModeArg,
+        mode_or_profile: String,
     },
 }
 
@@ -160,23 +159,6 @@ impl From<GpuModeArg> for GpuMode {
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
-enum SystemModeArg {
-    Office,
-    Gaming,
-    HighPerformance,
-}
-
-impl From<SystemModeArg> for SystemMode {
-    fn from(value: SystemModeArg) -> Self {
-        match value {
-            SystemModeArg::Office => Self::Office,
-            SystemModeArg::Gaming => Self::Gaming,
-            SystemModeArg::HighPerformance => Self::HighPerformance,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, ValueEnum)]
 enum ZoneArg {
     Left,
     Middle,
@@ -233,13 +215,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let choices = backend.read_platform_profile_choices()?;
                 println!("platform_profile_choices={}", choices.join(","));
             }
-            SystemSubcommand::Set { mode } => {
-                let mode: SystemMode = mode.into();
-                let readback = backend.write_system_mode(mode)?;
+            SystemSubcommand::Set { mode_or_profile } => {
+                let normalized = mode_or_profile.trim().to_ascii_lowercase().replace('_', "-");
+                let requested_mode = match normalized.as_str() {
+                    "office" => Some(SystemMode::Office),
+                    "gaming" => Some(SystemMode::Gaming),
+                    "high-performance" => Some(SystemMode::HighPerformance),
+                    _ => None,
+                };
+                let profile = match requested_mode {
+                    Some(mode) => mode.platform_profile().to_string(),
+                    None => mode_or_profile.clone(),
+                };
+                let readback = backend.write_platform_profile(&profile)?;
                 println!(
-                    "requested_mode={} requested_platform_profile={} readback_platform_profile={} readback_mode={}",
-                    mode,
-                    mode.platform_profile(),
+                    "requested={} requested_platform_profile={} readback_platform_profile={} readback_mode={}",
+                    mode_or_profile,
+                    profile,
                     readback,
                     SystemMode::from_platform_profile(&readback)
                         .map(|mode| mode.to_string())

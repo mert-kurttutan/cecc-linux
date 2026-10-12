@@ -119,6 +119,9 @@ Run common CLI commands:
 cargo run -p excalibur-control-center-cli -- status
 cargo run -p excalibur-control-center-cli -- cpu frequency
 cargo run -p excalibur-control-center-cli -- gpu get
+cargo run -p excalibur-control-center-cli -- system list
+cargo run -p excalibur-control-center-cli -- system set gaming
+cargo run -p excalibur-control-center-cli -- system set performance
 cargo run -p excalibur-control-center-cli -- keyboard list
 cargo run -p excalibur-control-center-cli -- keyboard get all
 ```
