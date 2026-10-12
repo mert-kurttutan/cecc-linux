@@ -14,6 +14,8 @@ const KEYBOARD_ZONES: [KeyboardZone; 3] = [
 ];
 const BRIGHTNESS_LEVELS: [u8; 3] = [0, 1, 2];
 const SETTLE_DELAY: Duration = Duration::from_millis(300);
+const BIASLIGHT_SETTLE_DELAY: Duration = Duration::from_millis(500);
+const BIASLIGHT_ZONE: KeyboardZone = KeyboardZone::Bias;
 static HARDWARE_LOCK: Mutex<()> = Mutex::new(());
 
 struct BrightnessRestore<'a> {
@@ -24,6 +26,43 @@ struct BrightnessRestore<'a> {
 struct LedStateRestore<'a> {
     backend: &'a SysfsBackend,
     initial_zones: Vec<KeyboardZoneState>,
+}
+
+struct KeyboardAndBiaslightBrightnessRestore<'a> {
+    backend: &'a SysfsBackend,
+    keyboard_brightness: u8,
+    biaslight_brightness: u8,
+}
+
+impl Drop for KeyboardAndBiaslightBrightnessRestore<'_> {
+    fn drop(&mut self) {
+        // Restore biaslight first because its WMI target also changes the
+        // keyboard brightness; restore the keyboard last.
+        if let Err(error) = self
+            .backend
+            .write_keyboard_brightness(BIASLIGHT_ZONE, self.biaslight_brightness)
+        {
+            eprintln!("Failed to restore biaslight brightness: {error}");
+        }
+
+        thread::sleep(BIASLIGHT_SETTLE_DELAY);
+        let transition_brightness = if self.keyboard_brightness == 0 { 1 } else { 0 };
+        if let Err(error) = self
+            .backend
+            .write_keyboard_brightness(KeyboardZone::Left, transition_brightness)
+        {
+            eprintln!("Failed to reset keyboard brightness before restoration: {error}");
+        }
+
+        thread::sleep(BIASLIGHT_SETTLE_DELAY);
+        if let Err(error) = self
+            .backend
+            .write_keyboard_brightness(KeyboardZone::Left, self.keyboard_brightness)
+        {
+            eprintln!("Failed to restore keyboard brightness: {error}");
+        }
+        thread::sleep(BIASLIGHT_SETTLE_DELAY);
+    }
 }
 
 impl Drop for LedStateRestore<'_> {
@@ -139,6 +178,69 @@ fn changing_one_keyboard_effect_preserves_brightness() -> Result<(), Box<dyn Err
         brightness_after_delay, brightness_before,
         "changing one LED effect changed keyboard brightness after delay"
     );
+
+    Ok(())
+}
+
+#[test]
+fn biaslight_brightness_also_changes_keyboard_brightness() -> Result<(), Box<dyn Error>> {
+    let _lock = HARDWARE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let backend = SysfsBackend::default();
+    let initial_keyboard_brightness = backend.read_keyboard_zone(KeyboardZone::Left)?.brightness;
+    let initial_biaslight_brightness = backend.read_keyboard_zone(BIASLIGHT_ZONE)?.brightness;
+    let _restore = KeyboardAndBiaslightBrightnessRestore {
+        backend: &backend,
+        keyboard_brightness: initial_keyboard_brightness,
+        biaslight_brightness: initial_biaslight_brightness,
+    };
+
+    println!("Set keyboard brightness to 2; biaslight should stay unchanged.");
+    // Force a real keyboard brightness transition; the LED core may skip a
+    // write when the requested value matches its cached brightness.
+    backend.write_keyboard_brightness(KeyboardZone::Left, 0)?;
+    thread::sleep(BIASLIGHT_SETTLE_DELAY);
+    backend.write_keyboard_brightness(KeyboardZone::Left, 2)?;
+    thread::sleep(BIASLIGHT_SETTLE_DELAY);
+    verify_shared_brightness(&backend, 2)?;
+    assert_eq!(
+        backend.read_keyboard_zone(BIASLIGHT_ZONE)?.brightness,
+        initial_biaslight_brightness,
+        "keyboard brightness write changed biaslight brightness"
+    );
+
+    println!("Biaslight brightness 2 should also set keyboard brightness to 2.");
+    backend.write_keyboard_brightness(BIASLIGHT_ZONE, 2)?;
+    thread::sleep(BIASLIGHT_SETTLE_DELAY);
+    assert_eq!(
+        backend.read_keyboard_zone(BIASLIGHT_ZONE)?.brightness,
+        2,
+        "biaslight did not accept brightness 2"
+    );
+    verify_shared_brightness(&backend, 2)?;
+
+    println!("Biaslight target 0 should also set keyboard brightness to 0.");
+    backend.write_keyboard_brightness(BIASLIGHT_ZONE, 0)?;
+    thread::sleep(BIASLIGHT_SETTLE_DELAY);
+    assert_eq!(
+        backend.read_keyboard_zone(BIASLIGHT_ZONE)?.brightness,
+        0,
+        "biaslight did not accept brightness 0"
+    );
+    verify_shared_brightness(&backend, 0)?;
+
+    println!("Set keyboard brightness to 2; biaslight should remain 0.");
+    backend.write_keyboard_brightness(KeyboardZone::Left, 0)?;
+    thread::sleep(BIASLIGHT_SETTLE_DELAY);
+    backend.write_keyboard_brightness(KeyboardZone::Left, 2)?;
+    thread::sleep(BIASLIGHT_SETTLE_DELAY);
+    assert_eq!(
+        backend.read_keyboard_zone(BIASLIGHT_ZONE)?.brightness,
+        0,
+        "keyboard brightness write changed biaslight brightness"
+    );
+    verify_shared_brightness(&backend, 2)?;
 
     Ok(())
 }

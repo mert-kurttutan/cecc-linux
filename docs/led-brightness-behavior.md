@@ -20,18 +20,20 @@ lighting hardware and the Windows control app.
 - The bias/trunk light is exposed separately from the three keyboard zones.
 - Windows can change the bias/trunk brightness independently from the keyboard
   brightness.
-- Current Linux WMI testing shows that target `0x07` changes physical
-  brightness, but behaves like a shared/global brightness target.
+- On this laptop, Linux WMI target `0x07` is accepted as a shared brightness
+  target: writing biaslight brightness also changes keyboard brightness to the
+  same level. Keyboard writes through target `0x06` leave biaslight brightness
+  unchanged. This asymmetric behavior is accepted for the Linux driver.
 - Tested targets `0x08` and `0x0c` did not physically control the bias/trunk
   light, even if sysfs state could be represented independently.
 
 ## Driver Implication
 
-The known-good model is:
+The accepted model is:
 
 - one shared brightness value for all keyboard zones;
-- a separate bias/trunk brightness value once the correct WMI command/target is
-  identified;
+- bias/trunk writes use target `0x07` and can also change shared keyboard
+  brightness;
 - separate RGB colors for each keyboard zone and the bias/trunk light.
 
 ## GUI Sync Behavior
