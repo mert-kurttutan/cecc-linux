@@ -1,21 +1,9 @@
 #!/usr/bin/env nu
 
-const profile_path = "/sys/firmware/acpi/platform_profile"
-const choices_path = "/sys/firmware/acpi/platform_profile_choices"
-
-const modes = [
-  [mode, windows_id, platform_profile];
-  [office, 2, low-power],
-  [gaming, 1, balanced],
-  [high-performance, 0, performance],
-]
+use ./tests/utils.nu *
 
 def read-file [path: string] {
-  if ($path | path exists) {
-    open --raw $path | str trim
-  } else {
-    null
-  }
+  read-optional-file $path
 }
 
 def read-int-file [path: string] {
@@ -28,28 +16,15 @@ def read-int-file [path: string] {
 }
 
 def read-profile [] {
-  read-file $profile_path
+  read-platform-profile
 }
 
 def read-choices [] {
-  let value = read-file $choices_path
-  if ($value == null) {
-    []
-  } else {
-    $value | split row " " | where {|choice| $choice != "" }
-  }
+  read-platform-profile-choices
 }
 
 def write-profile [profile: string] {
-  let choices = read-choices
-  if ($choices | any {|choice| $choice == $profile }) == false {
-    error make {
-      msg: $"Unsupported platform profile: ($profile)"
-      help: $"Available choices: ($choices | str join ', ')"
-    }
-  }
-
-  $profile | ^sudo tee $profile_path | ignore
+  write-platform-profile $profile --sudo
 }
 
 def read-power-supplies [] {
@@ -223,7 +198,7 @@ def main [
   sample "initial"
 
   try {
-    for row in $modes {
+    for row in $SYSTEM_MODES {
       print ""
       print $"## mode=($row.mode) windows_id=($row.windows_id) platform_profile=($row.platform_profile)"
       write-profile $row.platform_profile

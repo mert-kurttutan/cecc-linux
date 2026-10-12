@@ -1,39 +1,8 @@
 #!/usr/bin/env nu
 
-const LED_ROOT = "/sys/class/leds"
+use ./utils.nu *
+
 const DEFAULT_LED = "casper:rgb:kbd_zoned_backlight-left"
-const MODES = [
-  [value, name, expected];
-  [1, "static", "steady color"]
-  [2, "blink", "unknown firmware blink-like mode"]
-  [3, "breathing", "fade/breathing animation"]
-  [4, "heartbeat", "unknown firmware heartbeat-like mode"]
-  [5, "repeat", "unknown firmware repeat-like mode"]
-  [6, "cycle", "color cycle or random animation"]
-  [7, "ambilight", "ambilight-like mode if supported"]
-]
-
-const MODE_HELP = "static/1, blink/2, breathing/3, heartbeat/4, repeat/5, cycle/6, ambilight/7"
-
-def led-file [device: string file: string] {
-  $LED_ROOT | path join $device $file
-}
-
-def ensure-path [path: string] {
-  if not ($path | path exists) {
-    error make { msg: $"Required sysfs path not found: ($path)" }
-  }
-
-  $path
-}
-
-def read-file-trimmed [path: string] {
-  open (ensure-path $path) | str trim
-}
-
-def write-file [path: string value: any] {
-  ($value | into string) | ^sudo tee (ensure-path $path) | ignore
-}
 
 def read-led-state [device: string] {
   {
@@ -45,8 +14,8 @@ def read-led-state [device: string] {
 }
 
 def write-led-state [device: string brightness: int color: string] {
-  write-file (led-file $device "multi_intensity") $color
-  write-file (led-file $device "brightness") $brightness
+  write-file (led-file $device "multi_intensity") $color --sudo
+  write-file (led-file $device "brightness") $brightness --sudo
 }
 
 def main [
@@ -70,15 +39,15 @@ def main [
 
   try {
     let modes = if ($mode | is-empty) {
-      $MODES
+      $LED_EFFECT_MODES
     } else {
       let selected = (
-        $MODES
+        $LED_EFFECT_MODES
         | where (($it.value | into string) == $mode) or ($it.name == $mode)
       )
 
       if ($selected | is-empty) {
-        error make { msg: $"Unsupported mode ($mode). Supported modes: ($MODE_HELP)" }
+        error make { msg: $"Unsupported mode ($mode). Supported modes: ($LED_EFFECT_MODE_HELP)" }
       }
 
       $selected
@@ -86,7 +55,7 @@ def main [
 
     for mode in $modes {
       print $"mode=($mode.value) (($mode.name)): expected ($mode.expected)"
-      write-file (led-file $led "effect") $mode.value
+      write-file (led-file $led "effect") $mode.value --sudo
       write-led-state $led $brightness $color
       read-led-state $led | table | print
 
@@ -99,7 +68,7 @@ def main [
 
     if not $no_restore {
       print "Restoring initial effect, brightness, and color."
-      write-file (led-file $led "effect") $initial.effect
+      write-file (led-file $led "effect") $initial.effect --sudo
       write-led-state $led $initial.brightness $initial.color
     }
 
@@ -109,7 +78,7 @@ def main [
     read-led-state $led | table | print
 
     if not $no_restore {
-      write-file (led-file $led "effect") $initial.effect
+      write-file (led-file $led "effect") $initial.effect --sudo
       write-led-state $led $initial.brightness $initial.color
     }
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env nu
 
 use std/assert
+use ./utils.nu *
 
 const GPU_MODE_PATH = "/sys/module/casper_wmi/parameters/gpu_mode"
 const MODE_CASES = [
@@ -23,12 +24,12 @@ def ensure-gpu-mode-path [] {
 
 def read-gpu-mode [] {
   ensure-gpu-mode-path
-  open $GPU_MODE_PATH | str trim
+  read-file-trimmed $GPU_MODE_PATH
 }
 
 def write-gpu-mode [mode: string] {
   ensure-gpu-mode-path
-  $mode | save --force $GPU_MODE_PATH
+  write-file $GPU_MODE_PATH $mode
 }
 
 def assert-gpu-mode [expected: string] {

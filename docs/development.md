@@ -1,5 +1,18 @@
 # Development Environment
 
+## Running backend hardware tests
+
+The backend integration tests exercise the laptop's real hardware through
+sysfs. They can change device state while running and require the supported
+Excalibur laptop with its controls available. Run them on that machine with:
+
+```sh
+cargo test -p excalibur-control-center-backend
+```
+
+Do not run the backend integration tests on a machine without the supported
+hardware. The tests restore the state they change when they finish.
+
 ## Entering the development shell on NixOS
 
 The project flake reads the NixOS configuration at `/etc/nixos` to select the

@@ -1,44 +1,23 @@
 #!/usr/bin/env nu
 
-const LED_ROOT = "/sys/class/leds"
+use ./utils.nu *
+
 const KEYBOARD_LEDS = [
   { zone: "left", device: "casper:rgb:kbd_zoned_backlight-left", color: "255 0 0" }
   { zone: "middle", device: "casper:rgb:kbd_zoned_backlight-middle", color: "0 255 0" }
   { zone: "right", device: "casper:rgb:kbd_zoned_backlight-right", color: "0 0 255" }
 ]
 
-def led-file [device: string file: string] {
-  $LED_ROOT | path join $device $file
-}
-
 def read-color [device: string] {
-  let path = (led-file $device "multi_intensity")
-
-  if not ($path | path exists) {
-    error make { msg: $"LED color path not found: ($path)" }
-  }
-
-  open $path | str trim | str replace --all "\n" " "
+  read-file-trimmed (led-file $device "multi_intensity") | str replace --all "\n" " "
 }
 
 def read-brightness [device: string] {
-  let path = (led-file $device "brightness")
-
-  if not ($path | path exists) {
-    error make { msg: $"LED brightness path not found: ($path)" }
-  }
-
-  open $path | str trim | into int
+  read-file-trimmed (led-file $device "brightness") | into int
 }
 
 def write-brightness [device: string brightness: int] {
-  let path = (led-file $device "brightness")
-
-  if not ($path | path exists) {
-    error make { msg: $"LED brightness path not found: ($path)" }
-  }
-
-  $brightness | save --force $path
+  write-file (led-file $device "brightness") $brightness
 }
 
 def read-colors [] {
@@ -53,13 +32,7 @@ def read-colors [] {
 }
 
 def write-color [device: string color: string] {
-  let path = (led-file $device "multi_intensity")
-
-  if not ($path | path exists) {
-    error make { msg: $"LED color path not found: ($path)" }
-  }
-
-  $color | save --force $path
+  write-file (led-file $device "multi_intensity") $color
 }
 
 def assert-zone-colors [target_device: string expected_color: string previous_colors: table] {

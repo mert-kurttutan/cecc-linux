@@ -1,8 +1,8 @@
 #!/usr/bin/env nu
 
 use std/assert
+use ./utils.nu *
 
-const LED_ROOT = "/sys/class/leds"
 const KEYBOARD_LEDS = [
   { zone: "left", device: "casper:rgb:kbd_zoned_backlight-left" }
   { zone: "middle", device: "casper:rgb:kbd_zoned_backlight-middle" }
@@ -15,31 +15,20 @@ const TEST_COLORS = [
   { zone: "right", color: "0 0 255" }
 ]
 
-def led-file [device: string file: string] {
-  $LED_ROOT | path join $device $file
-}
-
 def ensure-led-file [device: string file: string] {
-  let path = (led-file $device $file)
-
-  if not ($path | path exists) {
-    error make { msg: $"LED sysfs file not found: ($path)" }
-  }
-
-  $path
+  ensure-path (led-file $device $file)
 }
 
 def read-brightness [device: string] {
-  open (ensure-led-file $device "brightness") | str trim | into int
+  read-file-trimmed (ensure-led-file $device "brightness") | into int
 }
 
 def write-brightness [device: string brightness: int] {
-  $brightness | save --force (ensure-led-file $device "brightness")
+  write-file (ensure-led-file $device "brightness") $brightness
 }
 
 def read-color [device: string] {
-  open (ensure-led-file $device "multi_intensity")
-  | str trim
+  read-file-trimmed (ensure-led-file $device "multi_intensity")
   | split row --regex '\s+'
   | str join " "
 }
@@ -47,8 +36,8 @@ def read-color [device: string] {
 def write-color [device: string color: string] {
   let brightness = (read-brightness $device)
 
-  $color | save --force (ensure-led-file $device "multi_intensity")
-  $brightness | save --force (ensure-led-file $device "brightness")
+  write-file (ensure-led-file $device "multi_intensity") $color
+  write-file (ensure-led-file $device "brightness") $brightness
 }
 
 def keyboard-state [] {
