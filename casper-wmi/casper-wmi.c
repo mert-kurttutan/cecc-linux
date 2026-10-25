@@ -18,6 +18,7 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/types.h>
+#include <linux/version.h>
 #include <linux/wmi.h>
 
 #include <asm/cpu_device_id.h>
@@ -730,7 +731,10 @@ static int casper_multicolor_register(struct casper_drv *drv)
 			drv->leds[i].subleds[j] = (struct mc_subled) {
 				.color_index = LED_COLOR_ID_RED + j,
 				.brightness = 255,
-				.intensity = 255
+				.intensity = 255,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0)
+				.max_intensity = 255,
+#endif
 			};
 		}
 		drv->leds[i].mc_led = (struct led_classdev_mc){
