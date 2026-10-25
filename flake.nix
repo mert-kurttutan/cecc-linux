@@ -2,8 +2,11 @@
   description = "Dev shell for Casper WMI kernel driver work";
 
   inputs = {
-    nixpkgs.url = "https://channels.nixos.org/nixos-unstable/nixexprs.tar.zst";
-    host-nixos.url = "path:/etc/nixos";
+    nixpkgs.url = "https://channels.nixos.org/nixos-26.05/nixexprs.tar.zst";
+    host-nixos = {
+      url = "path:/etc/nixos";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, host-nixos }:
@@ -42,10 +45,7 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              nushell
               gnumake
-              gcc
-              binutils
               elfutils
               kmod
               nfpm
@@ -59,10 +59,15 @@
             FONTCONFIG_FILE = fontsConf;
 
             shellHook = ''
+              if [ -d "$HOME/.cargo/bin" ]; then
+                export PATH="$HOME/.cargo/bin:$PATH"
+              fi
+
               export DRIVER_DIR="$PWD/casper-wmi"
               export KDIR="${kdir}"
               export MODULE_NAME="casper_wmi"
 
+              echo "Rust compiler: $(rustc --version)"
               echo "driver dir: $DRIVER_DIR"
               echo "kernel build dir: $KDIR"
               echo "reload loop: nu ./scripts/reload.nu"
