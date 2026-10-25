@@ -34,7 +34,6 @@
 #define CASPER_KEYBOARD_LED_1 0x03
 #define CASPER_KEYBOARD_LED_2 0x04
 #define CASPER_KEYBOARD_LED_3 0x05
-#define CASPER_ALL_KEYBOARD_LEDS 0x06
 #define CASPER_CORNER_LEDS 0x07
 
 #define CASPER_LED_COUNT 4
@@ -394,11 +393,8 @@ static enum led_brightness get_casper_brightness(struct led_classdev *led_cdev)
 static void set_casper_brightness(struct led_classdev *led_cdev,
 				  enum led_brightness brightness)
 {
-	u32 led_data, led_data_no_alpha;
 	struct casper_drv *drv;
-	u8 zone_to_change = CASPER_ALL_KEYBOARD_LEDS;
-	size_t zone = CASPER_LED_COUNT;
-	bool brightness_changed;
+	size_t zone;
 
 	drv = dev_get_drvdata(led_cdev->dev->parent);
 
@@ -406,27 +402,21 @@ static void set_casper_brightness(struct led_classdev *led_cdev,
 	if (zone == CASPER_LED_COUNT)
 		return;
 
-	if (zone == 3)
-		zone_to_change = CASPER_CORNER_LEDS;
-	else {
-		brightness_changed = brightness != drv->keyboard_brightness;
-		if (!brightness_changed)
-			zone_to_change = zone + CASPER_KEYBOARD_LED_1;
-	}
-
-	led_data_no_alpha = get_zone_color(drv->leds[zone]) & ~CASPER_LED_ALPHA;
-
-	led_data = FIELD_PREP(CASPER_LED_ALPHA,
-			      brightness | casper_led_mode_for_zone(drv, zone)) |
-		   led_data_no_alpha;
-	casper_set(drv, CASPER_SET_LED, zone_to_change, led_data);
-
 	if (zone == 3) {
 		drv->leds[zone].mc_led.led_cdev.brightness = brightness;
-	} else if (brightness_changed) {
-		drv->keyboard_brightness = brightness;
-		for (size_t i = 0; i < 3; i++)
-			drv->leds[i].mc_led.led_cdev.brightness = brightness;
+		casper_write_led_zone(drv, zone);
+		return;
+	}
+
+	if (brightness == drv->keyboard_brightness) {
+		casper_write_led_zone(drv, zone);
+		return;
+	}
+
+	drv->keyboard_brightness = brightness;
+	for (size_t i = 0; i < 3; i++) {
+		drv->leds[i].mc_led.led_cdev.brightness = brightness;
+		casper_write_led_zone(drv, i);
 	}
 }
 
