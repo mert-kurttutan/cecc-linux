@@ -67,7 +67,7 @@ jobs:
 
       - name: Build static musl release binaries
         run: |
-          mkdir -p "$ASSET_DIR"
+          mkdir -p "../$ASSET_DIR"
           docker run --rm \
             --volume "$GITHUB_WORKSPACE:/workspace" \
             --workdir /workspace/excalibur-control-center \
@@ -80,18 +80,18 @@ jobs:
                 -p excalibur-control-center-gui \
                 -p excalibur-control-center-cli
               install -Dm755 target/x86_64-unknown-linux-musl/release/excalibur-control-center-gui \
-                /workspace/excalibur-control-center/release-assets/excalibur-control-center-gui
+                /workspace/release-assets/excalibur-control-center-gui
               install -Dm755 target/x86_64-unknown-linux-musl/release/excalibur-control-center-cli \
-                /workspace/excalibur-control-center/release-assets/excalibur-control-center-cli
-              file /workspace/excalibur-control-center/release-assets/*
-              for binary in /workspace/excalibur-control-center/release-assets/*; do
+                /workspace/release-assets/excalibur-control-center-cli
+              file /workspace/release-assets/*
+              for binary in /workspace/release-assets/*; do
                 if readelf -l "$binary" | grep -q INTERP; then
                   echo "Expected a static musl binary without an ELF interpreter: $binary" >&2
                   exit 1
                 fi
               done
-              stat -c "%n %s bytes" /workspace/excalibur-control-center/release-assets/*
-              sha256sum /workspace/excalibur-control-center/release-assets/*
+              stat -c "%n %s bytes" /workspace/release-assets/*
+              sha256sum /workspace/release-assets/*
             '
 
       - name: Install nFPM
