@@ -22,6 +22,11 @@ The driver maps the modes as:
 - After writing a mode, readback should return the normalized text value.
 - Invalid values should be rejected by the kernel parameter parser.
 
+Some firmware, including the reported G770 firmware, does not return a valid
+mode when queried. In that case, reads return the last successfully requested
+mode, initially `hybrid`. This is a cached request, not a confirmation of the
+firmware's active mode.
+
 ## Runtime Caveat
 
 Changing GPU/display mode may require reboot or matching OS graphics

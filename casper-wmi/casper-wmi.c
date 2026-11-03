@@ -71,6 +71,7 @@ struct casper_quirk_entry {
 	bool big_endian_fans;
 	bool no_power_profiles;
 	bool new_power_scheme;
+	bool gpu_mode_supported;
 };
 
 struct casper_fourzone_led {
@@ -93,6 +94,7 @@ struct casper_drv {
 	struct casper_fourzone_led *leds;
 	struct wmi_device *wdev;
 	struct casper_quirk_entry *quirk_applied;
+	bool gpu_mode_supported;
 	enum led_brightness keyboard_brightness;
 	enum casper_led_mode keyboard_led_mode;
 	enum casper_led_mode biaslight_led_mode;
@@ -621,6 +623,11 @@ static struct casper_quirk_entry quirk_has_power_profile = {
 	.no_power_profiles = false
 };
 
+static struct casper_quirk_entry quirk_has_gpu_mode = {
+	.no_power_profiles = false,
+	.gpu_mode_supported = true
+};
+
 static const struct dmi_system_id casper_quirks[] = {
 	{
 		.ident = "CASPER EXCALIBUR G650",
@@ -674,7 +681,7 @@ static const struct dmi_system_id casper_quirks[] = {
 				  "CASPER BILGISAYAR SISTEMLERI"),
 			DMI_MATCH(DMI_PRODUCT_NAME, "EXCALIBUR G870")
 		},
-		.driver_data = &quirk_has_power_profile
+		.driver_data = &quirk_has_gpu_mode
 	},
 	{
 		.ident = "CASPER EXCALIBUR G900",
@@ -692,7 +699,7 @@ static const struct dmi_system_id casper_quirks[] = {
 				  "CASPER BILGISAYAR SISTEMLERI"),
 			DMI_MATCH(DMI_PRODUCT_NAME, "EXCALIBUR G911")
 		},
-		.driver_data = &quirk_has_power_profile
+		.driver_data = &quirk_has_gpu_mode
 	},
 	{ }
 };
@@ -792,6 +799,7 @@ static int casper_wmi_probe(struct wmi_device *wdev, const void *context)
 
 	pp_quirk = (struct casper_quirk_entry *)dmi_id->driver_data;
 	drv->quirk_applied->no_power_profiles = pp_quirk->no_power_profiles;
+	drv->gpu_mode_supported = pp_quirk->gpu_mode_supported;
 
 	mutex_init(&drv->mutex);
 	ret = devm_mutex_init(&wdev->dev, &drv->mutex);

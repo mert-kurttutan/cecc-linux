@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <linux/compiler.h>
+
 #define CASPER_DISPLAY_MODE 0x0203
 
 enum casper_gpu_mode {
@@ -9,6 +11,7 @@ enum casper_gpu_mode {
 };
 
 static struct casper_drv *casper_gpu_mode_drv;
+static int casper_gpu_mode_requested;
 
 static const char *casper_gpu_mode_name(enum casper_gpu_mode mode)
 {
@@ -49,6 +52,8 @@ static int casper_gpu_mode_get(enum casper_gpu_mode *mode)
 
 	if (!casper_gpu_mode_drv)
 		return -ENODEV;
+	if (!casper_gpu_mode_drv->gpu_mode_supported)
+		return -EOPNOTSUPP;
 
 	ret = casper_query(casper_gpu_mode_drv, CASPER_DISPLAY_MODE, &out);
 	if (ret)
@@ -61,16 +66,24 @@ static int casper_gpu_mode_get(enum casper_gpu_mode *mode)
 		*mode = out.a2;
 		return 0;
 	default:
-		return -EINVAL;
+		return -ENODATA;
 	}
 }
 
 static int casper_gpu_mode_set(enum casper_gpu_mode mode)
 {
+	int ret;
+
 	if (!casper_gpu_mode_drv)
 		return -ENODEV;
+	if (!casper_gpu_mode_drv->gpu_mode_supported)
+		return -EOPNOTSUPP;
 
-	return casper_set(casper_gpu_mode_drv, CASPER_DISPLAY_MODE, mode, 0);
+	ret = casper_set(casper_gpu_mode_drv, CASPER_DISPLAY_MODE, mode, 0);
+	if (!ret)
+		WRITE_ONCE(casper_gpu_mode_requested, mode);
+
+	return ret;
 }
 
 static int casper_gpu_mode_param_get(char *buffer, const struct kernel_param *kp)
@@ -110,17 +123,57 @@ static const struct kernel_param_ops casper_gpu_mode_param_ops = {
 module_param_cb(gpu_mode, &casper_gpu_mode_param_ops, NULL, 0644);
 MODULE_PARM_DESC(gpu_mode, "Casper GPU mode control: hybrid, discrete, uma");
 
+static int casper_gpu_mode_supported_param_get(char *buffer,
+						      const struct kernel_param *kp)
+{
+	struct casper_drv *drv = READ_ONCE(casper_gpu_mode_drv);
+
+	return sysfs_emit(buffer, "%u\n", drv && drv->gpu_mode_supported);
+}
+
+static const struct kernel_param_ops casper_gpu_mode_supported_param_ops = {
+	.get = casper_gpu_mode_supported_param_get,
+};
+
+module_param_cb(gpu_mode_supported, &casper_gpu_mode_supported_param_ops,
+		NULL, 0444);
+MODULE_PARM_DESC(gpu_mode_supported,
+		 "Whether display-mode control is verified for this model");
+
+static int casper_gpu_mode_requested_param_get(char *buffer,
+						      const struct kernel_param *kp)
+{
+	int mode = READ_ONCE(casper_gpu_mode_requested);
+
+	if (!mode)
+		return sysfs_emit(buffer, "none\n");
+
+	return sysfs_emit(buffer, "%s\n", casper_gpu_mode_name(mode));
+}
+
+static const struct kernel_param_ops casper_gpu_mode_requested_param_ops = {
+	.get = casper_gpu_mode_requested_param_get,
+};
+
+module_param_cb(gpu_mode_requested, &casper_gpu_mode_requested_param_ops,
+		NULL, 0444);
+MODULE_PARM_DESC(gpu_mode_requested,
+		 "Last display mode request sent successfully; not hardware readback");
+
 static int casper_gpu_mode_backend_register(struct casper_drv *drv)
 {
 	if (casper_gpu_mode_drv && casper_gpu_mode_drv != drv)
 		return -EBUSY;
 
+	WRITE_ONCE(casper_gpu_mode_requested, 0);
 	casper_gpu_mode_drv = drv;
 	return 0;
 }
 
 static void casper_gpu_mode_backend_unregister(struct casper_drv *drv)
 {
-	if (casper_gpu_mode_drv == drv)
+	if (casper_gpu_mode_drv == drv) {
+		WRITE_ONCE(casper_gpu_mode_requested, 0);
 		casper_gpu_mode_drv = NULL;
+	}
 }
