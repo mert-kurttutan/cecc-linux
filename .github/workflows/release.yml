@@ -65,34 +65,67 @@ jobs:
               print(f"release_tag={release_tag}", file=output)
           PY
 
-      - name: Build static musl release binaries
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libfontconfig1-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            pkg-config
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: excalibur-control-center
+
+      - name: Install cargo-zigbuild
+        run: cargo install cargo-zigbuild --locked
+
+      - name: Build release binaries for glibc 2.28
         run: |
           mkdir -p "../$ASSET_DIR"
-          docker run --rm \
-            --volume "$GITHUB_WORKSPACE:/workspace" \
-            --workdir /workspace/excalibur-control-center \
-            rust:alpine3.22 \
-            sh -euxc '
-              apk add --no-cache build-base brotli-static bzip2-static expat-static file fontconfig-dev fontconfig-static freetype-static libpng-static libxkbcommon-dev pkgconf wayland-dev wayland-protocols zlib-static
-              export PKG_CONFIG_ALL_STATIC=1
-              rustc --version
-              cargo build --locked --release --target x86_64-unknown-linux-musl \
-                -p excalibur-control-center-gui \
-                -p excalibur-control-center-cli
-              install -Dm755 target/x86_64-unknown-linux-musl/release/excalibur-control-center-gui \
-                /workspace/release-assets/excalibur-control-center-gui
-              install -Dm755 target/x86_64-unknown-linux-musl/release/excalibur-control-center-cli \
-                /workspace/release-assets/excalibur-control-center-cli
-              file /workspace/release-assets/*
-              for binary in /workspace/release-assets/*; do
-                if readelf -l "$binary" | grep -q INTERP; then
-                  echo "Expected a static musl binary without an ELF interpreter: $binary" >&2
-                  exit 1
-                fi
-              done
-              stat -c "%n %s bytes" /workspace/release-assets/*
-              sha256sum /workspace/release-assets/*
-            '
+          rustc --version
+          cargo zigbuild --locked --release \
+            --target x86_64-unknown-linux-gnu.2.28 \
+            -p excalibur-control-center-gui \
+            -p excalibur-control-center-cli
+          install -m 0755 target/x86_64-unknown-linux-gnu/release/excalibur-control-center-gui \
+            "../$ASSET_DIR/excalibur-control-center-gui"
+          install -m 0755 target/x86_64-unknown-linux-gnu/release/excalibur-control-center-cli \
+            "../$ASSET_DIR/excalibur-control-center-cli"
+          file "../$ASSET_DIR"/*
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import subprocess
+          import sys
+
+          baseline = (2, 28)
+          for binary in pathlib.Path("../release-assets").iterdir():
+              output = subprocess.check_output(
+                  ["readelf", "--version-info", str(binary)], text=True
+              )
+              versions = {
+                  tuple(map(int, match.split(".")))
+                  for match in re.findall(r"GLIBC_(\d+\.\d+)", output)
+              }
+              required = max(versions, default=(0, 0))
+              print(f"{binary.name}: maximum GLIBC_{required[0]}.{required[1]}")
+              if required > baseline:
+                  print(f"{binary} exceeds the GLIBC_2.28 baseline", file=sys.stderr)
+                  sys.exit(1)
+          PY
+          stat -c "%n %s bytes" "../$ASSET_DIR"/*
+          sha256sum "../$ASSET_DIR"/*
 
       - name: Install nFPM
         working-directory: .
