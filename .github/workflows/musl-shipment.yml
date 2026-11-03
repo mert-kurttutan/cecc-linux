@@ -26,7 +26,8 @@ jobs:
             --workdir /workspace/excalibur-control-center \
             rust:alpine3.22 \
             sh -euxc '
-              apk add --no-cache build-base file fontconfig-dev fontconfig-static freetype-static libxkbcommon-dev pkgconf wayland-dev wayland-protocols
+              apk add --no-cache build-base brotli-static bzip2-static expat-static file fontconfig-dev fontconfig-static freetype-static libpng-static libxkbcommon-dev pkgconf wayland-dev wayland-protocols zlib-static
+              export PKG_CONFIG_ALL_STATIC=1
               rustc --version
               cargo build --locked --release --target x86_64-unknown-linux-musl \
                 -p excalibur-control-center-gui \
