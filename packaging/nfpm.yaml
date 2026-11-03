@@ -56,6 +56,11 @@ overrides:
   deb:
     depends:
       - bash
+      - libc6
+      - libfontconfig1
+      - libgcc-s1
+      - libwayland-client0
+      - libxkbcommon0
       - udev
       - dkms
       - build-essential
@@ -66,6 +71,11 @@ overrides:
   rpm:
     depends:
       - bash
+      - glibc
+      - fontconfig
+      - libgcc
+      - libwayland-client
+      - libxkbcommon
       - systemd-udev
       - dkms
       - gcc
